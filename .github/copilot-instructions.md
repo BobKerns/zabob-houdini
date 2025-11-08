@@ -24,6 +24,16 @@ Zabob-Houdini is a Python API for creating Houdini node graphs programmatically.
 
 ## Development Conventions
 
+### Response Guidelines
+- **Be concise and focused** in all responses to prevent context overflow
+- When performing code changes:
+  - Make minimal, targeted edits that address the specific request
+  - Avoid explaining what you're doing unless asked
+  - Don't repeat information already established in the conversation
+  - Skip verbose descriptions of obvious changes
+- **Inline chat spatial signals**: When user starts with "here," "this line," "on this line," etc., make surgical changes at that exact location only
+- **Context preservation**: Prioritize actionable content over explanatory text to maintain focus on technical work
+
 ### Python Standards
 - **Compatibility**: Requires Python 3.13+ (pyproject.toml), but developed with Python 3.14 (`.python-version`)
 - **Future type annotations**: May require Python 3.14+ features eventually, but maintains 3.13+ compatibility for now
