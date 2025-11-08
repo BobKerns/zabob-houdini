@@ -23,7 +23,7 @@ class NodeInstance:
     node_type: NodeType
     name: str | None = None
     attributes: dict[str, Any] | None = None
-    inputs: list['NodeInstance'] | None = None
+    inputs: list['NodeInstance | None'] | None = None
 
     def __post_init__(self) -> None:
         if self.attributes is None:
@@ -38,9 +38,61 @@ class NodeInstance:
         Returns:
             The created Houdini node object.
         """
-        # TODO: Implement actual Houdini node creation
-        # This will call hou module functions
-        raise NotImplementedError("Node creation not yet implemented")
+        try:
+            import hou
+        except ImportError:
+            raise ImportError(
+                "Houdini module 'hou' not available. "
+                "This function must be run within Houdini's Python environment."
+            )
+
+        # Resolve parent node
+        if isinstance(self.parent, str):
+            parent_node = hou.node(self.parent)
+            if parent_node is None:
+                raise ValueError(f"Parent node not found: {self.parent}")
+        elif isinstance(self.parent, NodeInstance):
+            # Parent is another NodeInstance - it should be created first
+            parent_node = self.parent.create()
+        else:
+            # Assume it's already a Houdini node
+            parent_node = self.parent
+
+        # Create the node
+        created_node = parent_node.createNode(self.node_type, self.name)
+
+        # Set attributes/parameters
+        if self.attributes:
+            try:
+                created_node.setParms(self.attributes)
+            except Exception as e:
+                print(f"Warning: Failed to set parameters: {e}")
+
+        # Connect inputs
+        if self.inputs:
+            for i, input_node in enumerate(self.inputs):
+                # Skip None inputs (for sparse input connections)
+                if input_node is None:
+                    continue
+
+                try:
+                    if isinstance(input_node, NodeInstance):
+                        # Input is a NodeInstance - create it first
+                        input_hou_node = input_node.create()
+                    else:
+                        # Must be an actual Houdini node - validate it
+                        if not hasattr(input_node, 'path') or not callable(getattr(input_node, 'path')):
+                            raise TypeError(
+                                f"Input {i} must be a NodeInstance or Houdini node object, "
+                                f"got {type(input_node).__name__}"
+                            )
+                        input_hou_node = input_node
+
+                    created_node.setInput(i, input_hou_node)
+                except Exception as e:
+                    print(f"Warning: Failed to connect input {i}: {e}")
+
+        return created_node
 
 
 @dataclass
@@ -54,7 +106,7 @@ class Chain:
     node_types: list[NodeType]
     name_prefix: str | None = None
     attributes: dict[str, Any] | None = None
-    inputs: list[NodeInstance] | None = None
+    inputs: list[NodeInstance | None] | None = None
 
     def __post_init__(self) -> None:
         if self.attributes is None:
@@ -78,7 +130,7 @@ def node(
     parent: NodeParent,
     node_type: NodeType,
     name: str | None = None,
-    _input: NodeInstance | list[NodeInstance] | None = None,
+    _input: NodeInstance | list[NodeInstance | None] | None = None,
     **attributes: Any
 ) -> NodeInstance:
     """
@@ -97,7 +149,7 @@ def node(
     inputs = []
     if _input is not None:
         if isinstance(_input, list):
-            inputs.extend(_input)
+            inputs.extend(_input)  # List can contain None values for sparse inputs
         else:
             inputs.append(_input)
 
@@ -113,7 +165,7 @@ def node(
 def chain(
     parent: NodeParent,
     *node_types: NodeType,
-    _input: NodeInstance | list[NodeInstance] | None = None,
+    _input: NodeInstance | list[NodeInstance | None] | None = None,
     name_prefix: str | None = None,
     **attributes: Any
 ) -> Chain:

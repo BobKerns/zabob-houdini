@@ -51,20 +51,31 @@ def test_node() -> None:
     Test creating a simple node (requires Houdini).
     """
     try:
-        import hou
+        from .core import node
         click.echo("Testing node creation...")
 
-        # TODO: Import and test the actual node() function
-        click.echo("✓ Simple node creation test")
-        click.echo("  (Full implementation pending)")
+        # Test node definition (should work without Houdini)
+        test_node = node("/obj", "geo", name="test_geometry")
+        click.echo("✓ Node definition created successfully")
+        click.echo(f"  Parent: {test_node.parent}")
+        click.echo(f"  Type: {test_node.node_type}")
+        click.echo(f"  Name: {test_node.name}")
 
-    except ImportError:
-        click.echo("✗ Cannot import Houdini module")
-        click.echo("  Run 'zabob-houdini validate' to check your setup")
+        # Test actual creation (requires Houdini)
+        click.echo("Testing node creation in Houdini...")
+        result = test_node.create()
+        click.echo("✓ Node created successfully in Houdini")
+        click.echo(f"  Created node: {result.path()}")
+
+    except ImportError as e:
+        if "hou" in str(e):
+            click.echo("✗ Cannot import Houdini module")
+            click.echo("  This test requires running within Houdini's Python environment")
+            click.echo("  Run 'zabob-houdini validate' to check your setup")
+        else:
+            click.echo(f"✗ Import error: {e}")
     except Exception as e:
         click.echo(f"✗ Test failed: {e}")
-
-
 @main.command()
 def validate() -> None:
     """
