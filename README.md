@@ -225,3 +225,46 @@ npx cspell README.md                # Check specific file
 ```
 
 **Note**: The spell checker is configured to ignore common paths like `.venv/`, `__pycache__/`, and build directories.
+
+### Markdown Linting
+
+The project uses markdownlint for consistent markdown formatting:
+
+- **Configuration**: `.markdownlint.json` and VS Code settings suppress overly strict rules (MD021, MD022)
+- **VS Code Integration**: Automatic linting as you edit markdown files
+- **Rules disabled**: MD013 (line length), MD021/MD022 (heading spacing), MD031/MD032 (block spacing) for better readability
+
+## Publishing to PyPI
+
+This package is automatically published to PyPI using GitHub Actions. For detailed setup instructions, see [docs/PYPI_SETUP.md](docs/PYPI_SETUP.md).
+
+### Quick Start
+
+**For releases:**
+1. Create and push a version tag:
+   ```bash
+   git tag v0.1.1
+   git push origin v0.1.1
+   ```
+2. The workflow automatically:
+   - Runs tests and checks
+   - Builds the package
+   - Publishes to PyPI
+   - Creates a GitHub release
+
+**For testing:**
+1. Use the manual workflow dispatch in GitHub Actions
+2. Select "testpypi" to publish to Test PyPI first
+3. Verify the package works correctly
+
+### Installation from PyPI
+
+Once published, users can install with:
+
+```bash
+# Using pip
+pip install zabob-houdini
+
+# Using uv
+uv add zabob-houdini
+```

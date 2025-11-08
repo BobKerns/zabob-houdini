@@ -1,0 +1,165 @@
+name: Publish to PyPI
+
+on:
+  # Trigger on tags that look like version numbers
+  push:
+    tags:
+      - 'v*.*.*'
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      pypi_repository:
+        description: 'PyPI repository to publish to'
+        required: true
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
+
+permissions:
+  contents: read
+  id-token: write  # Required for trusted publishing
+
+jobs:
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install UV
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run tests
+      run: uv run pytest tests/ -v
+
+    - name: Run spell check
+      run: |
+        npm install
+        npm run spell-check
+
+    - name: Build package
+      run: uv build
+
+    - name: Verify package contents
+      run: |
+        echo "Built packages:"
+        ls -la dist/
+        echo "Package info:"
+        uv run python -m tarfile -l dist/*.tar.gz
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+        retention-days: 7
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.pypi_repository == 'testpypi'
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/zabob-houdini
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        print-hash: true
+
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.pypi_repository == 'pypi')
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/zabob-houdini
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        print-hash: true
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: publish-pypi
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Extract version from tag
+      id: version
+      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Release v${{ steps.version.outputs.version }}
+        body: |
+          ## Zabob-Houdini v${{ steps.version.outputs.version }}
+
+          This release has been automatically published to PyPI.
+
+          ### Installation
+          ```bash
+          pip install zabob-houdini==${{ steps.version.outputs.version }}
+          ```
+
+          ### Development Installation
+          ```bash
+          uv add zabob-houdini==${{ steps.version.outputs.version }}
+          ```
+
+          See the [CHANGELOG](CHANGELOG.md) for details about this release.
+        files: dist/*
+        draft: false
+        prerelease: false
+        make_latest: true

@@ -3,14 +3,32 @@ name = "zabob-houdini"
 version = "0.1.0"
 description = "A simple API for creating Houdini node graphs programmatically"
 readme = "README.md"
+license = { text = "MIT" }
 authors = [
     { name = "Bob Kerns", email = "1154903+BobKerns@users.noreply.github.com" }
 ]
 requires-python = ">=3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["houdini", "3d", "graphics", "procedural", "node-graph", "vfx"]
 dependencies = [
     "click>=8.0.0",
     "pytest>=7.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/BobKerns/zabob-houdini"
+Repository = "https://github.com/BobKerns/zabob-houdini"
+Issues = "https://github.com/BobKerns/zabob-houdini/issues"
+Documentation = "https://github.com/BobKerns/zabob-houdini#readme"
 
 [project.scripts]
 zabob-houdini = "zabob_houdini:main"
@@ -22,4 +40,5 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "mypy>=1.18.2",
+    "twine>=5.0.0",
 ]

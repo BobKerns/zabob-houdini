@@ -21,6 +21,8 @@ nurbs
 Parms
 pycache
 pylint
+pypa
+PyPI
 pyproject
 pytest
 PYTHONPATH
@@ -32,8 +34,10 @@ simdata
 sizex
 sizey
 sizez
+softprops
 testbox
 testgeo
+TestPyPI
 timeclass
 timestep
 undos

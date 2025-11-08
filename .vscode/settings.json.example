@@ -23,7 +23,21 @@
     "python.analysis.autoImportCompletions": true,
 
     // Enhanced Houdini type hints
-    "python.analysis.stubPath": "${workspaceFolder}/stubs"
+    "python.analysis.stubPath": "${workspaceFolder}/stubs",
+
+    // Markdown linting configuration - suppress overly strict formatting rules
+    // MD013: Line length (overly restrictive for documentation)
+    // MD021: Multiple spaces inside hashes on closed ATX style headings
+    // MD022: Headings should be surrounded by blank lines
+    // MD031: Fenced code blocks should be surrounded by blank lines
+    // MD032: Lists should be surrounded by blank lines
+    "markdownlint.config": {
+        "MD013": false,
+        "MD021": false,
+        "MD022": false,
+        "MD031": false,
+        "MD032": false
+    }
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,
