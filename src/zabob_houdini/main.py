@@ -46,6 +46,26 @@ def list_types(category: Optional[str]) -> None:
 
 
 @main.command()
+def test_node() -> None:
+    """
+    Test creating a simple node (requires Houdini).
+    """
+    try:
+        import hou
+        click.echo("Testing node creation...")
+
+        # TODO: Import and test the actual node() function
+        click.echo("✓ Simple node creation test")
+        click.echo("  (Full implementation pending)")
+
+    except ImportError:
+        click.echo("✗ Cannot import Houdini module")
+        click.echo("  Run 'zabob-houdini validate' to check your setup")
+    except Exception as e:
+        click.echo(f"✗ Test failed: {e}")
+
+
+@main.command()
 def validate() -> None:
     """
     Validate Houdini installation and Python environment.
