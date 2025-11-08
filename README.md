@@ -12,7 +12,13 @@ The parent can be:
 
 Special keyword attributes include `_input`, which supply 0 or more input nodes to connect.
 
-The function `chain` takes a parent node (as for node), sequence of nodes, and connects them in a linear graph. It takes a _input argument, allowing it to be directly connected to another node. It can be supplied as an `_input` to another node or chain. If supplied as a node in a sequence, it is copied and spliced in at that point. A Chain is returned.
+The function `chain` takes a parent node (as for node), a sequence of nodes (NodeInstance objects, actual Houdini nodes, or Chain objects), and connects them in a linear graph. Chain objects are copied and spliced into the sequence. It takes a _input argument, allowing it to be directly connected to another node. The purpose of `chain` is to simplify the common case of a linear sequence of nodes. A Chain is returned.
+
+A Chain object is indexable:
+
+- **By integer**: `chain[0]` returns the first node in the chain
+- **By slice**: `chain[1:3]` returns a new Chain with the subset of nodes
+- **By name**: `chain["nodename"]` returns the node with that name
 
 A `NodeInstance` or `Chain` is instantiated by calling the `.create` method.
 
@@ -28,8 +34,22 @@ geo_node = node("/obj", "geo", name="mygeometry")
 box_node = node(geo_node, "box", name="mybox")
 transform_node = node(geo_node, "xform", name="mytransform", _input=box_node)
 
-# Or create a chain of nodes
-processing_chain = chain(geo_node, "box", "xform", "subdivide", name_prefix="proc")
+# Or create a chain of nodes for linear processing
+box_node2 = node(geo_node, "box", name="source")
+xform_node = node(geo_node, "xform", name="transform")
+subdivide_node = node(geo_node, "subdivide", name="refine")
+processing_chain = chain(geo_node, box_node2, xform_node, subdivide_node)
+
+# Chains can also include other chains (spliced in)
+detail_chain = chain(geo_node,
+                    node(geo_node, "normal"),
+                    processing_chain,  # This chain is spliced in
+                    node(geo_node, "output"))
+
+# Access nodes in the chain
+first_node = processing_chain[0]              # First node (source box)
+subset_chain = processing_chain[1:3]          # New Chain with subset (transform, refine)
+named_node = processing_chain["transform"]    # Node by name
 
 # Create the nodes in Houdini
 geo_instance = geo_node.create()
