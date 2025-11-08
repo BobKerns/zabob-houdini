@@ -2,13 +2,41 @@
 
 ## Basics
 
-The core function is `node`, which takes a `NodeType`, an optional name, and keyword attributes for the node. A NodeInstance is returned.
+The core function is `node`, which takes a parent, a `NodeType`, an optional name, and keyword attributes for the node. A NodeInstance is returned.
+
+The parent can be:
+
+- A literal path string such as `"/obj"`
+- A more general node path string like `"/obj/geo1"`
+- An actual Houdini node object
 
 Special keyword attributes include `_input`, which supply 0 or more input nodes to connect.
 
-The function `chain` takes a sequence of nodes, and connects them in a linear graph. It takes a _input argument, allowing it to be directly connected to another node. It can be supplied as an `_input` to another node or chain. If supplied as a node in a sequence, it is copied and spliced in at that point. A Chain is returned.
+The function `chain` takes a parent node (as for node), sequence of nodes, and connects them in a linear graph. It takes a _input argument, allowing it to be directly connected to another node. It can be supplied as an `_input` to another node or chain. If supplied as a node in a sequence, it is copied and spliced in at that point. A Chain is returned.
 
 A `NodeInstance` or `Chain` is instantiated by calling the `.create` method.
+
+## Example Usage
+
+```python
+from zabob_houdini import node, chain
+
+# Create a geometry container in /obj
+geo_node = node("/obj", "geo", name="mygeometry")
+
+# Create individual SOP nodes
+box_node = node(geo_node, "box", name="mybox")
+transform_node = node(geo_node, "xform", name="mytransform", _input=box_node)
+
+# Or create a chain of nodes
+processing_chain = chain(geo_node, "box", "xform", "subdivide", name_prefix="proc")
+
+# Create the nodes in Houdini
+geo_instance = geo_node.create()
+box_instance = box_node.create()
+transform_instance = transform_node.create()
+chain_instance = processing_chain.create()
+```
 
 ## Development Setup
 
