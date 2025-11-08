@@ -1,0 +1,13 @@
+{
+  "name": "zabob-houdini",
+  "private": true,
+  "description": "A simple API for creating Houdini node graphs programmatically",
+  "scripts": {
+    "spell-check": "cspell \"**/*.{py,md,txt,json}\" --no-progress",
+    "spell-check-files": "cspell \"**/*.{py,md,txt,json}\" --show-context",
+    "spell-check-verbose": "cspell \"**/*.{py,md,txt,json}\" --verbose"
+  },
+  "devDependencies": {
+    "cspell": "^9.3.0"
+  }
+}

@@ -1,0 +1,32 @@
+{
+    // === Project-specific settings for Zabob-Houdini ===
+    // Copy this file to settings.json to get started, then add your personal preferences
+
+    // Spell checking with project dictionary
+    "cSpell.customDictionaries": {
+        "project-dictionary": {
+            "name": "project-dictionary",
+            "path": "${workspaceFolder}/.vscode/project-dictionary.txt",
+            "description": "Project-specific dictionary for Zabob-Houdini",
+            "addWords": true
+        }
+    },
+
+    // Python environment configuration
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.envFile": "${workspaceFolder}/.env",
+
+    // Houdini integration for IntelliSense
+    "python.analysis.extraPaths": [
+        "${env:HOUDINI_PATH}/houdini/python3.11libs"
+    ],
+    "python.analysis.autoImportCompletions": true,
+
+    // Enhanced Houdini type hints
+    "python.analysis.stubPath": "${workspaceFolder}/stubs"
+
+    // === Add your personal settings below ===
+    // "editor.fontSize": 14,
+    // "editor.theme": "your-favorite-theme",
+    // "python.formatting.provider": "black"
+}

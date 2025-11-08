@@ -74,3 +74,10 @@ The project is in early development - the README describes the intended API, but
 - **Modern Python**: Leverage Python 3.13+ features like improved type hints and pattern matching
 - No CI/CD setup yet - runs as console application via entry point
 - Development should focus on implementing the API described in README.md first
+
+## VS Code Configuration Management
+- **Personal Settings**: `.vscode/settings.json` is personal (not committed) and created from `.vscode/settings.json.example`
+- **Template Sync**: When `.vscode/settings.json` is modified with project-relevant changes, remind the user to update `.vscode/settings.json.example` for other contributors
+- **Project Files**: `.vscode/project-dictionary.txt`, `.vscode/extensions.json`, and `.vscode/setup-vscode.sh` are committed
+- **Setup Script**: New contributors use `./.vscode/setup-vscode.sh` for automated setup
+- **Spell Checking**: Uses cSpell with project dictionary - add technical terms to `.vscode/project-dictionary.txt`

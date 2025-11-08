@@ -136,3 +136,92 @@ copy .env.example.windows .env
 ```
 
 Each example file contains common installation paths for that platform. Edit `.env` if your Houdini installation is in a different location.
+
+### VS Code Configuration
+
+The project includes VS Code configuration for optimal development experience:
+
+**Quick Setup (Recommended):**
+
+```bash
+# Automated setup script
+./.vscode/setup-vscode.sh
+```
+
+**Manual Setup:**
+
+```bash
+# Copy the example settings to create your personal settings
+cp .vscode/settings.json.example .vscode/settings.json
+```
+
+**What's included in the example settings:**
+
+- **cSpell Integration**: Project dictionary for spell checking
+- **Python Environment**: Automatic virtual environment detection
+- **Houdini Integration**: Path to Houdini Python libraries for IntelliSense
+- **Type Stubs**: Enhanced Houdini type hints from `stubs/` directory
+
+**Personal Overrides:**
+
+Your personal `.vscode/settings.json` won't be committed, so you can safely add:
+
+```jsonc
+{
+    // Project settings (from example) - keep these for best experience
+    "cSpell.customDictionaries": { /* ... */ },
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+
+    // Add your personal preferences
+    "editor.fontSize": 14,
+    "editor.theme": "your-favorite-theme",
+    "python.formatting.provider": "black",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true
+}
+```
+
+**Alternative: Workspace-only settings:**
+
+If you prefer not to modify your personal settings, you can create a workspace-specific configuration by pressing `Ctrl/Cmd + Shift + P` and selecting `Preferences: Open Workspace Settings (JSON)`.
+
+**Why this approach?**
+
+- **No forced settings**: Your personal VS Code preferences won't be overridden
+- **Easy onboarding**: New contributors can get started quickly with the setup script
+- **Shared essentials**: Project-specific configurations (dictionaries, paths) are shared
+- **Personal freedom**: Add your own preferences without affecting others
+
+### Code Spell Checking (cSpell)
+
+The project includes spell checking configuration for VS Code and command-line tools:
+
+- **Dictionary**: `.vscode/project-dictionary.txt` contains project-specific words
+- **Configuration**: `cspell.json` provides comprehensive spell checking settings
+- **VS Code Integration**: Words are automatically validated as you type
+
+**Adding new words to the dictionary:**
+
+1. In VS Code, right-click on a misspelled word and select "Add to project dictionary"
+2. Or manually add words to `.vscode/project-dictionary.txt` (one word per line)
+3. Or use the command line:
+
+   ```bash
+   echo "yourword" >> .vscode/project-dictionary.txt
+   ```
+
+**Running spell check manually:**
+
+```bash
+# Using npm scripts (recommended)
+npm install                      # Install cSpell first
+npm run spell-check              # Check all files (quiet)
+npm run spell-check-files        # Check with file context
+npm run spell-check-verbose      # Check with verbose output
+
+# Or using npx directly
+npx cspell "**/*.{py,md,txt,json}"  # Check all files
+npx cspell README.md                # Check specific file
+```
+
+**Note**: The spell checker is configured to ignore common paths like `.venv/`, `__pycache__/`, and build directories.

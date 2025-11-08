@@ -58,11 +58,21 @@ venv.bak/
 .env.local
 
 # IDEs
-.vscode/
 .idea/
 *.swp
 *.swo
 *~
+
+# VS Code - ignore personal settings but keep project files
+.vscode/settings.json
+.vscode/launch.json
+# Keep: .vscode/settings.json.example, .vscode/project-dictionary.txt
+
+# Node.js (for cSpell)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store

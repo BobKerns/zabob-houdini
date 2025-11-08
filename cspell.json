@@ -1,0 +1,47 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [],
+  "dictionaries": [
+    "project-dictionary"
+  ],
+  "dictionaryDefinitions": [
+    {
+      "name": "project-dictionary",
+      "path": "./.vscode/project-dictionary.txt",
+      "description": "Project-specific dictionary for Zabob-Houdini",
+      "addWords": true
+    }
+  ],
+  "ignorePaths": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/.venv/**",
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/dist/**",
+    "**/build/**",
+    "**/.pytest_cache/**",
+    "**/htmlcov/**",
+    "**/.coverage",
+    "**/uv.lock"
+  ],
+  "languageSettings": [
+    {
+      "languageId": "python",
+      "caseSensitive": false,
+      "dictionaries": [
+        "python",
+        "project-dictionary"
+      ]
+    },
+    {
+      "languageId": "markdown",
+      "caseSensitive": false,
+      "dictionaries": [
+        "en_US",
+        "project-dictionary"
+      ]
+    }
+  ]
+}
