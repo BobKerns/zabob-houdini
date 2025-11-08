@@ -134,6 +134,69 @@ def test_node() -> None:
             click.echo(f"✗ Import error: {e}")
     except Exception as e:
         click.echo(f"✗ Test failed: {e}")
+
+
+@main.command()
+def test_chain() -> None:
+    """
+    Test creating and using chains.
+    """
+    if not HOUDINI_AVAILABLE:
+        click.echo("ℹ  Running in development mode")
+        click.echo("  For actual chain creation, use zabob-houdini within Houdini")
+        click.echo()
+
+    try:
+        from .core import node, chain
+        click.echo("Testing chain functionality...")
+
+        # Test basic chain creation
+        box_node = node("/obj/geo1", "box", name="source")
+        xform_node = node("/obj/geo1", "xform", name="transform")
+        subdivide_node = node("/obj/geo1", "subdivide", name="refine")
+
+        test_chain = chain("/obj/geo1", box_node, xform_node, subdivide_node)
+        click.echo("✓ Chain definition created successfully")
+        click.echo(f"  Chain length: {len(test_chain)}")
+
+        # Test indexing
+        click.echo("✓ Chain indexing:")
+        click.echo(f"  First node: {test_chain[0].name}")
+        click.echo(f"  Last node: {test_chain[-1].name}")
+        click.echo(f"  Node by name 'transform': {test_chain['transform'].name}")
+
+        # Test slicing
+        subset = test_chain[1:3]
+        click.echo(f"  Slice [1:3] has {len(subset)} nodes")
+
+        # Test chain splicing
+        normal_node = node("/obj/geo1", "normal", name="normals")
+        output_node = node("/obj/geo1", "output", name="output")
+        master_chain = chain("/obj/geo1", normal_node, test_chain, output_node)
+
+        click.echo(f"✓ Chain splicing: master chain has {len(master_chain)} nodes")
+
+        # Test actual creation (requires Houdini)
+        if HOUDINI_AVAILABLE:
+            click.echo("Testing chain creation in Houdini...")
+            result = test_chain.create()
+            click.echo("✓ Chain created successfully in Houdini")
+            click.echo(f"  Created {len(result)} nodes")
+        else:
+            click.echo("⚠  Skipping Houdini chain creation (Houdini not available)")
+            click.echo("  Chain definition is valid and ready for .create() call")
+
+    except ImportError as e:
+        if "hou" in str(e):
+            click.echo("ℹ  Cannot import Houdini module (expected in development mode)")
+            click.echo("  Use zabob-houdini within Houdini's Python environment for chain creation")
+        elif "core" in str(e):
+            click.echo("✗ Cannot import zabob_houdini.core module")
+            click.echo("  The core API module may not be implemented yet")
+        else:
+            click.echo(f"✗ Import error: {e}")
+    except Exception as e:
+        click.echo(f"✗ Test failed: {e}")
 @main.command()
 def info() -> None:
     """

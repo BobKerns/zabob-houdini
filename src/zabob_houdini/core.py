@@ -2,7 +2,7 @@
 Core Zabob-Houdini API for creating Houdini node graphs.
 """
 
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, Union, overload
 from dataclasses import dataclass
 
 
@@ -12,6 +12,26 @@ NodeParent: TypeAlias = 'str | NodeInstance'
 
 NodeType: TypeAlias = str
 """A Houdini node type name (e.g., "geo", "box", "xform"). Will expand to NodeTypeInstance later."""
+
+
+def _import_hou():
+    """
+    Import and return the Houdini hou module.
+
+    Returns:
+        The hou module if available.
+
+    Raises:
+        ImportError: If the hou module is not available.
+    """
+    try:
+        import hou
+        return hou
+    except ImportError:
+        raise ImportError(
+            "Houdini module 'hou' not available. "
+            "This function must be run within Houdini's Python environment."
+        )
 
 
 @dataclass
@@ -41,25 +61,25 @@ class NodeInstance:
         Returns:
             The created Houdini node object.
         """
-        try:
-            import hou
-        except ImportError:
-            raise ImportError(
-                "Houdini module 'hou' not available. "
-                "This function must be run within Houdini's Python environment."
-            )
+        hou = _import_hou()
 
         # Resolve parent node
-        if isinstance(self.parent, str):
-            parent_node = hou.node(self.parent)
-            if parent_node is None:
-                raise ValueError(f"Parent node not found: {self.parent}")
-        elif isinstance(self.parent, NodeInstance):
-            # Parent is another NodeInstance - it should be created first
-            parent_node = self.parent.create()
-        else:
-            # Assume it's already a Houdini node
-            parent_node = self.parent
+        match self.parent:
+            case str() as parent_path:
+                parent_node = hou.node(parent_path)
+                if parent_node is None:
+                    raise ValueError(f"Parent node not found: {parent_path}")
+            case NodeInstance() as parent_instance:
+                # Parent is another NodeInstance - it should be created first
+                parent_node = parent_instance.create()
+            case _ if isinstance(self.parent, hou.Node):
+                # It's already a Houdini node
+                parent_node = self.parent
+            case _:
+                raise TypeError(
+                    f"Parent must be a path string, NodeInstance, or hou.Node object, "
+                    f"got {type(self.parent).__name__}"
+                )
 
         # Create the node
         created_node = parent_node.createNode(self.node_type, self.name)
@@ -79,18 +99,18 @@ class NodeInstance:
                     continue
 
                 try:
-                    if isinstance(input_node, NodeInstance):
-                        # Input is a NodeInstance - create it first
-                        input_hou_node = input_node.create()
-                    else:
-                        # Must be an actual Houdini node - validate it
-                        if not hasattr(input_node, 'path') or not callable(getattr(input_node, 'path')):
+                    match input_node:
+                        case NodeInstance() as node_instance:
+                            # Input is a NodeInstance - create it first
+                            input_hou_node = node_instance.create()
+                        case _ if hasattr(input_node, 'path') and hasattr(input_node, 'type'):
+                            # It's likely a Houdini node object
+                            input_hou_node = input_node
+                        case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance or Houdini node object, "
                                 f"got {type(input_node).__name__}"
                             )
-                        input_hou_node = input_node
-
                     created_node.setInput(i, input_hou_node)
                 except Exception as e:
                     print(f"Warning: Failed to connect input {i}: {e}")
@@ -106,7 +126,7 @@ class Chain:
     Nodes in the chain are automatically connected in sequence.
     """
     parent: NodeParent
-    node_types: list[NodeType]
+    nodes: list[Union['NodeInstance', 'Chain']]
     name_prefix: str | None = None
     attributes: dict[str, Any] | None = None
     inputs: list[NodeInstance | None] | None = None
@@ -117,16 +137,154 @@ class Chain:
         if self.inputs is None:
             self.inputs = []
 
+    def _flatten_nodes(self) -> list['NodeInstance']:
+        """
+        Flatten the chain, splicing in any Chain objects.
+
+        Returns:
+            A flat list of NodeInstance objects.
+        """
+        flattened = []
+        for item in self.nodes:
+            match item:
+                case Chain():
+                    # Splice in the chain - flatten it and add its nodes
+                    flattened.extend(item._flatten_nodes())
+                case NodeInstance():
+                    # It's already a NodeInstance
+                    flattened.append(item)
+                case _:
+                    # Check if it's a Houdini node (only if hou is available)
+                    try:
+                        hou = _import_hou()
+                        if isinstance(item, hou.Node):
+                            # It's a Houdini node - wrap it in a NodeInstance
+                            node_path = item.path()
+                            parent_path = '/'.join(node_path.split('/')[:-1]) or '/'
+                            node_name = node_path.split('/')[-1]
+                            wrapped = NodeInstance(
+                                parent=parent_path,
+                                node_type=item.type().name(),
+                                name=node_name
+                            )
+                            flattened.append(wrapped)
+                        else:
+                            raise TypeError(
+                                f"Chain nodes must be NodeInstance, Chain, or hou.Node objects, "
+                                f"got {type(item).__name__}"
+                            )
+                    except ImportError:
+                        # If hou is not available, this can't be a Houdini node
+                        raise TypeError(
+                            f"Chain nodes must be NodeInstance or Chain objects when hou is not available, "
+                            f"got {type(item).__name__}"
+                        )
+        return flattened
+
+    @overload
+    def __getitem__(self, key: int) -> 'NodeInstance': ...
+
+    @overload
+    def __getitem__(self, key: slice) -> 'Chain': ...
+
+    @overload
+    def __getitem__(self, key: str) -> 'NodeInstance': ...
+
+    def __getitem__(self, key: Union[int, slice, str]) -> Union['NodeInstance', 'Chain']:
+        """
+        Access nodes in the chain by index, slice, or name.
+
+        Args:
+            key: Integer index, slice, or node name string
+
+        Returns:
+            NodeInstance for int/str keys, Chain for slice keys
+        """
+        flattened = self._flatten_nodes()
+
+        match key:
+            case int() as index:
+                return flattened[index]
+            case slice() as slice_obj:
+                # Return a new Chain with the subset of nodes
+                subset = flattened[slice_obj]
+                # Cast to the union type to satisfy type checker
+                subset_nodes: list[Union['NodeInstance', 'Chain']] = list(subset)
+                return Chain(
+                    parent=self.parent,
+                    nodes=subset_nodes,
+                    name_prefix=self.name_prefix,
+                    attributes=self.attributes.copy() if self.attributes else None,
+                    inputs=self.inputs.copy() if self.inputs else None
+                )
+            case str() as name:
+                # Find node by name
+                for node_instance in flattened:
+                    if node_instance.name == name:
+                        return node_instance
+                raise KeyError(f"No node found with name '{name}'")
+            case _:
+                raise TypeError(f"Chain indices must be integers, slices, or strings, not {type(key).__name__}")
+
+    def __len__(self) -> int:
+        """Return the number of nodes in the flattened chain."""
+        return len(self._flatten_nodes())
+
     def create(self) -> list[Any]:
         """
         Create the actual chain of Houdini nodes.
 
         Returns:
-            List of created Houdini node objects.
+            List of created Houdini node objects in order.
         """
-        # TODO: Implement actual chain creation
-        # This will create nodes and connect them in sequence
-        raise NotImplementedError("Chain creation not yet implemented")
+        hou = _import_hou()
+
+        flattened_nodes = self._flatten_nodes()
+        if not flattened_nodes:
+            return []
+
+        created_nodes = []
+        previous_node = None
+
+        # Handle inputs to the first node in the chain
+        if self.inputs:
+            # Set up inputs for the first node
+            first_node = flattened_nodes[0]
+            if first_node.inputs:
+                # Extend existing inputs
+                first_node.inputs.extend(self.inputs)
+            else:
+                first_node.inputs = self.inputs.copy()
+
+        # Create each node and connect them in sequence
+        for i, node_instance in enumerate(flattened_nodes):
+            # Make a copy to avoid modifying the original
+            node_copy = NodeInstance(
+                parent=node_instance.parent,
+                node_type=node_instance.node_type,
+                name=node_instance.name,
+                attributes=node_instance.attributes.copy() if node_instance.attributes else {},
+                inputs=node_instance.inputs.copy() if node_instance.inputs else []
+            )
+
+            # Connect to previous node if this isn't the first node
+            if i > 0 and previous_node is not None:
+                # Add the previous node as input (at index 0)
+                if node_copy.inputs:
+                    # Insert at the beginning to maintain primary input at 0
+                    node_copy.inputs.insert(0, previous_node)
+                else:
+                    node_copy.inputs = [previous_node]
+
+            # Create the node
+            created_node = node_copy.create()
+            created_nodes.append(created_node)
+
+            # For the next iteration, we need to pass the actual created Houdini node
+            # as input. We'll store it directly as the previous_node reference.
+            previous_node = created_node
+
+        return created_nodes
 
 
 def node(
@@ -151,10 +309,11 @@ def node(
     """
     inputs = []
     if _input is not None:
-        if isinstance(_input, list):
-            inputs.extend(_input)  # List can contain None values for sparse inputs
-        else:
-            inputs.append(_input)
+        match _input:
+            case list() as input_list:
+                inputs.extend(input_list)  # List can contain None values for sparse inputs
+            case _ as single_input:
+                inputs.append(single_input)
 
     return NodeInstance(
         parent=parent,
@@ -167,7 +326,7 @@ def node(
 
 def chain(
     parent: NodeParent,
-    *node_types: NodeType,
+    *nodes: Union[NodeInstance, 'Chain'],
     _input: NodeInstance | list[NodeInstance | None] | None = None,
     name_prefix: str | None = None,
     **attributes: Any
@@ -177,7 +336,7 @@ def chain(
 
     Args:
         parent: Parent node (path string or NodeInstance)
-        *node_types: Sequence of node types to chain together
+        *nodes: Sequence of NodeInstance objects, Chain objects, or Houdini nodes to chain together
         _input: Optional input node(s) to connect to start of chain
         name_prefix: Optional prefix for generated node names
         **attributes: Shared attributes for all nodes in chain
@@ -187,14 +346,15 @@ def chain(
     """
     inputs = []
     if _input is not None:
-        if isinstance(_input, list):
-            inputs.extend(_input)
-        else:
-            inputs.append(_input)
+        match _input:
+            case list() as input_list:
+                inputs.extend(input_list)
+            case _ as single_input:
+                inputs.append(single_input)
 
     return Chain(
         parent=parent,
-        node_types=list(node_types),
+        nodes=list(nodes),
         name_prefix=name_prefix,
         attributes=attributes,
         inputs=inputs
