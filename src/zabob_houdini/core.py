@@ -2,13 +2,16 @@
 Core Zabob-Houdini API for creating Houdini node graphs.
 """
 
-from typing import Any
+from typing import Any, TypeAlias
 from dataclasses import dataclass
 
 
 # Type aliases for clarity
-type NodeParent = 'str | NodeInstance'
-type NodeType = str  # Initially strings, will expand to NodeTypeInstance later
+NodeParent: TypeAlias = 'str | NodeInstance'
+"""A parent node, either as a path string (e.g., "/obj") or an existing NodeInstance."""
+
+NodeType: TypeAlias = str
+"""A Houdini node type name (e.g., "geo", "box", "xform"). Will expand to NodeTypeInstance later."""
 
 
 @dataclass

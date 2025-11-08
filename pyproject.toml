@@ -7,12 +7,14 @@ license = { text = "MIT" }
 authors = [
     { name = "Bob Kerns", email = "1154903+BobKerns@users.noreply.github.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Multimedia :: Graphics :: 3D Modeling",
@@ -31,7 +33,7 @@ Issues = "https://github.com/BobKerns/zabob-houdini/issues"
 Documentation = "https://github.com/BobKerns/zabob-houdini#readme"
 
 [project.scripts]
-zabob-houdini = "zabob_houdini:main"
+zabob-houdini = "zabob_houdini.cli:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -4,7 +4,7 @@ Zabob-Houdini: A simple API for creating Houdini node graphs.
 
 from importlib.metadata import version, PackageNotFoundError
 
-from .main import main
+from .cli import main
 from .core import node, chain, NodeInstance, Chain
 
 try:

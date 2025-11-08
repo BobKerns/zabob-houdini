@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "click>=8.0.0",
+#     "typing-extensions>=4.0.0",
+# ]
+# ///
+"""
+Zabob-Houdini CLI - Simple utilities for development and testing.
+
+Note: hython has severe virtual environment compatibility issues due to
+linked symbol requirements. This CLI is designed for development and testing
+with regular Python. For actual Houdini node creation, use the package
+within Houdini's Python shelf tools or HDA scripts.
+"""
+
+import click
+import os
+import sys
+from typing import Optional
+
+try:
+    import hou
+    HOUDINI_AVAILABLE = True
+except ImportError:
+    HOUDINI_AVAILABLE = False
+    hou = None  # type: ignore
+
+
+def get_environment_info() -> dict[str, str]:
+    """Get information about the current Python and Houdini environment."""
+    info = {
+        'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        'python_executable': sys.executable or 'unknown',
+        'platform': sys.platform,
+        'houdini_available': str(HOUDINI_AVAILABLE),
+    }
+
+    # Add Houdini-specific info if available
+    if HOUDINI_AVAILABLE and hou:
+        try:
+            info.update({
+                'houdini_app': hou.applicationName(),
+                'houdini_version': '.'.join(map(str, hou.applicationVersion())),
+                'houdini_build': hou.applicationVersionString(),
+            })
+        except Exception as e:
+            info['houdini_error'] = str(e)
+
+    return info
+
+
+@click.group()
+@click.version_option(version="0.1.0", prog_name="zabob-houdini")
+def main() -> None:
+    """
+    Zabob-Houdini development utilities.
+
+    Simple CLI for validating Houdini integration and listing node types.
+    """
+    pass
+
+
+@main.command()
+@click.option(
+    "--category", "-c",
+    type=click.Choice(["sop", "obj", "dop", "cop", "vop", "top"], case_sensitive=False),
+    help="Filter by node category"
+)
+def list_types(category: Optional[str]) -> None:
+    """
+    List available Houdini node types.
+    """
+    try:
+        # TODO: Import your existing node enumeration code here
+        if category:
+            click.echo(f"Available {category.upper()} node types:")
+            # TODO: Call your enumeration function with category filter
+            click.echo("Node type enumeration not yet implemented")
+        else:
+            click.echo("Available node types:")
+            # TODO: Call your enumeration function for all types
+            click.echo("Node type enumeration not yet implemented")
+
+    except ImportError:
+        click.echo("✗ Cannot access Houdini module. Check your environment setup.")
+    except Exception as e:
+        click.echo(f"✗ Error listing node types: {e}")
+
+
+@main.command()
+def test_node() -> None:
+    """
+    Test creating a simple node (requires Houdini).
+    """
+    if not HOUDINI_AVAILABLE:
+        click.echo("ℹ  Running in development mode")
+        click.echo("  For actual node creation, use zabob-houdini within Houdini:")
+        click.echo("  - Python shelf tools")
+        click.echo("  - HDA script sections")
+        click.echo("  - Houdini's built-in Python shell")
+        click.echo()
+
+    try:
+        from .core import node
+        click.echo("Testing node creation...")
+
+        # Test node definition (should work without Houdini)
+        test_node = node("/obj", "geo", name="test_geometry")
+        click.echo("✓ Node definition created successfully")
+        click.echo(f"  Parent: {test_node.parent}")
+        click.echo(f"  Type: {test_node.node_type}")
+        click.echo(f"  Name: {test_node.name}")
+
+        # Test actual creation (requires Houdini)
+        if HOUDINI_AVAILABLE:
+            click.echo("Testing node creation in Houdini...")
+            result = test_node.create()
+            click.echo("✓ Node created successfully in Houdini")
+            click.echo(f"  Created node: {result.path()}")
+        else:
+            click.echo("⚠  Skipping Houdini node creation (Houdini not available)")
+            click.echo("  Node definition is valid and ready for .create() call")
+
+    except ImportError as e:
+        if "hou" in str(e):
+            click.echo("ℹ  Cannot import Houdini module (expected in development mode)")
+            click.echo("  Use zabob-houdini within Houdini's Python environment for node creation")
+        elif "core" in str(e):
+            click.echo("✗ Cannot import zabob_houdini.core module")
+            click.echo("  The core API module may not be implemented yet")
+        else:
+            click.echo(f"✗ Import error: {e}")
+    except Exception as e:
+        click.echo(f"✗ Test failed: {e}")
+@main.command()
+def info() -> None:
+    """
+    Display Python and Houdini environment information.
+    """
+    click.echo("Environment Information:")
+    click.echo("=" * 50)
+
+    env_info = get_environment_info()
+
+    # Python info
+    click.echo(f"Python Version: {env_info['python_version']}")
+    click.echo(f"Python Executable: {env_info['python_executable']}")
+    click.echo(f"Platform: {env_info['platform']}")
+    click.echo(f"Houdini Available: {env_info['houdini_available']}")
+
+    # Houdini info if available
+    if HOUDINI_AVAILABLE:
+        click.echo("\nHoudini Information:")
+        click.echo("-" * 30)
+        if 'houdini_app' in env_info:
+            click.echo(f"Application: {env_info['houdini_app']}")
+            click.echo(f"Version: {env_info['houdini_version']}")
+            click.echo(f"Build: {env_info['houdini_build']}")
+        if 'houdini_error' in env_info:
+            click.echo(f"Error: {env_info['houdini_error']}")
+
+    # Environment variables
+    click.echo("\nEnvironment Variables:")
+    click.echo("-" * 30)
+    houdini_path = os.getenv("HOUDINI_PATH")
+    if houdini_path:
+        click.echo(f"HOUDINI_PATH: {houdini_path}")
+    else:
+        click.echo("HOUDINI_PATH: Not set")
+
+    pythonpath = os.getenv("PYTHONPATH")
+    if pythonpath:
+        click.echo(f"PYTHONPATH: {pythonpath}")
+    else:
+        click.echo("PYTHONPATH: Not set")
+
+
+@main.command()
+def validate() -> None:
+    """
+    Validate Houdini installation and Python environment.
+    """
+    click.echo("Validating Houdini integration...")
+
+    if HOUDINI_AVAILABLE:
+        click.echo("✓ Houdini module available")
+        try:
+            if hou:
+                click.echo(f"  Application: {hou.applicationName()}")
+                click.echo(f"  Version: {'.'.join(map(str, hou.applicationVersion()))}")
+                click.echo("✓ Full Houdini functionality available")
+        except Exception as e:
+            click.echo(f"✗ Houdini module error: {e}")
+    else:
+        click.echo("ℹ  Houdini module not available (development mode)")
+        click.echo("  For actual Houdini integration:")
+        click.echo("  1. Install zabob-houdini: pip install zabob-houdini")
+        click.echo("  2. Use within Houdini's Python shelf tools or HDA scripts")
+        click.echo("  3. hython has severe virtual environment compatibility issues")
+
+        # Check environment variables as fallback info
+        houdini_path = os.getenv("HOUDINI_PATH")
+        if houdini_path:
+            click.echo(f"ℹ  HOUDINI_PATH: {houdini_path}")
+            if os.path.exists(houdini_path):
+                click.echo("  Path exists")
+            else:
+                click.echo("  Path does not exist")
+        else:
+            click.echo("ℹ  HOUDINI_PATH not set")
+
+
+def run_as_script() -> None:
+    """
+    Entry point when running as a script with hython or uv run.
+    """
+    if HOUDINI_AVAILABLE:
+        # Running with Houdini - full functionality available
+        click.echo("🚀 Running with Houdini - full functionality available")
+    else:
+        # Running without Houdini
+        click.echo("🐍 Running in development mode (no Houdini)")
+        click.echo("   For actual node creation, use zabob-houdini within Houdini's Python environment")
+
+    click.echo()
+    main()
+
+
+if __name__ == "__main__":
+    run_as_script()

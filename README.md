@@ -78,6 +78,45 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 **Alternative installation methods:** See the [UV installation guide](https://docs.astral.sh/uv/getting-started/installation/)
 
+### Development Workflow
+
+**Recommended two-phase approach:**
+
+#### Phase 1: Development with Modern Python
+
+```bash
+# Use modern Python tooling for development
+uv sync                           # Install with latest Python
+uv run pytest tests/             # Run tests
+uv run zabob-houdini validate     # Test CLI
+```
+
+#### Phase 2: Integration with Houdini
+
+```python
+# Copy your zabob-houdini code into Houdini contexts:
+# - Python shelf tools
+# - HDA Python scripts
+# - Houdini's Python shell
+
+from zabob_houdini import node, chain
+# This works within Houdini's Python environment
+```
+
+### Python Version Compatibility
+
+**Important:** This project supports Python 3.11+ for general use, but Houdini constrains you to its bundled Python:
+
+- **Houdini 20.5-21.x**: Python 3.11 (current limitation)
+- **Houdini 22.x+**: Expected to support newer Python versions (anticipated early 2025)
+- **Development**: Use any Python 3.11+ for testing and development
+
+**For Houdini-compatible development**, you can use the provided Python version pin:
+```bash
+cp .python-version-houdini .python-version  # Pin to Python 3.11 for Houdini compatibility
+uv sync  # Will use Python 3.11
+```
+
 ### Setting up the Virtual Environment
 
 1. **Clone the repository:**
@@ -109,6 +148,8 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 ### Houdini Integration
 
+#### For VS Code IntelliSense
+
 For VS Code IntelliSense to work with Houdini's `hou` module, copy the appropriate platform-specific example file to `.env`:
 
 **macOS:**
@@ -137,7 +178,49 @@ copy .env.example.windows .env
 
 Each example file contains common installation paths for that platform. Edit `.env` if your Houdini installation is in a different location.
 
-### VS Code Configuration
+#### Using with Houdini
+
+**Important:** Due to Houdini's architecture, `hython` has severe compatibility issues with virtual environments, UV, and modern Python tooling. The linked symbol requirements make it extremely difficult to use external Python packages reliably.
+
+**Recommended approach for Houdini integration:**
+
+1. **Development and Testing:**
+   ```bash
+   # Use regular Python for development
+   uv run zabob-houdini info
+   uv run python -c "from zabob_houdini import node; print('API works!')"
+   ```
+
+2. **Production Use within Houdini:**
+   ```python
+   # Install in Houdini's Python environment
+   # Within Houdini's Python shell or scripts:
+   import sys
+   sys.path.append('/path/to/your/project/src')
+   from zabob_houdini import node, chain
+
+   # Create nodes within Houdini
+   geo_node = node("/obj", "geo", name="mygeometry")
+   result = geo_node.create()  # This works within Houdini
+   ```
+
+3. **Alternative Installation:**
+   ```bash
+   # Install package directly in Houdini's Python
+   /path/to/houdini/python -m pip install zabob-houdini
+   ```
+
+**Where to use zabob-houdini in Houdini:**
+- **Python shelf tools**: Create custom shelf buttons with zabob-houdini code
+- **HDA script sections**: Use in digital asset Python callbacks
+- **Houdini Python shell**: Interactive development within Houdini
+- **Python SOP/TOP nodes**: For procedural workflows
+
+**Why hython is problematic:**
+- Requires linked symbols that conflict with virtual environments
+- Cannot reliably import packages from external Python environments
+- UV and pip installations don't work correctly with hython
+- Setting up `.pth` files and environment variables is fragile and unreliable### VS Code Configuration
 
 The project includes VS Code configuration for optimal development experience:
 
