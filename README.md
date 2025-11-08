@@ -1,0 +1,90 @@
+# Zabob-Houdini, a simple API for creating Houdini node graphs
+
+## Basics
+
+The core function is `node`, which takes a `NodeType`, an optional name, and keyword attributes for the node. A NodeInstance is returned.
+
+Special keyword attributes include `_input`, which supply 0 or more input nodes to connect.
+
+The function `chain` takes a sequence of nodes, and connects them in a linear graph. It takes a _input argument, allowing it to be directly connected to another node. It can be supplied as an `_input` to another node or chain. If supplied as a node in a sequence, it is copied and spliced in at that point. A Chain is returned.
+
+A `NodeInstance` or `Chain` is instantiated by calling the `.create` method.
+
+## Development Setup
+
+### Prerequisites
+
+This project uses [UV](https://docs.astral.sh/uv/) for Python package management. Install UV first:
+
+**macOS and Linux:**
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**Alternative installation methods:** See the [UV installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+
+### Setting up the Virtual Environment
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone <repository-url>
+   cd zabob-houdini
+   ```
+
+2. **Create the virtual environment and install dependencies:**
+
+   ```bash
+   uv sync
+   ```
+
+   This will:
+
+   - Create a virtual environment with Python 3.13+
+   - Install all project dependencies
+   - Install the project in development mode
+
+3. **Activate the virtual environment** (optional, UV handles this automatically):
+
+   ```bash
+   source .venv/bin/activate  # macOS/Linux
+   # or
+   .venv\Scripts\activate     # Windows
+   ```
+
+### Houdini Integration
+
+For VS Code IntelliSense to work with Houdini's `hou` module, copy the appropriate platform-specific example file to `.env`:
+
+**macOS:**
+
+```bash
+cp .env.example.macos .env
+```
+
+**Linux:**
+
+```bash
+cp .env.example.linux .env
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Copy-Item .env.example.windows .env
+```
+
+**Windows (Command Prompt):**
+
+```cmd
+copy .env.example.windows .env
+```
+
+Each example file contains common installation paths for that platform. Edit `.env` if your Houdini installation is in a different location.

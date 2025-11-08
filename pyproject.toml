@@ -1,0 +1,19 @@
+[project]
+name = "zabob-houdini"
+version = "0.1.0"
+description = "A simple API for creating Houdini node graphs programmatically"
+readme = "README.md"
+authors = [
+    { name = "Bob Kerns", email = "1154903+BobKerns@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.0.0",
+]
+
+[project.scripts]
+zabob-houdini = "zabob_houdini:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
