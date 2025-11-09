@@ -7,52 +7,11 @@ Python nodes, shelf tools, and HDAs.
 
 import json
 import os
-import shutil
-import subprocess
 from pathlib import Path
-from typing import Optional, List
+from .houdini_config import find_houdini_pref_dir, ensure_houdini_package_dir
 
 
-def get_houdini_user_prefs_dir() -> Optional[Path]:
-    """
-    Get the Houdini user preferences directory.
-
-    Returns:
-        Path to user prefs directory, or None if not found
-    """
-    # Try environment variable first
-    user_prefs = os.getenv('HOUDINI_USER_PREF_DIR')
-    if user_prefs:
-        return Path(user_prefs)
-
-    # Try to get from hconfig
-    try:
-        result = subprocess.run(['hconfig', '-ap'], capture_output=True, text=True)
-        if result.returncode == 0:
-            # Parse the output to find user prefs dir
-            for line in result.stdout.split('\n'):
-                if 'HOUDINI_USER_PREF_DIR' in line:
-                    path = line.split('=', 1)[1].strip()
-                    return Path(path)
-    except FileNotFoundError:
-        pass
-
-    # Fallback to standard locations
-    home = Path.home()
-    possible_locations = [
-        home / "Library" / "Preferences" / "houdini",  # macOS
-        home / "Documents" / "houdini",                # Windows
-        home / "houdini",                              # Linux
-    ]
-
-    for location in possible_locations:
-        if location.exists():
-            return location
-
-    return None
-
-
-def get_houdini_package_dirs() -> List[Path]:
+def get_houdini_package_dirs() -> list[Path]:
     """
     Get all possible Houdini package installation directories.
 
@@ -63,7 +22,7 @@ def get_houdini_package_dirs() -> List[Path]:
 
     # User packages directory (most preferred - writable)
     user_packages = None
-    user_prefs = get_houdini_user_prefs_dir()
+    user_prefs = find_houdini_pref_dir()
     if user_prefs:
         user_packages = user_prefs / "packages"
         dirs.append(user_packages)
@@ -81,13 +40,20 @@ def get_houdini_package_dirs() -> List[Path]:
     return dirs
 
 
-def find_writable_package_dir() -> Optional[Path]:
+def find_writable_package_dir() -> Path | None:
     """
     Find the first writable package directory.
 
     Returns:
         Path to writable package directory, or None if none found
     """
+    # Try the hconfig-based approach first
+    try:
+        return ensure_houdini_package_dir()
+    except RuntimeError:
+        pass
+
+    # Fallback to testing each directory
     for pkg_dir in get_houdini_package_dirs():
         try:
             # Create directory if it doesn't exist
@@ -134,7 +100,7 @@ def create_package_json(package_dir: Path, zabob_src_path: Path) -> Path:
     return package_file
 
 
-def install_houdini_package(src_dir: Optional[Path] = None) -> bool:
+def install_houdini_package(src_dir: Path | None = None) -> bool:
     """
     Install zabob-houdini as a Houdini package.
 

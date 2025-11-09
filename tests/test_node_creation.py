@@ -102,8 +102,13 @@ def test_node_with_input_connection():
 
 def test_chain_creation():
     """Test creating a chain of nodes with parent argument."""
-    # Create a chain with parent
-    node_chain = chain("/obj/geo1", "box", "xform", "subdivide")
+    # Create individual nodes first
+    box_node = node("/obj/geo1", "box")
+    xform_node = node("/obj/geo1", "xform")
+    subdivide_node = node("/obj/geo1", "subdivide")
+
+    # Create a chain with parent and node instances
+    node_chain = chain("/obj/geo1", box_node, xform_node, subdivide_node)
 
     # Verify chain was created
     assert node_chain is not None
@@ -115,8 +120,12 @@ def test_chain_with_input():
     # Create source node
     source_node = node("/obj/geo1", "box", name="source")
 
+    # Create individual nodes for the chain
+    xform_node = node("/obj/geo1", "xform")
+    subdivide_node = node("/obj/geo1", "subdivide")
+
     # Create chain with input connection
-    processing_chain = chain("/obj/geo1", "xform", "subdivide", _input=source_node)
+    processing_chain = chain("/obj/geo1", xform_node, subdivide_node, _input=source_node)
 
     # Verify both were created
     assert source_node is not None

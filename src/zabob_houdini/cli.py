@@ -141,7 +141,6 @@ def test_node() -> None:
 def test_chain(use_hython):
     """Test chain functionality."""
     from .core import node, chain
-    from .houdini_bridge import in_hython
 
     if not use_hython:
         click.echo("ℹ  Running in development mode")
@@ -184,19 +183,8 @@ def test_chain(use_hython):
             try:
                 click.echo("✓ Creating chain in hython...")
 
-                @in_hython
-                def create_test_chain():
-                    import hou
-                    # Ensure we have a geometry node
-                    geo = hou.node("/obj/geo1")
-                    if not geo:
-                        geo = hou.node("/obj").createNode("geo", "geo1")
-
-                    # Create the chain
-                    result = processing_chain.create()
-                    return f"Chain created successfully: {len(result)} nodes"
-
-                result = create_test_chain()
+                from .houdini_bridge import call_houdini_function
+                result = call_houdini_function("create_test_chain")
                 click.echo(f"  {result}")
 
             except Exception as e:
@@ -320,6 +308,7 @@ def validate() -> None:
                 click.echo("  Path does not exist")
         else:
             click.echo("ℹ  HOUDINI_PATH not set")
+
 
 
 def run_as_script() -> None:

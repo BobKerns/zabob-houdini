@@ -1,81 +1,74 @@
 """
-Test hython bridge functionality.
+Test Houdini bridge functionality.
 """
 
 import pytest
+import subprocess
 from unittest.mock import patch, Mock
-from zabob_houdini.houdini_bridge import in_hython, _is_in_houdini, run_hython_script
+from zabob_houdini.houdini_bridge import call_houdini_function, _is_in_houdini
 
 
-def test_is_in_hython_detection():
-    """Test detection of hython environment."""
+def test_is_in_houdini_detection():
+    """Test detection of Houdini environment."""
     # Test when hou is not available
     with patch('builtins.__import__', side_effect=ImportError):
         assert not _is_in_houdini()
 
-    # Test when hou is available but not hython
+    # Test when hou is available (simplified - we just check if hou can be imported)
     mock_hou = Mock()
-    mock_hou.applicationName.return_value = 'houdini'
-    with patch('builtins.__import__', return_value=mock_hou):
-        assert not _is_in_houdini()
-
-    # Test when in hython
-    mock_hou.applicationName.return_value = 'hython'
     with patch('builtins.__import__', return_value=mock_hou):
         assert _is_in_houdini()
 
 
-def test_in_hython_decorator_direct_execution():
-    """Test decorator when already in hython."""
-    @in_hython
-    def test_function(x, y=10):
-        return x + y
+def test_call_houdini_function_direct_execution():
+    """Test calling function when already in Houdini."""
+    # Mock being in Houdini and the houdini_functions module
+    mock_func = Mock(return_value="test result")
+    mock_module = Mock()
+    mock_module.test_function = mock_func
 
-    # Mock being in hython and the houdini function
-    mock_func = Mock(return_value=20)
+    with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=True), \
+         patch.dict('sys.modules', {'zabob_houdini.houdini_functions': mock_module}):
 
-    with patch('zabob_houdini.hython_bridge._is_in_hython', return_value=True), \
-         patch('zabob_houdini.hython_bridge.get_houdini_function', return_value=mock_func):
-        result = test_function(5, y=15)
-        assert result == 20
+        result = call_houdini_function('test_function', 'arg1', 'arg2')
 
-
-def test_in_hython_decorator_without_hython():
-    """Test decorator behavior when hython is not available."""
-    @in_hython
-    def test_function(x):
-        return x * 2
-
-    # Mock not being in hython and hython not found
-    with patch('zabob_houdini.hython_bridge._is_in_hython', return_value=False), \
-         patch('zabob_houdini.hython_bridge._find_hython', side_effect=RuntimeError("hython not found")):
+        mock_func.assert_called_once_with('arg1', 'arg2')
+        assert result == "test result"
+def test_call_houdini_function_without_hython():
+    """Test function call behavior when hython is not available."""
+    # Mock not being in Houdini and hython not found
+    with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \
+         patch('zabob_houdini.houdini_bridge._find_hython', side_effect=RuntimeError("hython not found")):
 
         with pytest.raises(RuntimeError, match="hython not found"):
-            test_function(5)
+            call_houdini_function('test_function', 'arg1')
 
 
-def test_run_hython_script_direct():
-    """Test running script when already in hython."""
-    script = """
-x = 5
-y = 10
-result = x + y
-"""
+def test_call_houdini_function_subprocess():
+    """Test calling function via subprocess when not in Houdini."""
+    with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \
+         patch('zabob_houdini.houdini_bridge._find_hython', return_value='/mock/hython'), \
+         patch('subprocess.run') as mock_run:
 
-    with patch('zabob_houdini.hython_bridge._is_in_hython', return_value=True):
-        result = run_hython_script(script)
-        assert result == 15
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "function result"
+        mock_run.return_value.stderr = ""
+
+        result = call_houdini_function('test_function', 'arg1', 'arg2')
+
+        assert result == "function result"
+        mock_run.assert_called_once_with([
+            '/mock/hython', '-m', 'zabob_houdini', 'test_function', 'arg1', 'arg2'
+        ], check=True, capture_output=True, text=True)
 
 
-def test_simple_function_without_houdini():
-    """Test that decorator works for functions that don't use Houdini."""
-    @in_hython
-    def simple_math(a, b):
-        return a * b + 10
+def test_call_houdini_function_subprocess_error():
+    """Test handling of subprocess errors."""
+    with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \
+         patch('zabob_houdini.houdini_bridge._find_hython', return_value='/mock/hython'), \
+         patch('subprocess.run') as mock_run:
 
-    # Even when not in hython, if hython is not found, should raise error
-    with patch('zabob_houdini.hython_bridge._is_in_hython', return_value=False), \
-         patch('zabob_houdini.hython_bridge._find_hython', side_effect=RuntimeError("hython not found")):
+        mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd', stderr="error message")
 
-        with pytest.raises(RuntimeError):
-            simple_math(3, 4)
+        with pytest.raises(RuntimeError, match="hython -m zabob_houdini test_function failed"):
+            call_houdini_function('test_function')
