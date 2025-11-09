@@ -84,6 +84,34 @@ The project is in early development - the README describes the intended API, but
 - No CI/CD setup yet - runs as console application via entry point
 - Development should focus on implementing the API described in README.md first
 
+### Test Architecture
+- **Unit Tests**: Test object construction, equality, hashing, copying WITHOUT importing hou
+  - **NEVER mock modules** - restructure tests to avoid import issues instead
+  - Focus on dataclass behavior, caching via @functools.cache, immutability
+  - Test the API functions (node(), chain()) rather than classes directly if needed
+- **Integration Tests**: Use `hython_test` fixture to run actual Houdini operations
+  - Never mock hou in integration tests - they should run in real Houdini environment
+  - Call functions in `houdini_test_functions.py` via the bridge
+
+### Module Import Strategy
+- core.py imports hou at module level - this is correct for Houdini environment
+- Unit tests should avoid importing core directly if it causes hou import issues
+- Integration tests run in Houdini via hython_test fixture
+
+### Context Overflow Prevention
+- **Be extremely concise** - this project has hit context limits multiple times
+- When architectural changes are needed, focus on ONE specific issue at a time
+- Don't explain what you're doing unless asked - just make the minimal change
+- If you find yourself in an edit loop, stop and ask for clarification
+- The core.py architecture is mature - be very cautious about major changes
+
+### Immutable Architecture (ESTABLISHED - Don't Change)
+- Frozen dataclasses with @functools.cache for automatic caching
+- HashableMapping for dict fields to enable hashing
+- Objects constructed without hou imports, hou only imported in .create() methods
+- Identity-based hashing allows object-specific caching
+- .copy() methods create deep copies, .create() returns cached hou.Node instances
+
 ## Task Management
 - **TODO.md**: Use for deferred tasks to avoid branching current work
 - When encountering complex tasks that would derail current focus, add to TODO.md instead of implementing
