@@ -6,7 +6,7 @@ from importlib.metadata import version, PackageNotFoundError
 
 from .cli import main
 from .core import node, chain, NodeInstance, Chain
-from .hython_bridge import in_hython, run_hython_script
+from .houdini_bridge import in_hython, run_hython_script
 
 try:
     __version__ = version("zabob-houdini")

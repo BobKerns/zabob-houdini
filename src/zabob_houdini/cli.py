@@ -141,7 +141,7 @@ def test_node() -> None:
 def test_chain(use_hython):
     """Test chain functionality."""
     from .core import node, chain
-    from .hython_bridge import in_hython
+    from .houdini_bridge import in_hython
 
     if not use_hython:
         click.echo("ℹ  Running in development mode")
