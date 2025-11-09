@@ -30,7 +30,9 @@ def test_call_houdini_function_subprocess_logic():
 
         result = call_houdini_function('test_function', 'arg1', 'arg2')
 
-        assert result == "function result"
+        assert result['success'] is True
+        assert 'result' in result
+        assert result['result']['value'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', 'houdini_functions', 'test_function', 'arg1', 'arg2'
         ], check=True, capture_output=True, text=True)
@@ -69,7 +71,9 @@ def test_call_houdini_function_module_parameter():
 
         result = call_houdini_function('test_func', 'arg1', module='custom_module')
 
-        assert result == "test result"
+        assert result['success'] is True
+        assert 'result' in result
+        assert result['result']['value'] == "test result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', 'custom_module', 'test_func', 'arg1'
         ], check=True, capture_output=True, text=True)
@@ -105,7 +109,9 @@ def test_call_houdini_function_direct_execution():
         result = call_houdini_function('test_function', 'arg1', 'arg2')
 
         mock_func.assert_called_once_with('arg1', 'arg2')
-        assert result == "test result"
+        assert result['success'] is True
+        assert 'result' in result
+        assert result['result']['value'] == "test result"
 def test_call_houdini_function_without_hython():
     """Test function call behavior when hython is not available."""
     # Mock not being in Houdini and hython not found
@@ -128,7 +134,9 @@ def test_call_houdini_function_subprocess():
 
         result = call_houdini_function('test_function', 'arg1', 'arg2')
 
-        assert result == "function result"
+        assert result['success'] is True
+        assert 'result' in result
+        assert result['result']['value'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', 'houdini_functions', 'test_function', 'arg1', 'arg2'
         ], check=True, capture_output=True, text=True)

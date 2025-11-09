@@ -11,47 +11,55 @@ def test_hou_module_available(hython_test):
     """Test that hou module is available in Houdini environment."""
     result = hython_test("test_hou_available")
 
-    assert result["success"] is True
-    assert "hou_version" in result
-    assert "hou_app" in result
-    assert isinstance(result["hou_version"], str)
-    assert len(result["hou_version"]) > 0
+    assert result['success'] is True
+    assert 'result' in result
+    result_data = result['result']
+    assert "hou_version" in result_data
+    assert "hou_app" in result_data
+    assert isinstance(result_data["hou_version"], str)
+    assert len(result_data["hou_version"]) > 0
 
 
 def test_basic_node_creation_in_houdini(hython_test):
     """Test basic Houdini node creation."""
     result = hython_test("test_basic_node_creation")
 
-    assert result["success"] is True
-    assert "geo_path" in result
-    assert "box_path" in result
-    assert result["geo_path"].endswith("test_geo")
-    assert result["box_path"].endswith("test_box")
+    assert result['success'] is True
+    assert 'result' in result
+    result_data = result['result']
+    assert "geo_path" in result_data
+    assert "box_path" in result_data
+    assert result_data["geo_path"].endswith("test_geo")
+    assert result_data["box_path"].endswith("test_box")
 
 
 def test_zabob_node_creation(hython_test):
     """Test Zabob NodeInstance creation and execution in Houdini."""
     result = hython_test("test_zabob_node_creation")
 
-    assert result["success"] is True
-    assert "created_path" in result
-    assert "sizex" in result
-    assert result["created_path"].endswith("zabob_box")
-    assert abs(result["sizex"] - 2.0) < 0.001  # Check sizex parameter was set
+    assert result['success'] is True
+    assert 'result' in result
+    result_data = result['result']
+    assert "created_path" in result_data
+    assert "sizex" in result_data
+    assert result_data["created_path"].endswith("zabob_box")
+    assert abs(float(result_data["sizex"]) - 2.0) < 0.001  # Check sizex parameter was set
 
 
 def test_zabob_chain_creation(hython_test):
     """Test Zabob Chain creation and execution in Houdini."""
     result = hython_test("test_zabob_chain_creation")
 
-    assert result["success"] is True
-    assert "chain_length" in result
-    assert "node_paths" in result
-    assert result["chain_length"] == 3
-    assert len(result["node_paths"]) == 3
+    assert result['success'] is True
+    assert 'result' in result
+    result_data = result['result']
+    assert "chain_length" in result_data
+    assert "node_paths" in result_data
+    assert result_data["chain_length"] == "3"
+    assert len(result_data["node_paths"].split(",")) == 3
 
     # Verify the node names in the chain
-    paths = result["node_paths"]
+    paths = result_data["node_paths"].split(",")
     assert any("chain_box" in path for path in paths)
     assert any("chain_xform" in path for path in paths)
     assert any("chain_subdivide" in path for path in paths)
@@ -61,14 +69,16 @@ def test_node_input_connections(hython_test):
     """Test node input connections work correctly."""
     result = hython_test("test_node_with_inputs")
 
-    assert result["success"] is True
-    assert "box_path" in result
-    assert "xform_path" in result
-    assert "connection_exists" in result
-    assert "connected_to" in result
+    assert result['success'] is True
+    assert 'result' in result
+    result_data = result['result']
+    assert "box_path" in result_data
+    assert "xform_path" in result_data
+    assert "connection_exists" in result_data
+    assert "connected_to" in result_data
 
-    assert result["connection_exists"] is True
-    assert result["connected_to"] == result["box_path"]
+    assert result_data["connection_exists"] == "True"
+    assert result_data["connected_to"] == result_data["box_path"]
 
 
 @pytest.mark.skip(reason="Example of environment-specific test")

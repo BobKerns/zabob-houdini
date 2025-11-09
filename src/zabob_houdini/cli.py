@@ -32,9 +32,14 @@ def get_environment_info() -> dict[str, str]:
 
     # Always try to get Houdini info via bridge
     try:
-        houdini_info = call_houdini_function('get_houdini_info')
-        info.update(houdini_info)
-        info['houdini_available'] = 'true'
+        houdini_result = call_houdini_function('get_houdini_info')
+        if houdini_result['success'] and 'result' in houdini_result:
+            info.update(houdini_result['result'])
+            info['houdini_available'] = 'true'
+        else:
+            info['houdini_available'] = 'false'
+            if 'error' in houdini_result:
+                info['houdini_error'] = houdini_result['error']
     except Exception as e:
         info['houdini_available'] = 'false'
         info['houdini_error'] = str(e)
@@ -90,11 +95,13 @@ def test_node() -> None:
     try:
         result = call_houdini_function('test_node_creation')
 
-        if result.get('success'):
+        if result['success']:
             click.echo("✓ Node creation test passed")
-            click.echo(f"  Created node: {result.get('node_path', 'N/A')}")
-            if 'node_type' in result:
-                click.echo(f"  Node type: {result['node_type']}")
+            if 'result' in result:
+                result_data = result['result']
+                click.echo(f"  Created node: {result_data.get('node_path', 'N/A')}")
+                if 'node_type' in result_data:
+                    click.echo(f"  Node type: {result_data['node_type']}")
         else:
             error_msg = result.get('error', 'Unknown error')
             click.echo(f"✗ Node creation test failed: {error_msg}")
@@ -117,7 +124,7 @@ def test_chain():
     try:
         result = call_houdini_function('houdini_test_functions', 'test_basic_availability')
 
-        if result.get('success'):
+        if result['success']:
             click.echo("✓ Chain functionality test passed")
             click.echo("  Basic chain operations are available")
         else:
@@ -179,14 +186,16 @@ def info() -> None:
 
     # Always try to get Houdini info via bridge
     try:
-        houdini_info = call_houdini_function('get_houdini_info')
-        if 'houdini_app' in houdini_info:
-            click.echo("\nHoudini Information:")
-            click.echo("-" * 30)
-            click.echo(f"Application: {houdini_info['houdini_app']}")
-            click.echo(f"Version: {houdini_info['houdini_version']}")
-            if 'houdini_build' in houdini_info:
-                click.echo(f"Build: {houdini_info['houdini_build']}")
+        houdini_result = call_houdini_function('get_houdini_info')
+        if houdini_result['success'] and 'result' in houdini_result:
+            houdini_info = houdini_result['result']
+            if 'houdini_app' in houdini_info:
+                click.echo("\nHoudini Information:")
+                click.echo("-" * 30)
+                click.echo(f"Application: {houdini_info['houdini_app']}")
+                click.echo(f"Version: {houdini_info['houdini_version']}")
+                if 'houdini_build' in houdini_info:
+                    click.echo(f"Build: {houdini_info['houdini_build']}")
     except Exception:
         # Silently handle no Houdini availability
         pass
