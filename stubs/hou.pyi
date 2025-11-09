@@ -328,7 +328,7 @@ def applicationName() -> str:
     """Get application name."""
     ...
 
-def applicationVersion() -> tuple[int, ...]:
+def applicationVersion() -> tuple[int, int, int]:
     """Get application version as tuple."""
     ...
 
