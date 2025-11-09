@@ -2,6 +2,7 @@
 Bridge for running Houdini functions either directly or via hython subprocess.
 """
 
+import json
 import subprocess
 import shutil
 import sys
@@ -24,7 +25,7 @@ def _find_hython() -> Path:
     raise RuntimeError("hython executable not found. Please ensure Houdini is installed and hython is on the path")
 
 
-def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_functions") -> Any:
+def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_functions") -> dict[str, str]:
     """
     Call a function from a houdini module, either directly or via hython subprocess.
 
@@ -34,7 +35,7 @@ def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_fun
         module: Module name to import from (default: "houdini_functions")
 
     Returns:
-        Result from the function call
+        Dictionary with result data
 
     Raises:
         RuntimeError: If hython is not found or function call fails
@@ -43,10 +44,24 @@ def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_fun
         # Already in Houdini, call function directly
         houdini_module = __import__(f"zabob_houdini.{module}", fromlist=[module])
         func = getattr(houdini_module, func_name)
-        return func(*args)
+        result = func(*args)
+        # Ensure we return a dict
+        if isinstance(result, dict):
+            return result
+        elif isinstance(result, str):
+            try:
+                return json.loads(result)
+            except json.JSONDecodeError:
+                return {"result": result}
+        else:
+            return {"result": str(result)}
 
     # Not in Houdini, execute via hython subprocess
-    return _run_function_via_subprocess(func_name, args, module)
+    result_str = _run_function_via_subprocess(func_name, args, module)
+    try:
+        return json.loads(result_str)
+    except json.JSONDecodeError:
+        return {"result": result_str}
 
 
 def _run_function_via_subprocess(func_name: str, args: tuple, module: str = "houdini_functions") -> Any:
