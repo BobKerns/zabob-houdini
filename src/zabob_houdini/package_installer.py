@@ -114,7 +114,7 @@ def install_houdini_package(src_dir: Path | None = None) -> bool:
     if src_dir is None:
         # Try to find src directory relative to this file
         current_file = Path(__file__).resolve()
-        possible_src = current_file.parent.parent / "src"
+        possible_src = current_file.parent
         if possible_src.exists():
             src_dir = possible_src
         else:
