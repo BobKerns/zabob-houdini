@@ -5,8 +5,6 @@ This version avoids importing anything that could trigger hou imports.
 """
 
 import pytest
-import json
-import subprocess
 from pathlib import Path
 import sys
 

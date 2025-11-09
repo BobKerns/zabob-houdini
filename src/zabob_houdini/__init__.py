@@ -33,10 +33,6 @@ Usage Patterns:
 
 from importlib.metadata import version, PackageNotFoundError
 
-from zabob_houdini.cli import main
-from zabob_houdini.houdini_bridge import call_houdini_function
-import zabob_houdini.houdini_config as houdini_config
-
 try:
     __version__ = version("zabob-houdini")
 except PackageNotFoundError:
@@ -46,17 +42,19 @@ except PackageNotFoundError:
 # Lazy imports to avoid importing hou when not needed
 def __getattr__(name: str):
     """Lazy import core API components only when accessed."""
-    if name in ("node", "chain", "NodeInstance", "Chain"):
-        from zabob_houdini.core import node, chain, NodeInstance, Chain
+    if name in ("node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent"):
+        from zabob_houdini.core import node, chain, NodeInstance, Chain, NodeType, NodeParent
         globals().update({
             "node": node,
             "chain": chain,
             "NodeInstance": NodeInstance,
-            "Chain": Chain
+            "Chain": Chain,
+            "NodeType": NodeType,
+            "NodeParent": NodeParent
         })
         return globals()[name]
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-# Export public API
-# Core components (node, chain, NodeInstance, Chain) are available via lazy loading through __getattr__
-__all__ = ["main", "call_houdini_function", "houdini_config"]
+# Note: Core API components (node, chain, NodeInstance, Chain, NodeType, NodeParent) are available
+# via lazy loading through __getattr__ but not listed in __all__ due to linter limitations
+__all__ = ['__version__']
