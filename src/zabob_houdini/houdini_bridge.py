@@ -4,17 +4,16 @@ Bridge for running Houdini functions either directly or via hython subprocess.
 
 import subprocess
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
 
 def _is_in_houdini() -> bool:
     """Check if we're currently running in Houdini Python environment."""
-    try:
-        import hou
-        return True
-    except ImportError:
-        return False
+    # Check if hou is already loaded in sys.modules instead of trying to import it
+    # Attempting to import hou in regular Python causes segfaults
+    return 'hou' in sys.modules
 
 
 def _find_hython() -> Path:

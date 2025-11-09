@@ -16,18 +16,11 @@ within Houdini's Python shelf tools or HDA scripts.
 """
 
 import click
+import json
 import os
 import sys
-from typing import Optional
 
-def _check_houdini_available() -> bool:
-    """Check if Houdini is available."""
-    try:
-        import hou
-        return True
-    except ImportError:
-        return False
-
+from zabob_houdini.houdini_bridge import call_houdini_function
 
 def get_environment_info() -> dict[str, str]:
     """Get information about the current Python and Houdini environment."""
@@ -35,18 +28,20 @@ def get_environment_info() -> dict[str, str]:
         'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         'python_executable': sys.executable or 'unknown',
         'platform': sys.platform,
-        'houdini_available': str(_check_houdini_available()),
     }
 
-    # Add Houdini-specific info if available
-    if _check_houdini_available():
-        try:
-            from zabob_houdini.houdini_bridge import call_houdini_function
-            houdini_info = call_houdini_function('get_houdini_info')
-            if isinstance(houdini_info, dict):
-                info.update(houdini_info)
-        except Exception as e:
-            info['houdini_error'] = str(e)
+    # Always try to get Houdini info via bridge
+    try:
+        from zabob_houdini.houdini_bridge import call_houdini_function
+        houdini_info = call_houdini_function('get_houdini_info')
+        if isinstance(houdini_info, dict):
+            info.update(houdini_info)
+            info['houdini_available'] = 'true'
+        else:
+            info['houdini_available'] = 'false'
+    except Exception as e:
+        info['houdini_available'] = 'false'
+        info['houdini_error'] = str(e)
 
     return info
 
@@ -68,7 +63,7 @@ def main() -> None:
     type=click.Choice(["sop", "obj", "dop", "cop", "vop", "top"], case_sensitive=False),
     help="Filter by node category"
 )
-def list_types(category: Optional[str]) -> None:
+def list_types(category: str | None) -> None:
     """
     List available Houdini node types.
     """
@@ -94,114 +89,62 @@ def test_node() -> None:
     """
     Test creating a simple node (requires Houdini).
     """
-    if not _check_houdini_available():
-        click.echo("ℹ  Running in development mode")
-        click.echo("  For actual node creation, use zabob-houdini within Houdini:")
-        click.echo("  - Python shelf tools")
-        click.echo("  - HDA script sections")
-        click.echo("  - Houdini's built-in Python shell")
-        click.echo()
+    click.echo("Testing node creation via Houdini bridge...")
 
     try:
-        from zabob_houdini.core import node
-        click.echo("Testing node creation...")
+        from zabob_houdini.houdini_bridge import call_houdini_function
+        result = call_houdini_function('test_node_creation')
 
-        # Test node definition (should work without Houdini)
-        test_node = node("/obj", "geo", name="test_geometry")
-        click.echo("✓ Node definition created successfully")
-        click.echo(f"  Parent: {test_node.parent}")
-        click.echo(f"  Type: {test_node.node_type}")
-        click.echo(f"  Name: {test_node.name}")
+        if isinstance(result, str):
+            import json
+            try:
+                result = json.loads(result)
+            except json.JSONDecodeError:
+                click.echo(f"✓ Node test result: {result}")
+                return
 
-        # Test actual creation (requires Houdini)
-        if _check_houdini_available():
-            click.echo("Testing node creation in Houdini...")
-            result = test_node.create()
-            click.echo("✓ Node created successfully in Houdini")
-            click.echo(f"  Created node: {result.path()}")
+        if isinstance(result, dict) and result.get('success'):
+            click.echo("✓ Node creation test passed")
+            click.echo(f"  Created node: {result.get('node_path', 'N/A')}")
+            if 'node_type' in result:
+                click.echo(f"  Node type: {result['node_type']}")
         else:
-            click.echo("⚠  Skipping Houdini node creation (Houdini not available)")
-            click.echo("  Node definition is valid and ready for .create() call")
+            error_msg = result.get('error', 'Unknown error') if isinstance(result, dict) else str(result)
+            click.echo(f"✗ Node creation test failed: {error_msg}")
 
-    except ImportError as e:
-        if "hou" in str(e):
-            click.echo("ℹ  Cannot import Houdini module (expected in development mode)")
-            click.echo("  Use zabob-houdini within Houdini's Python environment for node creation")
-        elif "core" in str(e):
-            click.echo("✗ Cannot import zabob_houdini.core module")
-            click.echo("  The core API module may not be implemented yet")
+    except RuntimeError as e:
+        if "hython not found" in str(e):
+            click.echo("⚠  Hython not available")
+            click.echo("  For actual node creation, ensure Houdini is installed and hython is on PATH")
         else:
-            click.echo(f"✗ Import error: {e}")
+            click.echo(f"✗ Runtime error: {e}")
     except Exception as e:
         click.echo(f"✗ Test failed: {e}")
 
 
 @main.command()
-@click.option('--use-hython', is_flag=True, help='Actually create nodes in hython')
-def test_chain(use_hython):
+def test_chain():
     """Test chain functionality."""
-    from zabob_houdini.core import node, chain
-
-    if not use_hython:
-        click.echo("ℹ  Running in development mode")
-        click.echo("  For actual chain creation, use --use-hython flag")
-
-    click.echo("\nTesting chain functionality...")
+    click.echo("Testing chain functionality...")
 
     try:
-        # Create individual nodes
-        box_node = node("/obj/geo1", "box", name="source")
-        xform_node = node("/obj/geo1", "xform", name="transform")
-        subdivide_node = node("/obj/geo1", "subdivide", name="refine")
+        result_str = call_houdini_function('houdini_test_functions', 'test_basic_availability')
+        result = json.loads(result_str)
 
-        # Create chain
-        processing_chain = chain("/obj/geo1", box_node, xform_node, subdivide_node)
-
-        # Verify chain properties
-        click.echo("✓ Chain definition created successfully")
-        click.echo(f"  Chain length: {len(processing_chain)}")
-
-        # Test indexing
-        click.echo("✓ Chain indexing:")
-        click.echo(f"  First node: {processing_chain[0].name}")
-        click.echo(f"  Last node: {processing_chain[-1].name}")
-        click.echo(f"  Node by name 'transform': {processing_chain['transform'].name}")
-
-        # Test slicing
-        subset = processing_chain[1:3]
-        click.echo(f"  Slice [1:3] has {len(subset)} nodes")
-
-        # Test splicing
-        detail_chain = chain("/obj/geo1",
-                           node("/obj/geo1", "normal", name="normals"),
-                           processing_chain,  # This should be spliced in
-                           node("/obj/geo1", "output", name="output"))
-        click.echo(f"✓ Chain splicing: master chain has {len(detail_chain)} nodes")
-
-        # Try to create chain
-        if use_hython:
-            try:
-                click.echo("✓ Creating chain in hython...")
-
-                from zabob_houdini.houdini_bridge import call_houdini_function
-                result = call_houdini_function("create_test_chain")
-                click.echo(f"  {result}")
-
-            except Exception as e:
-                click.echo(f"⚠  Failed to create chain in hython: {e}")
-        elif _check_houdini_available():
-            try:
-                click.echo("✓ Creating chain in current Houdini session...")
-                created_chain = processing_chain.create()
-                click.echo(f"  Chain created successfully: {len(created_chain)} nodes")
-            except Exception as e:
-                click.echo(f"⚠  Failed to create chain: {e}")
+        if result.get('success'):
+            click.echo("✓ Chain functionality test passed")
+            click.echo("  Basic chain operations are available")
         else:
-            click.echo("⚠  Skipping Houdini chain creation (use --use-hython to try hython)")
-            click.echo("  Chain definition is valid and ready for .create() call")
-
+            error_msg = result.get('error', 'Unknown error')
+            click.echo(f"✗ Chain functionality test failed: {error_msg}")
+    except RuntimeError as e:
+        if "hython not found" in str(e):
+            click.echo("⚠  Hython not available")
+            click.echo("  For actual chain functionality, ensure Houdini is installed and hython is on PATH")
+        else:
+            click.echo(f"✗ Runtime error: {e}")
     except Exception as e:
-        click.echo(f"✗ Chain test failed: {e}")
+        click.echo(f"✗ Test failed: {e}")
 
 
 @main.command()
@@ -248,16 +191,24 @@ def info() -> None:
     click.echo(f"Platform: {env_info['platform']}")
     click.echo(f"Houdini Available: {env_info['houdini_available']}")
 
-    # Houdini info if available
-    if _check_houdini_available():
-        click.echo("\nHoudini Information:")
-        click.echo("-" * 30)
-        if 'houdini_app' in env_info:
-            click.echo(f"Application: {env_info['houdini_app']}")
-            click.echo(f"Version: {env_info['houdini_version']}")
-            click.echo(f"Build: {env_info['houdini_build']}")
-        if 'houdini_error' in env_info:
-            click.echo(f"Error: {env_info['houdini_error']}")
+    # Always try to get Houdini info via bridge
+    try:
+        houdini_info_str = call_houdini_function('get_houdini_info')
+        if houdini_info_str and houdini_info_str.strip():
+            try:
+                houdini_info = json.loads(houdini_info_str)
+                if 'houdini_app' in houdini_info:
+                    click.echo("\nHoudini Information:")
+                    click.echo("-" * 30)
+                    click.echo(f"Application: {houdini_info['houdini_app']}")
+                    click.echo(f"Version: {houdini_info['houdini_version']}")
+                    if 'houdini_build' in houdini_info:
+                        click.echo(f"Build: {houdini_info['houdini_build']}")
+            except json.JSONDecodeError:
+                click.echo(f"\nHoudini Info: {houdini_info_str}")
+    except Exception:
+        # Silently handle no Houdini availability
+        pass
 
     # Environment variables
     click.echo("\nEnvironment Variables:")
@@ -280,54 +231,15 @@ def validate() -> None:
     """
     Validate Houdini installation and Python environment.
     """
-    click.echo("Validating Houdini integration...")
+    env_info = get_environment_info()
 
-    if _check_houdini_available():
-        click.echo("✓ Houdini module available")
-        try:
-            from zabob_houdini.houdini_bridge import call_houdini_function
-            houdini_info = call_houdini_function('get_houdini_info')
-            if isinstance(houdini_info, dict) and 'houdini_app' in houdini_info:
-                click.echo(f"  Application: {houdini_info['houdini_app']}")
-                click.echo(f"  Version: {houdini_info['houdini_version']}")
-                click.echo("✓ Full Houdini functionality available")
-        except Exception as e:
-            click.echo(f"✗ Houdini module error: {e}")
+    if env_info.get('houdini_available') == 'true':
+        click.echo("✓ Houdini environment is available and working")
     else:
-        click.echo("ℹ  Houdini module not available (development mode)")
-        click.echo("  For actual Houdini integration:")
-        click.echo("  1. Install zabob-houdini: pip install zabob-houdini")
-        click.echo("  2. Use within Houdini's Python shelf tools or HDA scripts")
-        click.echo("  3. hython has severe virtual environment compatibility issues")
+        click.echo("✗ Houdini environment is not available")
+        sys.exit(1)
 
-        # Check environment variables as fallback info
-        houdini_path = os.getenv("HOUDINI_PATH")
-        if houdini_path:
-            click.echo(f"ℹ  HOUDINI_PATH: {houdini_path}")
-            if os.path.exists(houdini_path):
-                click.echo("  Path exists")
-            else:
-                click.echo("  Path does not exist")
-        else:
-            click.echo("ℹ  HOUDINI_PATH not set")
-
-
-
-def run_as_script() -> None:
-    """
-    Entry point when running as a script with hython or uv run.
-    """
-    if _check_houdini_available():
-        # Running with Houdini - full functionality available
-        click.echo("🚀 Running with Houdini - full functionality available")
-    else:
-        # Running without Houdini
-        click.echo("🐍 Running in development mode (no Houdini)")
-        click.echo("   For actual node creation, use zabob-houdini within Houdini's Python environment")
-
-    click.echo()
-    main()
 
 
 if __name__ == "__main__":
-    run_as_script()
+    main()

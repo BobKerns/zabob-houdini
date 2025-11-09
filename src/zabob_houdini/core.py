@@ -1,37 +1,26 @@
 """
 Core Zabob-Houdini API for creating Houdini node graphs.
+
+This module provides the core API for creating and managing Houdini nodes programmatically.
+"""
+
+"""
+Core Zabob-Houdini API for creating Houdini node graphs.
+
+This module assumes it's running in a Houdini environment (mediated by bridge or test fixture).
 """
 
 from typing import Any, TypeAlias, Union, overload
 from dataclasses import dataclass
+import hou
 
 
 # Type aliases for clarity
-NodeParent: TypeAlias = 'str | NodeInstance'
-"""A parent node, either as a path string (e.g., "/obj") or an existing NodeInstance."""
+NodeParent: TypeAlias = 'str | NodeInstance | hou.Node'
+"""A parent node, either as a path string (e.g., "/obj"), NodeInstance, or hou.Node object."""
 
 NodeType: TypeAlias = str
 """A Houdini node type name (e.g., "geo", "box", "xform"). Will expand to NodeTypeInstance later."""
-
-
-def _import_hou():
-    """
-    Import and return the Houdini hou module.
-
-    Returns:
-        The hou module if available.
-
-    Raises:
-        ImportError: If the hou module is not available.
-    """
-    try:
-        import hou
-        return hou
-    except ImportError:
-        raise ImportError(
-            "Houdini module 'hou' not available. "
-            "This function must be run within Houdini's Python environment."
-        )
 
 
 @dataclass
@@ -46,7 +35,7 @@ class NodeInstance:
     node_type: NodeType
     name: str | None = None
     attributes: dict[str, Any] | None = None
-    inputs: list['NodeInstance | None'] | None = None
+    inputs: list[Union['NodeInstance', hou.Node, None]] | None = None
 
     def __post_init__(self) -> None:
         if self.attributes is None:
@@ -54,15 +43,13 @@ class NodeInstance:
         if self.inputs is None:
             self.inputs = []
 
-    def create(self) -> Any:
+    def create(self) -> hou.Node:
         """
         Create the actual Houdini node.
 
         Returns:
             The created Houdini node object.
         """
-        hou = _import_hou()
-
         # Resolve parent node
         match self.parent:
             case str() as parent_path:
@@ -72,9 +59,9 @@ class NodeInstance:
             case NodeInstance() as parent_instance:
                 # Parent is another NodeInstance - it should be created first
                 parent_node = parent_instance.create()
-            case _ if isinstance(self.parent, hou.Node):
+            case hou.Node() as houdini_node:
                 # It's already a Houdini node
-                parent_node = self.parent
+                parent_node = houdini_node
             case _:
                 raise TypeError(
                     f"Parent must be a path string, NodeInstance, or hou.Node object, "
@@ -103,9 +90,9 @@ class NodeInstance:
                         case NodeInstance() as node_instance:
                             # Input is a NodeInstance - create it first
                             input_hou_node = node_instance.create()
-                        case _ if hasattr(input_node, 'path') and hasattr(input_node, 'type'):
-                            # It's likely a Houdini node object
-                            input_hou_node = input_node
+                        case hou.Node() as houdini_node:
+                            # It's already a Houdini node object
+                            input_hou_node = houdini_node
                         case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance or Houdini node object, "
@@ -129,7 +116,7 @@ class Chain:
     nodes: list[Union['NodeInstance', 'Chain']]
     name_prefix: str | None = None
     attributes: dict[str, Any] | None = None
-    inputs: list[NodeInstance | None] | None = None
+    inputs: list[Union[NodeInstance, hou.Node, None]] | None = None
 
     def __post_init__(self) -> None:
         if self.attributes is None:
@@ -147,38 +134,26 @@ class Chain:
         flattened = []
         for item in self.nodes:
             match item:
-                case Chain():
-                    # Splice in the chain - flatten it and add its nodes
-                    flattened.extend(item._flatten_nodes())
                 case NodeInstance():
-                    # It's already a NodeInstance
                     flattened.append(item)
+                case Chain():
+                    flattened.extend(item._flatten_nodes())
+                case _ if isinstance(item, hou.Node):
+                    # It's a Houdini node - wrap it in a NodeInstance
+                    node_path = item.path()
+                    parent_path = '/'.join(node_path.split('/')[:-1]) or '/'
+                    node_name = node_path.split('/')[-1]
+                    wrapped = NodeInstance(
+                        parent=parent_path,
+                        node_type=item.type().name(),
+                        name=node_name
+                    )
+                    flattened.append(wrapped)
                 case _:
-                    # Check if it's a Houdini node (only if hou is available)
-                    try:
-                        hou = _import_hou()
-                        if isinstance(item, hou.Node):
-                            # It's a Houdini node - wrap it in a NodeInstance
-                            node_path = item.path()
-                            parent_path = '/'.join(node_path.split('/')[:-1]) or '/'
-                            node_name = node_path.split('/')[-1]
-                            wrapped = NodeInstance(
-                                parent=parent_path,
-                                node_type=item.type().name(),
-                                name=node_name
-                            )
-                            flattened.append(wrapped)
-                        else:
-                            raise TypeError(
-                                f"Chain nodes must be NodeInstance, Chain, or hou.Node objects, "
-                                f"got {type(item).__name__}"
-                            )
-                    except ImportError:
-                        # If hou is not available, this can't be a Houdini node
-                        raise TypeError(
-                            f"Chain nodes must be NodeInstance or Chain objects when hou is not available, "
-                            f"got {type(item).__name__}"
-                        )
+                    raise TypeError(
+                        f"Chain nodes must be NodeInstance, Chain, or hou.Node objects, "
+                        f"got {type(item).__name__}"
+                    )
         return flattened
 
     @overload
@@ -237,8 +212,6 @@ class Chain:
         Returns:
             List of created Houdini node objects in order.
         """
-        hou = _import_hou()
-
         flattened_nodes = self._flatten_nodes()
         if not flattened_nodes:
             return []
@@ -291,7 +264,7 @@ def node(
     parent: NodeParent,
     node_type: NodeType,
     name: str | None = None,
-    _input: NodeInstance | list[NodeInstance | None] | None = None,
+    _input: Union[NodeInstance, hou.Node, list[Union[NodeInstance, hou.Node, None]], None] = None,
     **attributes: Any
 ) -> NodeInstance:
     """
