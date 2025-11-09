@@ -33,6 +33,8 @@ Usage Patterns:
 
 from importlib.metadata import version, PackageNotFoundError
 
+lazy_imports = ("node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent")
+
 try:
     __version__ = version("zabob-houdini")
 except PackageNotFoundError:
@@ -42,7 +44,7 @@ except PackageNotFoundError:
 # Lazy imports to avoid importing hou when not needed
 def __getattr__(name: str):
     """Lazy import core API components only when accessed."""
-    if name in ("node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent"):
+    if name in lazy_imports:
         from zabob_houdini.core import node, chain, NodeInstance, Chain, NodeType, NodeParent
         globals().update({
             "node": node,
@@ -56,5 +58,18 @@ def __getattr__(name: str):
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 # Note: Core API components (node, chain, NodeInstance, Chain, NodeType, NodeParent) are available
-# via lazy loading through __getattr__ but not listed in __all__ due to linter limitations
-__all__ = ['__version__']
+# via lazy loading through __getattr__ but the linter can't check for us, so be careful to keep
+# __all__ accurate.
+__all__ = ['__version__',
+           "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent"] # type: ignore
+
+# Validate __all__ consistency at import time
+_expected_all = set(lazy_imports) | {'__version__'}
+_actual_all = set(__all__)
+if _expected_all != _actual_all:
+    _missing = _expected_all - _actual_all
+    _extra = _actual_all - _expected_all - {'__version__'}
+    raise ImportError(
+        f"__all__ inconsistency: "
+        f"missing={list(_missing)}, unexpected_extra={list(_extra)}"
+    )
