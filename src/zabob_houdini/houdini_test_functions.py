@@ -8,7 +8,7 @@ These functions are called by the hython bridge for testing purposes.
 import hou
 import json
 import traceback
-from zabob_houdini.core import node, chain
+from zabob_houdini.core import hou_node, node, chain
 
 # Import pytest but make it optional for when running standalone
 try:
@@ -16,14 +16,6 @@ try:
     PYTEST_AVAILABLE = True
 except ImportError:
     PYTEST_AVAILABLE = False
-
-
-def hou_node(path: str) -> 'hou.Node':
-    """Get a Houdini node, raising exception if not found."""
-    n = hou.node(path)
-    if n is None:
-        raise ValueError(f"Node at path '{path}' does not exist.")
-    return n
 
 
 def test_basic_node_creation():
@@ -120,11 +112,17 @@ def test_zabob_chain_creation():
 
         if PYTEST_AVAILABLE:
             assert len(created_nodes) == 3, "Chain should create 3 nodes"
-            assert all(node is not None for node in created_nodes), "All nodes should be created"
+            assert all(node_inst is not None for node_inst in created_nodes), "All nodes should be created"
+
+        # Get the paths from the created NodeInstance objects
+        node_paths = []
+        for node_instance in created_nodes:
+            created_hou_node = node_instance.create()
+            node_paths.append(created_hou_node.path())
 
         result = {
             'chain_length': len(created_nodes),
-            'node_paths': [node.path() for node in created_nodes],
+            'node_paths': node_paths,
             'success': True
         }
         return json.dumps(result)
@@ -152,7 +150,7 @@ def test_node_with_inputs():
         box_node = node(geo.path(), "box", name="input_box")
         box_created = box_node.create()
 
-        # Create node with input connection
+        # Create node with input connection using the hou.Node directly
         xform_node = node(geo.path(), "xform", name="connected_xform", _input=box_created)
         xform_created = xform_node.create()
 
