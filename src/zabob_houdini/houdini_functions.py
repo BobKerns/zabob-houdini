@@ -62,3 +62,15 @@ def create_test_chain():
     # Create the chain
     result = processing_chain.create()
     return f"Chain created successfully: {len(result)} nodes"
+
+
+def get_houdini_info():
+    """Get Houdini environment information."""
+    try:
+        return {
+            'houdini_app': hou.applicationName(),
+            'houdini_version': '.'.join(map(str, hou.applicationVersion())),
+            'houdini_build': hou.applicationVersionString(),
+        }
+    except Exception as e:
+        return {'houdini_error': str(e)}

@@ -20,12 +20,13 @@ import os
 import sys
 from typing import Optional
 
-try:
-    import hou
-    HOUDINI_AVAILABLE = True
-except ImportError:
-    HOUDINI_AVAILABLE = False
-    hou = None  # type: ignore
+def _check_houdini_available() -> bool:
+    """Check if Houdini is available."""
+    try:
+        import hou
+        return True
+    except ImportError:
+        return False
 
 
 def get_environment_info() -> dict[str, str]:
@@ -34,17 +35,16 @@ def get_environment_info() -> dict[str, str]:
         'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         'python_executable': sys.executable or 'unknown',
         'platform': sys.platform,
-        'houdini_available': str(HOUDINI_AVAILABLE),
+        'houdini_available': str(_check_houdini_available()),
     }
 
     # Add Houdini-specific info if available
-    if HOUDINI_AVAILABLE and hou:
+    if _check_houdini_available():
         try:
-            info.update({
-                'houdini_app': hou.applicationName(),
-                'houdini_version': '.'.join(map(str, hou.applicationVersion())),
-                'houdini_build': hou.applicationVersionString(),
-            })
+            from zabob_houdini.houdini_bridge import call_houdini_function
+            houdini_info = call_houdini_function('get_houdini_info')
+            if isinstance(houdini_info, dict):
+                info.update(houdini_info)
         except Exception as e:
             info['houdini_error'] = str(e)
 
@@ -94,7 +94,7 @@ def test_node() -> None:
     """
     Test creating a simple node (requires Houdini).
     """
-    if not HOUDINI_AVAILABLE:
+    if not _check_houdini_available():
         click.echo("ℹ  Running in development mode")
         click.echo("  For actual node creation, use zabob-houdini within Houdini:")
         click.echo("  - Python shelf tools")
@@ -114,7 +114,7 @@ def test_node() -> None:
         click.echo(f"  Name: {test_node.name}")
 
         # Test actual creation (requires Houdini)
-        if HOUDINI_AVAILABLE:
+        if _check_houdini_available():
             click.echo("Testing node creation in Houdini...")
             result = test_node.create()
             click.echo("✓ Node created successfully in Houdini")
@@ -189,7 +189,7 @@ def test_chain(use_hython):
 
             except Exception as e:
                 click.echo(f"⚠  Failed to create chain in hython: {e}")
-        elif HOUDINI_AVAILABLE:
+        elif _check_houdini_available():
             try:
                 click.echo("✓ Creating chain in current Houdini session...")
                 created_chain = processing_chain.create()
@@ -249,7 +249,7 @@ def info() -> None:
     click.echo(f"Houdini Available: {env_info['houdini_available']}")
 
     # Houdini info if available
-    if HOUDINI_AVAILABLE:
+    if _check_houdini_available():
         click.echo("\nHoudini Information:")
         click.echo("-" * 30)
         if 'houdini_app' in env_info:
@@ -282,12 +282,14 @@ def validate() -> None:
     """
     click.echo("Validating Houdini integration...")
 
-    if HOUDINI_AVAILABLE:
+    if _check_houdini_available():
         click.echo("✓ Houdini module available")
         try:
-            if hou:
-                click.echo(f"  Application: {hou.applicationName()}")
-                click.echo(f"  Version: {'.'.join(map(str, hou.applicationVersion()))}")
+            from zabob_houdini.houdini_bridge import call_houdini_function
+            houdini_info = call_houdini_function('get_houdini_info')
+            if isinstance(houdini_info, dict) and 'houdini_app' in houdini_info:
+                click.echo(f"  Application: {houdini_info['houdini_app']}")
+                click.echo(f"  Version: {houdini_info['houdini_version']}")
                 click.echo("✓ Full Houdini functionality available")
         except Exception as e:
             click.echo(f"✗ Houdini module error: {e}")
@@ -315,7 +317,7 @@ def run_as_script() -> None:
     """
     Entry point when running as a script with hython or uv run.
     """
-    if HOUDINI_AVAILABLE:
+    if _check_houdini_available():
         # Running with Houdini - full functionality available
         click.echo("🚀 Running with Houdini - full functionality available")
     else:
