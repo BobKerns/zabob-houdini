@@ -135,6 +135,34 @@ def test_node() -> None:
     except Exception as e:
         click.echo(f"✗ Test failed: {e}")
 @main.command()
+def install_package():
+    """Install zabob-houdini as a Houdini package."""
+    from .package_installer import install_houdini_package
+
+    click.echo("Installing zabob-houdini as Houdini package...")
+
+    if install_houdini_package():
+        click.echo("✓ Installation successful!")
+        click.echo("  Package is now available in Houdini Python nodes and shelf tools")
+    else:
+        click.echo("✗ Installation failed")
+        click.echo("  Check that Houdini is installed and you have write permissions")
+
+
+@main.command()
+def uninstall_package():
+    """Remove zabob-houdini Houdini package."""
+    from .package_installer import uninstall_houdini_package
+
+    click.echo("Removing zabob-houdini Houdini package...")
+
+    if uninstall_houdini_package():
+        click.echo("✓ Package removed successfully")
+    else:
+        click.echo("ℹ  No package found to remove")
+
+
+@main.command()
 def info() -> None:
     """
     Display Python and Houdini environment information.

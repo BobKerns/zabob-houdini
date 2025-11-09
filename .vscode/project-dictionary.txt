@@ -6,6 +6,7 @@ bgeoc
 dataclasses
 docstrings
 ehthumbs
+hconfig
 hdanc
 hiplc
 hipnc
@@ -19,6 +20,7 @@ nodename
 nosetests
 nurbs
 Parms
+prefs
 pycache
 pylint
 pypa

@@ -124,6 +124,7 @@ def test_chain_with_input():
     # TODO: Add assertions for chain input connection once implemented
 
 
+
 def test_node_with_sparse_inputs():
     """Test creating a node with sparse inputs (None values)."""
     # Create source nodes
