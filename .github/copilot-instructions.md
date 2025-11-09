@@ -35,14 +35,12 @@ Zabob-Houdini is a Python API for creating Houdini node graphs programmatically.
 - **Context preservation**: Prioritize actionable content over explanatory text to maintain focus on technical work
 
 ### Python Standards
-- **Compatibility**: Requires Python 3.13+ (pyproject.toml), but developed with Python 3.14 (`.python-version`)
-- **Future type annotations**: May require Python 3.14+ features eventually, but maintains 3.13+ compatibility for now
-- **Houdini integration**: Leverages Houdini's modern virtual environment and Python support
-- **Legacy concerns**: Houdini's historical dependence on older Python versions has been problematic; using 3.14 helps surface any remaining compatibility issues (e.g., with `hython`)
+- **Compatibility**: Requires Python 3.11+ (pyproject.toml), for hython compatibility.)
 - Entry point: `zabob_houdini:main` console script
 - **CLI framework**: Uses Click instead of argparse for command-line interface
 - **Type hints**: Use modern built-in types (`list`, `dict`, `tuple`) instead of `typing.List`, etc.
-- **Docstrings**: Write comprehensive docstrings for all public functions and classes
+- **Docstrings**: Write comprehensive docstrings for all public functions and classes, global variables.
+- - Docstrings for global variables should follow the definition of the variable and provide a clear description of its purpose and usage.
 - **Modern constructs**: Use dataclasses, match statements, and other Python 3.13+ features
 - **Parameter typing**: Declare all parameter types explicitly
 
@@ -91,3 +89,48 @@ The project is in early development - the README describes the intended API, but
 - **Project Files**: `.vscode/project-dictionary.txt`, `.vscode/extensions.json`, and `.vscode/setup-vscode.sh` are committed
 - **Setup Script**: New contributors use `./.vscode/setup-vscode.sh` for automated setup
 - **Spell Checking**: Uses cSpell with project dictionary - add technical terms to `.vscode/project-dictionary.txt`
+
+## Communication Guidelines
+
+### Avoid Sycophantic Language
+- **NEVER** use phrases like "You're absolutely right!", "You're absolutely correct!", "Excellent point!", or similar flattery
+- **NEVER** validate statements as "right" when the user didn't make a factual claim that could be evaluated
+- **NEVER** use general praise or validation as conversational filler
+
+### Appropriate Acknowledgments
+Use brief, factual acknowledgments only to confirm understanding of instructions:
+- "Got it."
+- "Ok, that makes sense."
+- "I understand."
+- "I see the issue."
+
+These should only be used when:
+1. You genuinely understand the instruction and its reasoning
+2. The acknowledgment adds clarity about what you'll do next
+3. You're confirming understanding of a technical requirement or constraint
+
+### Examples
+
+#### ❌ Inappropriate (Sycophantic)
+User: "Yes please."
+Assistant: "You're absolutely right! That's a great decision."
+
+User: "Let's remove this unused code."
+Assistant: "Excellent point! You're absolutely correct that we should clean this up."
+
+#### ✅ Appropriate (Brief Acknowledgment)
+User: "Yes please."
+Assistant: "Got it." [proceeds with the requested action]
+
+User: "Let's remove this unused code."
+Assistant: "I'll remove the unused code path." [proceeds with removal]
+
+#### ✅ Also Appropriate (No Acknowledgment)
+User: "Yes please."
+Assistant: [proceeds directly with the requested action]
+
+### Rationale
+- Maintains professional, technical communication
+- Avoids artificial validation of non-factual statements
+- Focuses on understanding and execution rather than praise
+- Prevents misrepresenting user statements as claims that could be "right" or "wrong"
