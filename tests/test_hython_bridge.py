@@ -4,25 +4,25 @@ Test hython bridge functionality.
 
 import pytest
 from unittest.mock import patch, Mock
-from zabob_houdini.hython_bridge import in_hython, _is_in_hython, run_hython_script
+from zabob_houdini.hython_bridge import in_hython, _is_in_houdini, run_hython_script
 
 
 def test_is_in_hython_detection():
     """Test detection of hython environment."""
     # Test when hou is not available
     with patch('builtins.__import__', side_effect=ImportError):
-        assert not _is_in_hython()
+        assert not _is_in_houdini()
 
     # Test when hou is available but not hython
     mock_hou = Mock()
     mock_hou.applicationName.return_value = 'houdini'
     with patch('builtins.__import__', return_value=mock_hou):
-        assert not _is_in_hython()
+        assert not _is_in_houdini()
 
     # Test when in hython
     mock_hou.applicationName.return_value = 'hython'
     with patch('builtins.__import__', return_value=mock_hou):
-        assert _is_in_hython()
+        assert _is_in_houdini()
 
 
 def test_in_hython_decorator_direct_execution():
@@ -38,6 +38,8 @@ def test_in_hython_decorator_direct_execution():
          patch('zabob_houdini.hython_bridge.get_houdini_function', return_value=mock_func):
         result = test_function(5, y=15)
         assert result == 20
+
+
 def test_in_hython_decorator_without_hython():
     """Test decorator behavior when hython is not available."""
     @in_hython

@@ -6,6 +6,7 @@ import inspect
 import pickle
 import subprocess
 import sys
+import shutil
 import tempfile
 from functools import wraps
 from pathlib import Path
@@ -14,29 +15,22 @@ from typing import Any, Callable, TypeVar, cast
 F = TypeVar('F', bound=Callable[..., Any])
 
 
-def _is_in_hython() -> bool:
-    """Check if we're currently running in hython."""
+def _is_in_houdini() -> bool:
+    """Check if we're currently running in Houdini Python environment."""
     try:
         import hou
-        return hasattr(hou, 'applicationName') and hou.applicationName() == 'hython'
+        return True
     except ImportError:
         return False
 
 
-def _find_hython() -> str:
+def _find_hython() -> Path:
     """Find hython executable."""
-    # Try common locations
-    possible_paths = [
-        "/Applications/Houdini/Houdini20.5.370/Frameworks/Houdini.framework/Versions/20.5/Resources/bin/hython",
-        "/opt/hfs20.5/bin/hython",
-        "hython"  # Hope it's in PATH
-    ]
 
-    for path in possible_paths:
-        if Path(path).exists() or path == "hython":
-            return path
-
-    raise RuntimeError("hython executable not found. Please ensure Houdini is installed.")
+    loc = shutil.which("hython")
+    if loc is not None:
+        return Path(loc)
+    raise RuntimeError("hython executable not found. Please ensure Houdini is installed and hython is on the path")
 
 
 def get_houdini_function(func_name: str) -> Callable:
@@ -52,7 +46,7 @@ def get_houdini_function(func_name: str) -> Callable:
     Raises:
         RuntimeError: If not in hython environment
     """
-    if not _is_in_hython():
+    if not _is_in_houdini():
         raise RuntimeError("Houdini functions only available in hython environment")
 
     from . import houdini_functions
@@ -84,7 +78,7 @@ def in_hython(func: F) -> F:  # type: ignore
     def wrapper(*args, **kwargs):
         func_name = func.__name__
 
-        if _is_in_hython():
+        if _is_in_houdini():
             # Already in hython, get and call the function safely
             houdini_func = get_houdini_function(func_name)
             return houdini_func(*args, **kwargs)
@@ -93,6 +87,8 @@ def in_hython(func: F) -> F:  # type: ignore
         return _run_function_in_hython_subprocess(func_name, args, kwargs)
 
     return cast(F, wrapper)
+
+
 def _run_function_in_hython_subprocess(func_name: str, args: tuple, kwargs: dict) -> Any:
     """Execute function from houdini_functions module in hython subprocess."""
     hython_path = _find_hython()
@@ -180,7 +176,7 @@ def run_hython_script(script: str) -> Any:
     Returns:
         Result of script execution
     """
-    if _is_in_hython():
+    if _is_in_houdini():
         # Already in hython, execute directly
         local_vars = {}
         exec(script, {"__builtins__": __builtins__}, local_vars)
