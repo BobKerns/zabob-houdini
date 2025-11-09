@@ -25,6 +25,11 @@
     // Enhanced Houdini type hints
     "python.analysis.stubPath": "${workspaceFolder}/stubs",
 
+    // Exclude .venv from Python LSP analysis
+    "python.analysis.exclude": [
+        ".venv/**"
+    ],
+
     // Markdown linting configuration - suppress overly strict formatting rules
     // MD013: Line length (overly restrictive for documentation)
     // MD021: Multiple spaces inside hashes on closed ATX style headings
