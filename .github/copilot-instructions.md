@@ -52,6 +52,7 @@ Zabob-Houdini is a Python API for creating Houdini node graphs programmatically.
 - `.gitattributes`: LFS configuration for Houdini binary files
 - `.env.example.*`: Platform-specific environment variable templates (users copy to `.env`)
 - `stubs/hou.pyi`: Type stubs for Houdini's `hou` module for development IntelliSense
+- `TODO.md`: Deferred tasks to avoid branching work - add items here instead of implementing immediately
 
 ## Implementation Notes
 
@@ -82,6 +83,12 @@ The project is in early development - the README describes the intended API, but
 - **Modern Python**: Leverage Python 3.13+ features like improved type hints and pattern matching
 - No CI/CD setup yet - runs as console application via entry point
 - Development should focus on implementing the API described in README.md first
+
+## Task Management
+- **TODO.md**: Use for deferred tasks to avoid branching current work
+- When encountering complex tasks that would derail current focus, add to TODO.md instead of implementing
+- Keep TODO.md organized with categories and clear descriptions
+- Mark completed items and remove them periodically
 
 ## VS Code Configuration Management
 - **Personal Settings**: `.vscode/settings.json` is personal (not committed) and created from `.vscode/settings.json.example`
