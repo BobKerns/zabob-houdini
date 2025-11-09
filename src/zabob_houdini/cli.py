@@ -134,6 +134,88 @@ def test_node() -> None:
             click.echo(f"✗ Import error: {e}")
     except Exception as e:
         click.echo(f"✗ Test failed: {e}")
+
+
+@main.command()
+@click.option('--use-hython', is_flag=True, help='Actually create nodes in hython')
+def test_chain(use_hython):
+    """Test chain functionality."""
+    from .core import node, chain
+    from .hython_bridge import in_hython
+
+    if not use_hython:
+        click.echo("ℹ  Running in development mode")
+        click.echo("  For actual chain creation, use --use-hython flag")
+
+    click.echo("\nTesting chain functionality...")
+
+    try:
+        # Create individual nodes
+        box_node = node("/obj/geo1", "box", name="source")
+        xform_node = node("/obj/geo1", "xform", name="transform")
+        subdivide_node = node("/obj/geo1", "subdivide", name="refine")
+
+        # Create chain
+        processing_chain = chain("/obj/geo1", box_node, xform_node, subdivide_node)
+
+        # Verify chain properties
+        click.echo("✓ Chain definition created successfully")
+        click.echo(f"  Chain length: {len(processing_chain)}")
+
+        # Test indexing
+        click.echo("✓ Chain indexing:")
+        click.echo(f"  First node: {processing_chain[0].name}")
+        click.echo(f"  Last node: {processing_chain[-1].name}")
+        click.echo(f"  Node by name 'transform': {processing_chain['transform'].name}")
+
+        # Test slicing
+        subset = processing_chain[1:3]
+        click.echo(f"  Slice [1:3] has {len(subset)} nodes")
+
+        # Test splicing
+        detail_chain = chain("/obj/geo1",
+                           node("/obj/geo1", "normal", name="normals"),
+                           processing_chain,  # This should be spliced in
+                           node("/obj/geo1", "output", name="output"))
+        click.echo(f"✓ Chain splicing: master chain has {len(detail_chain)} nodes")
+
+        # Try to create chain
+        if use_hython:
+            try:
+                click.echo("✓ Creating chain in hython...")
+
+                @in_hython
+                def create_test_chain():
+                    import hou
+                    # Ensure we have a geometry node
+                    geo = hou.node("/obj/geo1")
+                    if not geo:
+                        geo = hou.node("/obj").createNode("geo", "geo1")
+
+                    # Create the chain
+                    result = processing_chain.create()
+                    return f"Chain created successfully: {len(result)} nodes"
+
+                result = create_test_chain()
+                click.echo(f"  {result}")
+
+            except Exception as e:
+                click.echo(f"⚠  Failed to create chain in hython: {e}")
+        elif HOUDINI_AVAILABLE:
+            try:
+                click.echo("✓ Creating chain in current Houdini session...")
+                created_chain = processing_chain.create()
+                click.echo(f"  Chain created successfully: {len(created_chain)} nodes")
+            except Exception as e:
+                click.echo(f"⚠  Failed to create chain: {e}")
+        else:
+            click.echo("⚠  Skipping Houdini chain creation (use --use-hython to try hython)")
+            click.echo("  Chain definition is valid and ready for .create() call")
+
+    except Exception as e:
+        click.echo(f"✗ Chain test failed: {e}")
+
+
 @main.command()
 def info() -> None:
     """
