@@ -35,12 +35,12 @@ Zabob-Houdini is a Python API for creating Houdini node graphs programmatically.
 - **Context preservation**: Prioritize actionable content over explanatory text to maintain focus on technical work
 
 ### Python Standards
-- **Compatibility**: Requires Python 3.11+ (pyproject.toml), for hython compatibility.)
+- **Compatibility**: Requires Python 3.11+ (pyproject.toml), for hython compatibility.
 - Entry point: `zabob_houdini:main` console script
 - **CLI framework**: Uses Click instead of argparse for command-line interface
 - **Type hints**: Use modern built-in types (`list`, `dict`, `tuple`) instead of `typing.List`, etc.
 - **Docstrings**: Write comprehensive docstrings for all public functions and classes, global variables.
-- - Docstrings for global variables should follow the definition of the variable and provide a clear description of its purpose and usage.
+  - Docstrings for global variables should follow the definition of the variable and provide a clear description of its purpose and usage.
 - **Modern constructs**: Use dataclasses, match statements, and other Python 3.13+ features
 - **Parameter typing**: Declare all parameter types explicitly
 

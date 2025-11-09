@@ -5,7 +5,6 @@ Bridge for running code in hython subprocess when not already in hython.
 import inspect
 import pickle
 import subprocess
-import sys
 import tempfile
 from functools import wraps
 from pathlib import Path
@@ -175,8 +174,12 @@ except Exception as e:
         else:
             # Re-raise the original exception type if possible
             error_msg, error_type = result_data[1], result_data[2]
-            if error_type in dir(__builtins__):
-                exception_class = getattr(__builtins__, error_type)
+            # __builtins__ can be a dict or a module; handle both cases
+            if isinstance(__builtins__, dict):
+                exception_class = __builtins__.get(error_type)
+            else:
+                exception_class = getattr(__builtins__, error_type, None)
+            if exception_class is not None and isinstance(exception_class, type):
                 raise exception_class(error_msg)
             else:
                 raise RuntimeError(f"{error_type}: {error_msg}")

@@ -2,7 +2,7 @@
 Example using the hython bridge.
 """
 
-from zabob_houdini import node, chain, in_hython
+from zabob_houdini import in_hython
 
 
 @in_hython
@@ -49,7 +49,11 @@ def chain_creation_test():
     created_nodes = processing_chain.create()
 
     return f"Created chain with {len(created_nodes)} nodes in {geo.path()}"
-if __name__ == "__main__":
+
+
+
+
+if __name__ == "__main__": 
     print("Testing hython bridge...")
 
     try:
