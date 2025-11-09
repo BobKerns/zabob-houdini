@@ -41,7 +41,7 @@ def call_houdini_function(func_name: str, *args: Any) -> Any:
     """
     if _is_in_houdini():
         # Already in Houdini, call function directly
-        from . import houdini_functions
+        import zabob_houdini.houdini_functions as houdini_functions
         func = getattr(houdini_functions, func_name)
         return func(*args)
 

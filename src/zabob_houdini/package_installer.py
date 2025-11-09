@@ -8,7 +8,7 @@ Python nodes, shelf tools, and HDAs.
 import json
 import os
 from pathlib import Path
-from .houdini_config import find_houdini_pref_dir, ensure_houdini_package_dir
+from zabob_houdini.houdini_config import find_houdini_pref_dir, ensure_houdini_package_dir
 
 
 def get_houdini_package_dirs() -> list[Path]:

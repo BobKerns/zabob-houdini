@@ -4,10 +4,10 @@ Zabob-Houdini: A simple API for creating Houdini node graphs.
 
 from importlib.metadata import version, PackageNotFoundError
 
-from .cli import main
-from .core import node, chain, NodeInstance, Chain
-from .houdini_bridge import call_houdini_function
-from . import houdini_config
+from zabob_houdini.cli import main
+from zabob_houdini.core import node, chain, NodeInstance, Chain
+from zabob_houdini.houdini_bridge import call_houdini_function
+import zabob_houdini.houdini_config as houdini_config
 
 try:
     __version__ = version("zabob-houdini")

@@ -103,7 +103,7 @@ def test_node() -> None:
         click.echo()
 
     try:
-        from .core import node
+        from zabob_houdini.core import node
         click.echo("Testing node creation...")
 
         # Test node definition (should work without Houdini)
@@ -140,7 +140,7 @@ def test_node() -> None:
 @click.option('--use-hython', is_flag=True, help='Actually create nodes in hython')
 def test_chain(use_hython):
     """Test chain functionality."""
-    from .core import node, chain
+    from zabob_houdini.core import node, chain
 
     if not use_hython:
         click.echo("ℹ  Running in development mode")
@@ -183,7 +183,7 @@ def test_chain(use_hython):
             try:
                 click.echo("✓ Creating chain in hython...")
 
-                from .houdini_bridge import call_houdini_function
+                from zabob_houdini.houdini_bridge import call_houdini_function
                 result = call_houdini_function("create_test_chain")
                 click.echo(f"  {result}")
 
@@ -207,7 +207,7 @@ def test_chain(use_hython):
 @main.command()
 def install_package():
     """Install zabob-houdini as a Houdini package."""
-    from .package_installer import install_houdini_package
+    from zabob_houdini.package_installer import install_houdini_package
 
     click.echo("Installing zabob-houdini as Houdini package...")
 
@@ -222,7 +222,7 @@ def install_package():
 @main.command()
 def uninstall_package():
     """Remove zabob-houdini Houdini package."""
-    from .package_installer import uninstall_houdini_package
+    from zabob_houdini.package_installer import uninstall_houdini_package
 
     click.echo("Removing zabob-houdini Houdini package...")
 
