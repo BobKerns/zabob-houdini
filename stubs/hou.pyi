@@ -340,11 +340,6 @@ def isUIAvailable() -> bool:
     """Check if UI is available."""
     ...
 
-# File operations
-def hipFile() -> 'HipFile':
-    """Get hip file object."""
-    ...
-
 class HipFile:
     """Houdini hip file operations."""
     def name(self) -> str: ...
@@ -353,6 +348,9 @@ class HipFile:
     def load(self, file_name: str) -> None: ...
     def clear(self) -> None: ...
     def isNewFile(self) -> bool: ...
+
+# File operations - hipFile is both a function and an instance in Houdini
+hipFile: HipFile
 
 # Common exceptions that Houdini can raise
 class OperationFailed(Exception):
