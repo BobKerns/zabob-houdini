@@ -5,10 +5,9 @@ Houdini configuration utilities.
 import subprocess
 import shutil
 from pathlib import Path
-from typing import Optional
 
 
-def find_houdini_pref_dir() -> Optional[Path]:
+def find_houdini_pref_dir() -> Path | None:
     """
     Find Houdini user preferences directory using hconfig.
 

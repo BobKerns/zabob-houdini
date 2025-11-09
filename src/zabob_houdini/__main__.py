@@ -3,7 +3,6 @@ Entry point for hython -m zabob_houdini <function_name>
 """
 
 import sys
-from typing import Any
 
 
 def main() -> None:

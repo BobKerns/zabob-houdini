@@ -33,7 +33,7 @@ Usage Patterns:
 
 from importlib.metadata import version, PackageNotFoundError
 
-lazy_imports = ("node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent")
+lazy_imports = ("node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", "HoudiniNodeBase")
 
 try:
     __version__ = version("zabob-houdini")
@@ -45,14 +45,15 @@ except PackageNotFoundError:
 def __getattr__(name: str):
     """Lazy import core API components only when accessed."""
     if name in lazy_imports:
-        from zabob_houdini.core import node, chain, NodeInstance, Chain, NodeType, NodeParent
+        from zabob_houdini.core import node, chain, NodeInstance, Chain, NodeType, NodeParent, HoudiniNodeBase
         globals().update({
             "node": node,
             "chain": chain,
             "NodeInstance": NodeInstance,
             "Chain": Chain,
             "NodeType": NodeType,
-            "NodeParent": NodeParent
+            "NodeParent": NodeParent,
+            "HoudiniNodeBase": HoudiniNodeBase
         })
         return globals()[name]
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
@@ -61,7 +62,7 @@ def __getattr__(name: str):
 # via lazy loading through __getattr__ but the linter can't check for us, so be careful to keep
 # __all__ accurate.
 __all__ = ['__version__',
-           "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent"] # type: ignore
+           "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", "HoudiniNodeBase"] # type: ignore
 
 # Validate __all__ consistency at import time
 _expected_all = set(lazy_imports) | {'__version__'}

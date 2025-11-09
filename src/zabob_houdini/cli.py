@@ -16,7 +16,6 @@ within Houdini's Python shelf tools or HDA scripts.
 """
 
 import click
-import json
 import os
 import sys
 

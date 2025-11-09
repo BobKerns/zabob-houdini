@@ -10,21 +10,47 @@ Core Zabob-Houdini API for creating Houdini node graphs.
 This module assumes it's running in a Houdini environment (mediated by bridge or test fixture).
 """
 
-from typing import Any, TypeAlias, Union, overload
+from typing import Any, TypeAlias, overload
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 import hou
 
 
 # Type aliases for clarity
-NodeParent: TypeAlias = 'str | NodeInstance | hou.Node'
+NodeParent: TypeAlias = "str | NodeInstance | hou.Node"
 """A parent node, either as a path string (e.g., "/obj"), NodeInstance, or hou.Node object."""
 
 NodeType: TypeAlias = str
 """A Houdini node type name (e.g., "geo", "box", "xform"). Will expand to NodeTypeInstance later."""
 
+CreatableNode: TypeAlias = 'NodeInstance | Chain'
+"""A node or chain that can be created via .create() method."""
+
+InputNode: TypeAlias = 'NodeInstance | hou.Node | None'
+"""A node that can be used as input - NodeInstance, actual hou.Node, or None for sparse connections."""
+
+
+class HoudiniNodeBase(ABC):
+    """
+    Base class for Houdini node representations.
+
+    Provides common functionality for NodeInstance and Chain classes.
+    """
+
+    def __init__(self, parent: NodeParent, attributes: dict[str, Any] | None = None,
+                 inputs: list[InputNode] | None = None):
+        self.parent = parent
+        self.attributes = attributes if attributes is not None else {}
+        self.inputs = inputs if inputs is not None else []
+
+    @abstractmethod
+    def create(self) -> Any:
+        """Create the actual Houdini node(s). Return type varies by implementation."""
+        pass
+
 
 @dataclass
-class NodeInstance:
+class NodeInstance(HoudiniNodeBase):
     """
     Represents a Houdini node that can be created.
 
@@ -33,15 +59,12 @@ class NodeInstance:
     """
     parent: NodeParent
     node_type: NodeType
-    name: str | None = None
-    attributes: dict[str, Any] | None = None
-    inputs: list[Union['NodeInstance', hou.Node, None]] | None = None
+    name: str|None= None
+    attributes: dict[str, Any]|None = None
 
+    inputs: list[InputNode]| None = None
     def __post_init__(self) -> None:
-        if self.attributes is None:
-            self.attributes = {}
-        if self.inputs is None:
-            self.inputs = []
+        super().__init__(self.parent, self.attributes, self.inputs)
 
     def create(self) -> hou.Node:
         """
@@ -106,23 +129,20 @@ class NodeInstance:
 
 
 @dataclass
-class Chain:
+class Chain(HoudiniNodeBase):
     """
     Represents a chain of Houdini nodes that can be created.
 
     Nodes in the chain are automatically connected in sequence.
     """
     parent: NodeParent
-    nodes: list[Union['NodeInstance', 'Chain']]
+    nodes: list[CreatableNode]
     name_prefix: str | None = None
     attributes: dict[str, Any] | None = None
-    inputs: list[Union[NodeInstance, hou.Node, None]] | None = None
+    inputs: list[InputNode] | None = None
 
     def __post_init__(self) -> None:
-        if self.attributes is None:
-            self.attributes = {}
-        if self.inputs is None:
-            self.inputs = []
+        super().__init__(self.parent, self.attributes, self.inputs)
 
     def _flatten_nodes(self) -> list['NodeInstance']:
         """
@@ -157,15 +177,15 @@ class Chain:
         return flattened
 
     @overload
-    def __getitem__(self, key: int) -> 'NodeInstance': ...
+    def __getitem__(self, key: int) -> NodeInstance: ...
 
     @overload
     def __getitem__(self, key: slice) -> 'Chain': ...
 
     @overload
-    def __getitem__(self, key: str) -> 'NodeInstance': ...
+    def __getitem__(self, key: str) -> NodeInstance: ...
 
-    def __getitem__(self, key: Union[int, slice, str]) -> Union['NodeInstance', 'Chain']:
+    def __getitem__(self, key: int | slice | str) -> CreatableNode:
         """
         Access nodes in the chain by index, slice, or name.
 
@@ -183,8 +203,8 @@ class Chain:
             case slice() as slice_obj:
                 # Return a new Chain with the subset of nodes
                 subset = flattened[slice_obj]
-                # Cast to the union type to satisfy type checker
-                subset_nodes: list[Union['NodeInstance', 'Chain']] = list(subset)
+                # Cast to the type alias to satisfy type checker
+                subset_nodes: list[CreatableNode] = list(subset)
                 return Chain(
                     parent=self.parent,
                     nodes=subset_nodes,
@@ -264,7 +284,7 @@ def node(
     parent: NodeParent,
     node_type: NodeType,
     name: str | None = None,
-    _input: Union[NodeInstance, hou.Node, list[Union[NodeInstance, hou.Node, None]], None] = None,
+    _input: 'InputNode | list[InputNode] | None' = None,
     **attributes: Any
 ) -> NodeInstance:
     """
@@ -299,8 +319,8 @@ def node(
 
 def chain(
     parent: NodeParent,
-    *nodes: Union[NodeInstance, 'Chain'],
-    _input: NodeInstance | list[NodeInstance | None] | None = None,
+    *nodes: CreatableNode,
+    _input: "NodeInstance | list[NodeInstance | None] | None" = None,
     name_prefix: str | None = None,
     **attributes: Any
 ) -> Chain:
