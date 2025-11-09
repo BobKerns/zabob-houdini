@@ -8,17 +8,18 @@ from typing import Any
 
 def main() -> None:
     """Main entry point for module execution."""
-    if len(sys.argv) < 2:
-        print("Usage: hython -m zabob_houdini <function_name> [args...]", file=sys.stderr)
+    if len(sys.argv) < 3:
+        print("Usage: hython -m zabob_houdini <module_name> <function_name> [args...]", file=sys.stderr)
         sys.exit(1)
 
-    func_name = sys.argv[1]
-    args = sys.argv[2:]  # Get remaining arguments
+    module_name = sys.argv[1]
+    func_name = sys.argv[2]
+    args = sys.argv[3:]  # Get remaining arguments
 
     try:
-        # Import houdini_functions and call the requested function
-        from zabob_houdini import houdini_functions
-        func = getattr(houdini_functions, func_name)
+        # Import the specified module and call the requested function
+        houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
+        func = getattr(houdini_module, func_name)
 
         # Call function with arguments
         result = func(*args)
@@ -26,11 +27,14 @@ def main() -> None:
         # Print result to stdout
         print(result)
 
+    except ImportError:
+        print(f"Module 'zabob_houdini.{module_name}' not found", file=sys.stderr)
+        sys.exit(1)
     except AttributeError:
-        print(f"Function '{func_name}' not found in houdini_functions", file=sys.stderr)
+        print(f"Function '{func_name}' not found in {module_name}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"Error executing {func_name}: {e}", file=sys.stderr)
+        print(f"Error executing {module_name}.{func_name}: {e}", file=sys.stderr)
         sys.exit(1)
 
 

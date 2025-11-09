@@ -6,6 +6,7 @@ bgeoc
 dataclasses
 docstrings
 ehthumbs
+fromlist
 hconfig
 hdanc
 hiplc
