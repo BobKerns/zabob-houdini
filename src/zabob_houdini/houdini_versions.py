@@ -18,7 +18,7 @@ from platform import uname
 import json
 from pathlib import Path
 import re
-from typing import Any, Final, Literal, TypedDict, cast
+from typing import Any, Final, Literal, TypeAlias, TypedDict, cast
 import sys
 import time
 from datetime import datetime
@@ -41,11 +41,11 @@ HOUDINI_VERSIONS_CACHE: Final[Path] = HOUDINI_DEFAULT_CACHE_DIR / HOUDINI_VERSIO
 HOUDINI_INSTALLERS_DIR: Final[Path] = HOUDINI_DEFAULT_CACHE_DIR / "installers"
 
 
-type Architecture = Literal['arm64', 'x86_64']
-type PlatformUI= Literal['linux', 'windows', 'macos']
-type PlatformSFX= Literal['linux', 'win', 'macosx', 'macosx_arm64']
-type Platform= Literal['linux', 'Windows', 'Darwin']
-type BuildType = Literal['gcc9.3', 'gcc11.2', 'gcc12.2']|str
+Architecture: TypeAlias = Literal['arm64', 'x86_64']
+PlatformUI: TypeAlias= Literal['linux', 'windows', 'macos']
+PlatformSFX: TypeAlias= Literal['linux', 'win', 'macosx', 'macosx_arm64']
+Platform: TypeAlias= Literal['linux', 'Windows', 'Darwin']
+BuildType: TypeAlias = Literal['gcc9.3', 'gcc11.2', 'gcc12.2']|str
 
 _OS: Final[Platform] = cast(Platform, uname().system)
 _ARCH: Final[Architecture] = cast(Architecture, uname().machine)
