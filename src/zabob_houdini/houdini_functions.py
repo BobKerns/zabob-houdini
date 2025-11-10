@@ -2,7 +2,36 @@
 Houdini-specific functions that require the hou module.
 
 This module contains functions that can only run within Houdini's Python environment.
-These functions are called by the hython bridge decorator.
+These functions are called by the hython bridge for external access.
+
+## Usage Guidelines
+
+All functions in this module should use one of two decorators:
+
+### @houdini_result
+Use for functions that return structured data (JsonObject):
+```python
+@houdini_result
+def my_function() -> JsonObject:
+    return {
+        'node_count': 5,
+        'paths': ['/obj/geo1', '/obj/geo2'],
+        'success': True
+    }
+```
+
+### @houdini_message
+Use for functions that return simple string messages:
+```python
+@houdini_message
+def my_function() -> str:
+    return "Operation completed successfully"
+```
+
+The decorators handle:
+- Exception catching and error reporting
+- Consistent return structure for bridge communication
+- JSON serialization compatibility
 """
 
 import hou

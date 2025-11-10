@@ -1,5 +1,36 @@
 """
 Bridge for running Houdini functions either directly or via hython subprocess.
+
+## Architecture and Rationale
+
+This module provides a consistent interface for calling Houdini functions, whether running
+inside Houdini's Python environment or externally via subprocess calls to hython.
+
+### Type-Safe Result Handling
+
+All Houdini function calls return a `HoudiniResult` structure with consistent fields:
+- `success: bool` - Whether the operation succeeded
+- `result: JsonObject` - The actual result data (if successful)
+- `error: str` - Error message (if failed)
+- `traceback: str` - Full traceback (if failed)
+
+### Decorator Pattern
+
+Houdini-side functions use decorators to ensure consistent return types:
+
+- `@houdini_result` for functions returning `JsonObject`
+  - Wraps exceptions into error structure
+  - Ensures `result` field contains the JsonObject return value
+
+- `@houdini_message` for functions returning simple strings
+  - Wraps string return in `{"message": string}` structure
+  - Maintains type consistency (result is always JsonObject)
+
+This approach provides:
+1. **Type Safety**: All results have the same structure
+2. **Error Handling**: Consistent exception catching and reporting
+3. **Simplicity**: Calling code always knows what to expect
+4. **JSON Compatibility**: All data is JSON-serializable for subprocess calls
 """
 
 from collections.abc import Callable

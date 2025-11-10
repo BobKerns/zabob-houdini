@@ -3,6 +3,30 @@ Houdini-specific test functions that require the hou module.
 
 This module contains test functions that can only run within Houdini's Python environment.
 These functions are called by the hython bridge for testing purposes.
+
+## Usage Guidelines
+
+All test functions in this module should use the `@houdini_result` decorator:
+
+```python
+@houdini_result
+def test_my_feature() -> JsonObject:
+    # Test implementation
+    return {
+        'test_passed': True,
+        'node_count': 3,
+        'details': 'All nodes created successfully'
+    }
+```
+
+The decorator handles:
+- Exception catching with detailed traceback reporting
+- Consistent return structure with success/error fields
+- JSON serialization for bridge communication
+- Type safety (always returns JsonObject in result field)
+
+Test functions should return structured data that describes the test results,
+making it easy for external callers to understand what was tested and the outcome.
 """
 
 import re
