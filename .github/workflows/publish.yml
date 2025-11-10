@@ -44,8 +44,8 @@ jobs:
     - name: Install dependencies
       run: uv sync --all-extras --dev
 
-    - name: Run tests
-      run: uv run pytest tests/ -v
+    - name: Run unit tests (excluding Houdini integration tests)
+      run: uv run pytest -m "unit and not integration" -v
 
     - name: Run spell check
       run: |

@@ -7,6 +7,7 @@ These tests use the hython_test fixture to safely run tests in Houdini.
 import pytest
 
 
+@pytest.mark.integration
 def test_hou_module_available(hython_test):
     """Test that hou module is available in Houdini environment."""
     result = hython_test("test_hou_available")
@@ -20,6 +21,7 @@ def test_hou_module_available(hython_test):
     assert len(result_data["hou_version"]) > 0
 
 
+@pytest.mark.integration
 def test_basic_node_creation_in_houdini(hython_test):
     """Test basic Houdini node creation."""
     result = hython_test("test_basic_node_creation")
@@ -33,6 +35,7 @@ def test_basic_node_creation_in_houdini(hython_test):
     assert result_data["box_path"].endswith("test_box")
 
 
+@pytest.mark.integration
 def test_zabob_node_creation(hython_test):
     """Test Zabob NodeInstance creation and execution in Houdini."""
     result = hython_test("test_zabob_node_creation")
@@ -46,6 +49,7 @@ def test_zabob_node_creation(hython_test):
     assert abs(float(result_data["sizex"]) - 2.0) < 0.001  # Check sizex parameter was set
 
 
+@pytest.mark.integration
 def test_zabob_chain_creation(hython_test):
     """Test Zabob Chain creation and execution in Houdini."""
     result = hython_test("test_zabob_chain_creation")
@@ -65,6 +69,7 @@ def test_zabob_chain_creation(hython_test):
     assert any("chain_subdivide" in path for path in paths)
 
 
+@pytest.mark.integration
 def test_node_input_connections(hython_test):
     """Test node input connections work correctly."""
     result = hython_test("test_node_with_inputs")
@@ -82,6 +87,7 @@ def test_node_input_connections(hython_test):
 
 
 @pytest.mark.skip(reason="Example of environment-specific test")
+@pytest.mark.integration
 def test_direct_houdini_check(houdini_available):
     """Example test that checks if running directly in Houdini."""
     if not houdini_available:

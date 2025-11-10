@@ -45,6 +45,7 @@ coverage.xml
 .pytest_cache/
 cover/
 *.backup
+test-results*.xml
 
 # Virtual environments
 .venv

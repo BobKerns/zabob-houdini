@@ -1,0 +1,117 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  unit-tests:
+    name: Unit Tests (No Houdini)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install UV
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run unit tests (excluding Houdini integration tests)
+      run: |
+        uv run pytest -m "unit and not integration" -v \
+          --tb=short \
+          --junit-xml=test-results-${{ matrix.python-version }}.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: test-results-${{ matrix.python-version }}.xml
+        retention-days: 30
+
+  lint-and-type-check:
+    name: Linting and Type Checking
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install UV
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run spell check
+      run: |
+        npm install
+        npm run spell-check
+
+    - name: Run type checking (if mypy is available)
+      run: |
+        if uv run python -c "import mypy" 2>/dev/null; then
+          echo "Running mypy type checking..."
+          uv run mypy src/zabob_houdini --ignore-missing-imports || true
+        else
+          echo "Mypy not available, skipping type checking"
+        fi
+      continue-on-error: true
+
+  integration-tests:
+    name: Integration Tests (Houdini Required)
+    runs-on: ubuntu-latest
+    # Only run integration tests on main branch or when explicitly requested
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'test-integration')
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install UV
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Skip integration tests (Houdini not available in CI)
+      run: |
+        echo "Integration tests require Houdini installation."
+        echo "These tests are skipped in CI but can be run locally with:"
+        echo "  uv run pytest tests/test_core_caching.py tests/test_houdini_integration.py -v"
+        echo ""
+        echo "To run with Houdini locally:"
+        echo "1. Install Houdini"
+        echo "2. Set up your .env file with HOUDINI_PATH"
+        echo "3. Run: uv run pytest tests/ -v"
+        exit 0

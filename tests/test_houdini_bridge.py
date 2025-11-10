@@ -8,6 +8,8 @@ from unittest.mock import patch, Mock
 from zabob_houdini.houdini_bridge import call_houdini_function, _is_in_houdini
 
 
+@pytest.mark.unit
+@pytest.mark.unit
 def test_is_in_houdini_detection_when_available():
     """Test detection when hou module is available."""
     # This test only makes sense if we're actually in hython
@@ -17,6 +19,7 @@ def test_is_in_houdini_detection_when_available():
     # We can't assert True/False since it depends on environment
 
 
+@pytest.mark.unit
 def test_call_houdini_function_subprocess_logic():
     """Test subprocess call logic without heavy mocking."""
     # Test the command building logic by mocking subprocess only
@@ -38,6 +41,7 @@ def test_call_houdini_function_subprocess_logic():
         ], check=True, capture_output=True, text=True)
 
 
+@pytest.mark.unit
 def test_call_houdini_function_subprocess_error_handling():
     """Test handling of subprocess errors."""
     with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \
@@ -50,6 +54,7 @@ def test_call_houdini_function_subprocess_error_handling():
             call_houdini_function('test_function')
 
 
+@pytest.mark.unit
 def test_call_houdini_function_hython_not_found():
     """Test error when not in Houdini and hython not found."""
     with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \
@@ -59,6 +64,7 @@ def test_call_houdini_function_hython_not_found():
             call_houdini_function('test_function')
 
 
+@pytest.mark.unit
 def test_call_houdini_function_module_parameter():
     """Test that module parameter is passed correctly."""
     with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \
@@ -84,6 +90,7 @@ from unittest.mock import patch, Mock
 from zabob_houdini.houdini_bridge import call_houdini_function, _is_in_houdini
 
 
+@pytest.mark.unit
 def test_is_in_houdini_detection():
     """Test detection of Houdini environment."""
     # Test when hou is not in sys.modules
@@ -96,6 +103,7 @@ def test_is_in_houdini_detection():
         assert _is_in_houdini()
 
 
+@pytest.mark.unit
 def test_call_houdini_function_direct_execution():
     """Test calling function when already in Houdini."""
     # Mock being in Houdini and the houdini_functions module
@@ -112,6 +120,7 @@ def test_call_houdini_function_direct_execution():
         assert result['success'] is True
         assert 'result' in result
         assert result['result']['value'] == "test result"
+@pytest.mark.unit
 def test_call_houdini_function_without_hython():
     """Test function call behavior when hython is not available."""
     # Mock not being in Houdini and hython not found
@@ -122,6 +131,7 @@ def test_call_houdini_function_without_hython():
             call_houdini_function('test_function', 'arg1')
 
 
+@pytest.mark.unit
 def test_call_houdini_function_subprocess():
     """Test calling function via subprocess when not in Houdini."""
     with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \
@@ -142,6 +152,7 @@ def test_call_houdini_function_subprocess():
         ], check=True, capture_output=True, text=True)
 
 
+@pytest.mark.unit
 def test_call_houdini_function_subprocess_error():
     """Test handling of subprocess errors."""
     with patch('zabob_houdini.houdini_bridge._is_in_houdini', return_value=False), \

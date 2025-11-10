@@ -48,3 +48,23 @@ dev = [
     "mypy>=1.18.2",
     "twine>=5.0.0",
 ]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+]
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (requires Houdini)",
+    "unit: marks tests as unit tests (no external dependencies)",
+    "slow: marks tests as slow running",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]

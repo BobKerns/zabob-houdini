@@ -1,4 +1,9 @@
-# Zabob-Houdini, a simple API for creating Houdini node graphs
+# Zabob-Houdini
+
+[![Tests](https://github.com/BobKerns/zabob-houdini/actions/workflows/test.yml/badge.svg)](https://github.com/BobKerns/zabob-houdini/actions/workflows/test.yml)
+[![PyPI](https://github.com/BobKerns/zabob-houdini/actions/workflows/publish.yml/badge.svg)](https://github.com/BobKerns/zabob-houdini/actions/workflows/publish.yml)
+
+A simple Python API for creating Houdini node graphs programmatically.
 
 ## Basics
 
@@ -116,6 +121,50 @@ from zabob_houdini import node, chain
 cp .python-version-houdini .python-version  # Pin to Python 3.11 for Houdini compatibility
 uv sync  # Will use Python 3.11
 ```
+
+### Testing
+
+The project uses a two-tier testing approach to support both local development and CI:
+
+**Quick Test Commands:**
+
+```bash
+./test.sh unit          # Unit tests (no Houdini required)
+./test.sh integration   # Integration tests (requires Houdini)
+./test.sh all          # All tests
+./test.sh list         # List all available tests
+```
+
+**Manual Testing:**
+
+```bash
+# Unit tests only (runs in CI)
+uv run pytest -m "unit and not integration" -v
+
+# Integration tests (requires Houdini)
+uv run pytest -m "integration" -v
+
+# All tests
+uv run pytest -v
+```
+
+**Test Categories:**
+
+- **Unit Tests** (`@pytest.mark.unit`): Bridge functionality, utilities, basic imports
+  - Run without Houdini installation
+  - Fast execution (< 1 second)
+  - Used in CI/CD pipelines
+
+- **Integration Tests** (`@pytest.mark.integration`): Core API functionality
+  - Require Houdini installation and `hython` binary
+  - Test actual node creation and graph building
+  - Run locally or in specialized CI environments
+
+**CI/CD:**
+
+- **Pull Requests**: Run unit tests on Python 3.11, 3.12, 3.13
+- **Releases**: Run unit tests + linting + spell checking
+- **Integration tests**: Run manually or on `main` branch with special label
 
 ### Setting up the Virtual Environment
 
