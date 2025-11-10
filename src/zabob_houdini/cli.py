@@ -15,11 +15,13 @@ with regular Python. For actual Houdini node creation, use the package
 within Houdini's Python shelf tools or HDA scripts.
 """
 
+from typing import cast
 import click
 import os
 import sys
 
 from zabob_houdini.houdini_bridge import JsonValue, call_houdini_function
+from zabob_houdini.__version__ import __version__, __distribution__
 
 def get_environment_info() -> dict[str, JsonValue]:
     """Get information about the current Python and Houdini environment."""
@@ -34,20 +36,20 @@ def get_environment_info() -> dict[str, JsonValue]:
         houdini_result = call_houdini_function('get_houdini_info')
         if houdini_result['success'] and 'result' in houdini_result:
             info.update(houdini_result['result'])
-            info['houdini_available'] = 'true'
+            info['houdini_available'] = True
         else:
-            info['houdini_available'] = 'false'
+            info['houdini_available'] = False
             if 'error' in houdini_result:
                 info['houdini_error'] = houdini_result['error']
     except Exception as e:
-        info['houdini_available'] = 'false'
+        info['houdini_available'] = False
         info['houdini_error'] = str(e)
 
     return info
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="zabob-houdini")
+@click.version_option(version=__version__, prog_name=__distribution__)
 def main() -> None:
     """
     Zabob-Houdini development utilities.
@@ -56,6 +58,15 @@ def main() -> None:
     """
     pass
 
+@click.group("diagnostics")
+@click.version_option(version=__version__, prog_name=__distribution__)
+def diagnostics() -> None:
+    """
+    Diagnostic commands for checking Houdini environment and functionality.
+    """
+    pass
+
+main.add_command(diagnostics)
 
 @main.command()
 @click.option(
@@ -84,7 +95,7 @@ def list_types(category: str | None) -> None:
         click.echo(f"✗ Error listing node types: {e}")
 
 
-@main.command()
+@diagnostics.command()
 def test_node() -> None:
     """
     Test creating a simple node (requires Houdini).
@@ -92,7 +103,8 @@ def test_node() -> None:
     click.echo("Testing node creation via Houdini bridge...")
 
     try:
-        result = call_houdini_function('test_node_creation')
+        result = call_houdini_function('test_zabob_node_creation',
+                                                     module='houdini_test_functions')
 
         if result['success']:
             click.echo("✓ Node creation test passed")
@@ -115,13 +127,14 @@ def test_node() -> None:
         click.echo(f"✗ Test failed: {e}")
 
 
-@main.command()
+@diagnostics.command()
 def test_chain():
     """Test chain functionality."""
     click.echo("Testing chain functionality...")
 
     try:
-        result = call_houdini_function('houdini_test_functions', 'test_basic_availability')
+        result = call_houdini_function('test_zabob_chain_creation',
+                                                        module='houdini_test_functions')
 
         if result['success']:
             click.echo("✓ Chain functionality test passed")
@@ -183,6 +196,14 @@ def info() -> None:
     click.echo(f"Platform: {env_info['platform']}")
     click.echo(f"Houdini Available: {env_info['houdini_available']}")
 
+    def show_path(title: str, path: JsonValue):
+        match path:
+            case str() if path:
+                click.echo(f"{title}:")
+                for p in path.split(os.pathsep):
+                    click.echo(f"  {p}")
+            case _:
+                click.echo(f"{title}: Not set")
     # Always try to get Houdini info via bridge
     try:
         houdini_result = call_houdini_function('get_houdini_info')
@@ -192,27 +213,28 @@ def info() -> None:
                 click.echo("\nHoudini Information:")
                 click.echo("-" * 30)
                 click.echo(f"Application: {houdini_info['houdini_app']}")
-                click.echo(f"Version: {houdini_info['houdini_version']}")
+                click.echo(f"Version: {'.'.join(map(str, cast(list, houdini_info['houdini_version'])))}")
                 if 'houdini_build' in houdini_info:
                     click.echo(f"Build: {houdini_info['houdini_build']}")
+                click.echo(f"Hython Version: {houdini_info.get('hython_version', 'N/A')}")
+                env = houdini_info.get('houdini_environment', {})
+                if not isinstance(env, dict):
+                    env = {}
+                houdini_path = env.get('HOUDINI_PATH', '')
+                python_path = env.get('PYTHONPATH', '')
+                show_path('HOUDINI_PATH', houdini_path)
+                show_path('PYTHONPATH', python_path)
     except Exception:
         # Silently handle no Houdini availability
         pass
 
     # Environment variables
-    click.echo("\nEnvironment Variables:")
+    click.echo("\nGlobal Environment Variables:")
     click.echo("-" * 30)
     houdini_path = os.getenv("HOUDINI_PATH")
-    if houdini_path:
-        click.echo(f"HOUDINI_PATH: {houdini_path}")
-    else:
-        click.echo("HOUDINI_PATH: Not set")
-
-    pythonpath = os.getenv("PYTHONPATH")
-    if pythonpath:
-        click.echo(f"PYTHONPATH: {pythonpath}")
-    else:
-        click.echo("PYTHONPATH: Not set")
+    show_path('HOUDINI_PATH', houdini_path)
+    python_path = os.getenv("PYTHONPATH")
+    show_path('PYTHONPATH', python_path)
 
 
 @main.command()
@@ -222,7 +244,7 @@ def validate() -> None:
     """
     env_info = get_environment_info()
 
-    if env_info.get('houdini_available') == 'true':
+    if env_info.get('houdini_available'):
         click.echo("✓ Houdini environment is available and working")
     else:
         click.echo("✗ Houdini environment is not available")

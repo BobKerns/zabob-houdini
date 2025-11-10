@@ -661,7 +661,7 @@ def test_node_registry() -> JsonObject:
 @houdini_result
 def test_hou_available() -> JsonObject:
     """Simple test to verify hou module is available."""
-    version = '.'.join(map(str, hou.applicationVersion()))
+    version = hou.applicationVersion()
     app_name = hou.applicationName()
 
     if PYTEST_AVAILABLE:
@@ -669,6 +669,6 @@ def test_hou_available() -> JsonObject:
         assert app_name is not None, "Houdini application name should be available"
 
     return {
-        'hou_version': version,
+        'hou_version': list(version),
         'hou_app': app_name,
     }

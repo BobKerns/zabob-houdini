@@ -294,7 +294,7 @@ Each example file contains common installation paths for that platform. Edit `.e
 3. **Alternative Installation:**
    ```bash
    # Install package directly in Houdini's Python
-   /path/to/houdini/python -m pip install zabob-houdini
+   /path/to/houdini/hython -m pip install zabob-houdini
    ```
 
 **Where to use zabob-houdini in Houdini:**
@@ -432,9 +432,26 @@ This package is automatically published to PyPI using GitHub Actions. For detail
 Once published, users can install with:
 
 ```bash
+# First ensure hython is on your path.
+# This is a requirement for all usage.
+# Then:
+
+mkdir zabob-houdini
+cd zabob-houdini
+
+# Using uv (recommended)
+uv venv .venv
+source .venv/bin/activate
+uv add zabob-houdini
+
 # Using pip
+python -m venv .venv
+source .venv/bin/activate
 pip install zabob-houdini
 
-# Using uv
-uv add zabob-houdini
+# Install into Houdini:
+zabob-houdini install-package
+
+# Validate:
+zabob-houdini validate
 ```

@@ -6,8 +6,19 @@ import click
 import json
 import sys
 
-from zabob_houdini.cli import main as cli_main
+from zabob_houdini.cli import main as dev_main, diagnostics
+from zabob_houdini.__version__ import __version__, __distribution__
+from zabob_houdini.houdini_versions import cli as houdini_cli
 
+@click.group()
+@click.version_option(version=__version__, prog_name=__distribution__)
+def main() -> None:
+    """
+    Zabob-Houdini development utilities.
+
+    Simple CLI for validating Houdini integration and listing node types.
+    """
+    pass
 
 @click.command(name='_exec', hidden=True)
 @click.argument('module_name')
@@ -57,13 +68,13 @@ def _exec(module_name: str, function_name: str, args: tuple[str, ...]) -> None:
 
 
 # Add the hidden _exec command to the existing CLI when module is imported
-cli_main.add_command(_exec)
-
-
-def main() -> None:
-    """Entry point that runs the CLI."""
-    cli_main()
-
+main.add_command(_exec)
+main.add_command(dev_main, "dev")
+main.add_command(diagnostics, "diagnostics")
+main.add_command(houdini_cli, "houdini")
+for cmd in dev_main.commands.values():
+    if not isinstance(cmd, click.Group):
+        main.add_command(cmd)
 
 if __name__ == "__main__":
     main()

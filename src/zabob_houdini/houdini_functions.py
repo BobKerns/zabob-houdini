@@ -34,6 +34,8 @@ The decorators handle:
 - JSON serialization compatibility
 """
 
+import os
+import sys
 import hou
 from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.houdini_bridge import houdini_message, houdini_result, JsonObject
@@ -102,8 +104,10 @@ def get_houdini_info() -> JsonObject:
     try:
         return {
             'houdini_app': hou.applicationName(),
-            'houdini_version': '.'.join(map(str, hou.applicationVersion())),
+            'houdini_version': list(hou.applicationVersion()),
             'houdini_build': hou.applicationVersionString(),
+            "hython_version": sys.version,
+            "houdini_environment": dict(os.environ),
         }
     except Exception as e:
         return {'houdini_error': str(e)}

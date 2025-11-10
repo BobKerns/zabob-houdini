@@ -37,7 +37,7 @@ Issues = "https://github.com/BobKerns/zabob-houdini/issues"
 Documentation = "https://github.com/BobKerns/zabob-houdini#readme"
 
 [project.scripts]
-zabob-houdini = "zabob_houdini.cli:main"
+zabob-houdini = "zabob_houdini.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
