@@ -1,13 +1,15 @@
 #!/usr/bin/env uv run --script
 # /// script
-# requires-python = ">=3.13"
+# requires-python = ">=3.11"
 # dependencies = [
 #     "click",
 #     "requests",
 #     "semver",
 #     "python-dotenv",
+#     "charset-normalizer<3.4.0",
 # ]
 # ///
+
 
 from collections.abc import Mapping, Collection
 from functools import reduce
@@ -143,7 +145,6 @@ def _version(version: Version|str) -> Version:
                 return result
             except ValueError as e:
                 self.fail('Not a valid version, {0}'.format(str(e)), param, ctx)
-
 
 
 def platform_ui(name: PlatformSFX|Platform|PlatformUI=_OS) -> PlatformUI:
@@ -632,12 +633,17 @@ def cli():
               type=click.Choice(['arm64', 'x86_64'], case_sensitive=False),
               default=os.getenv("HOUDINI_ARCHITECTURES", _ARCH).split(','),
               help='Architectures to filter (arm64, x86_64).')
+@click.option("--dev", "dev",
+              is_flag=True,
+              default=False,
+              help="Includes development versions.")
 def versions_command(
         cache_dir: Path|str=HOUDINI_VERSIONS_CACHE,
         min_version: Version|None=None,
         platforms: Collection[PlatformUI]=(platform_ui(),),
         products: Collection[str]=('houdini',),
         architectures: Collection[Architecture]=(_ARCH,),
+        dev: bool=False,
     ):
     """Get Houdini versions for testing."""
     cache_dir = Path(cache_dir)
@@ -657,6 +663,8 @@ def versions_command(
             if os_ not in platforms:
                 continue
             if arch not in architectures:
+                continue
+            if not dev and build["release"] != "gold":
                 continue
             print(f"  - {build['full_version']} [{product}] ({os_}/{arch}/{build['build_type']})")
 
@@ -758,7 +766,6 @@ def show_command(version: Version,
     else:
         print(f"No build found for version {version} on {platform} ({arch}, {build_type})", file=sys.stderr)
         sys.exit(1)
-
 
 if __name__ == "__main__":
     cli()  # Use the cli group instead of main function

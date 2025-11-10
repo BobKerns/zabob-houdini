@@ -23,9 +23,11 @@ classifiers = [
 keywords = ["houdini", "3d", "graphics", "procedural", "node-graph", "vfx"]
 dependencies = [
     "click>=8.0.0",
-    "dotenv>=0.9.9",
+    "python-dotenv>=1.0.0",
     "pytest>=7.0.0",
+    "requests>=2.32.5",
     "semver>=3.0.4",
+    "charset-normalizer<3.4.0",
 ]
 
 [project.urls]
