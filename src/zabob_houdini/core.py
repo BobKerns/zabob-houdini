@@ -1,5 +1,7 @@
 """
-Core classes and functions for the Zabob-Houdini API.
+Core Zabob-Houdini API for creating Houdini node graphs.
+
+This module assumes it's running in a Houdini environment (mediated by bridge or test fixture).
 """
 
 from __future__ import annotations
@@ -11,18 +13,54 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, Union
 from types import MappingProxyType
+import weakref
 
-"""
-Core Zabob-Houdini API for creating Houdini node graphs.
 
-This module assumes it's running in a Houdini environment (mediated by bridge or test fixture).
-"""
 
 from typing import Any, TypeAlias, overload, Iterator
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
 import hou
+
+# Global registry to map hou.Node objects back to their originating NodeInstance
+# Uses WeakKeyDictionary so that when hou.Node objects are deleted, the mapping is automatically cleaned up
+_node_registry: weakref.WeakKeyDictionary[hou.Node, 'NodeInstance'] = weakref.WeakKeyDictionary()
+
+
+def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
+    """
+    Wrap a hou.Node in a NodeInstance, checking the global registry first.
+
+    If the hou.Node was originally created by a NodeInstance, returns that original.
+    Otherwise, creates a new NodeInstance wrapper.
+
+    Args:
+        hou_node: The Houdini node to wrap
+
+    Returns:
+        NodeInstance object (either original or newly created wrapper)
+    """
+    # Check if we already have this node in our registry
+    if hou_node in _node_registry:
+        return _node_registry[hou_node]
+
+    # Create a new wrapper NodeInstance
+    node_path = hou_node.path()
+    parent_path = '/'.join(node_path.split('/')[:-1]) or '/'
+    node_name = node_path.split('/')[-1]
+
+    wrapped = NodeInstance(
+        parent=parent_path,
+        node_type=hou_node.type().name(),
+        name=node_name,
+        _node=hou_node  # Pass the existing node so create() returns it
+    )
+
+    # Register this wrapper in case it gets referenced again
+    _node_registry[hou_node] = wrapped
+
+    return wrapped
 
 
 class HashableMapping:
@@ -80,6 +118,9 @@ NodeType: TypeAlias = str
 
 CreatableNode: TypeAlias = 'NodeInstance | Chain'
 """A node or chain that can be created via .create() method."""
+
+ChainableNode: TypeAlias = 'NodeInstance | Chain | hou.Node'
+"""A node or chain that can be used in a chain - includes existing hou.Node objects."""
 
 InputNode: TypeAlias = 'NodeInstance | Chain | hou.Node | None'
 """A node that can be used as input - NodeInstance, Chain (uses last node), actual hou.Node, or None for sparse connections."""
@@ -210,6 +251,9 @@ class NodeInstance(HoudiniNodeBase):
                 except Exception as e:
                     print(f"Warning: Failed to connect input {i}: {e}")
 
+        # Register this NodeInstance as the creator of this hou.Node
+        _node_registry[created_node] = self
+
         return created_node
 
     def copy(self) -> 'NodeInstance':
@@ -245,7 +289,7 @@ class Chain(HoudiniNodeBase):
     Nodes in the chain are automatically connected in sequence.
     """
     parent: NodeParent
-    nodes: tuple[CreatableNode, ...]
+    nodes: tuple[ChainableNode, ...]
     name_prefix: str | None = None
     attributes: HashableMapping | None = None
     inputs: tuple[InputNode, ...] | None = None
@@ -266,15 +310,8 @@ class Chain(HoudiniNodeBase):
                 case Chain():
                     flattened.extend(item._flatten_nodes())
                 case _ if isinstance(item, hou.Node):
-                    # It's a Houdini node - wrap it in a NodeInstance
-                    node_path = item.path()
-                    parent_path = '/'.join(node_path.split('/')[:-1]) or '/'
-                    node_name = node_path.split('/')[-1]
-                    wrapped = NodeInstance(
-                        parent=parent_path,
-                        node_type=item.type().name(),
-                        name=node_name
-                    )
+                    # It's a Houdini node - wrap it using the registry-aware helper
+                    wrapped = _wrap_hou_node(item)
                     flattened.append(wrapped)
                 case _:
                     raise TypeError(
@@ -294,7 +331,7 @@ class Chain(HoudiniNodeBase):
     @overload
     def __getitem__(self, key: str) -> NodeInstance: ...
 
-    def __getitem__(self, key: int | slice | str) -> CreatableNode:
+    def __getitem__(self, key: int | slice | str) -> ChainableNode:
         """
         Access nodes in the chain by index, slice, or name.
 
@@ -454,7 +491,7 @@ class Chain(HoudiniNodeBase):
 
     def copy(self) -> 'Chain':
         """Return a copy of this Chain (copies contained NodeInstances/Chains)."""
-        copied_nodes: list[CreatableNode] = []
+        copied_nodes: list[ChainableNode] = []
         for item in self.nodes:
             if isinstance(item, NodeInstance):
                 copied_nodes.append(item.copy())
@@ -515,7 +552,7 @@ def node(
 
 def chain(
     parent: NodeParent,
-    *nodes: CreatableNode,
+    *nodes: ChainableNode,
     _input: "InputNode | list[InputNode] | None" = None,
     name_prefix: str | None = None,
     **attributes: Any
@@ -556,3 +593,31 @@ def hou_node(path: str) -> 'hou.Node':
     if n is None:
         raise ValueError(f"Node at path '{path}' does not exist.")
     return n
+
+
+def get_node_instance(hou_node: hou.Node) -> 'NodeInstance | None':
+    """
+    Get the original NodeInstance that created a hou.Node, if any.
+
+    Args:
+        hou_node: The Houdini node to look up
+
+    Returns:
+        The original NodeInstance that created this node, or None if not found
+    """
+    return _node_registry.get(hou_node)
+
+
+def wrap_node(hou_node: hou.Node) -> 'NodeInstance':
+    """
+    Wrap a hou.Node in a NodeInstance, preferring the original if available.
+
+    This is the public interface to _wrap_hou_node.
+
+    Args:
+        hou_node: The Houdini node to wrap
+
+    Returns:
+        NodeInstance object (either original or newly created wrapper)
+    """
+    return _wrap_hou_node(hou_node)

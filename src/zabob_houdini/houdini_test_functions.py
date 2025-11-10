@@ -778,6 +778,56 @@ def test_node_copy_non_chain_inputs():
         return json.dumps(error_result)
 
 
+def test_node_registry():
+    """Test NodeInstance registry functionality."""
+    try:
+        # Clear the scene
+        hou.hipFile.clear()
+
+        # Create geometry object for testing
+        obj = hou_node("/obj")
+        geo = obj.createNode("geo", "test_geo")
+
+        # Create a NodeInstance and get its hou.Node
+        from zabob_houdini.core import get_node_instance, wrap_node
+        box_node = node(geo.path(), "box", name="registry_test_box")
+        created_hou_node = box_node.create()
+
+        # Test 1: get_node_instance should return the original NodeInstance
+        retrieved_instance = get_node_instance(created_hou_node)
+        found_original = retrieved_instance is box_node
+
+        # Test 2: wrap_node should return the original NodeInstance, not create a new one
+        wrapped_instance = wrap_node(created_hou_node)
+        wrap_returns_original = wrapped_instance is box_node
+
+        # Test 3: Create another node with the hou.Node in a chain - should use original
+        sphere_node = node(geo.path(), "sphere", name="registry_test_sphere")
+        # Create a chain that includes the raw hou.Node
+        test_chain = chain(geo.path(), created_hou_node, sphere_node)
+        created_chain_nodes = test_chain.create()
+        
+        # The first node in the chain should be the original NodeInstance
+        first_chain_node_is_original = created_chain_nodes[0].create() is created_hou_node
+
+        result = {
+            'found_original': found_original,
+            'wrap_returns_original': wrap_returns_original,
+            'first_chain_node_is_original': first_chain_node_is_original,
+            'original_node_path': created_hou_node.path(),
+            'success': True
+        }
+        return json.dumps(result)
+
+    except Exception as e:
+        error_result = {
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
+        return json.dumps(error_result)
+
+
 def test_hou_available():
     """Simple test to verify hou module is available."""
     try:

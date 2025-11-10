@@ -204,5 +204,21 @@ class TestChainConvenienceMethods:
         pass
 
 
+class TestNodeRegistry:
+    """Test NodeInstance registry functionality."""
+
+    def test_node_registry_functionality(self, hython_test):
+        """Test that NodeInstances are properly registered and retrieved."""
+        result = hython_test("test_node_registry")
+
+        assert result['success'] is True
+        assert 'result' in result
+        result_data = result['result']
+        assert result_data["found_original"] is True
+        assert result_data["wrap_returns_original"] is True
+        assert result_data["first_chain_node_is_original"] is True
+        assert "registry_test_box" in result_data["original_node_path"]
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
