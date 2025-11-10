@@ -109,6 +109,3 @@ cache/
 Cache/
 preview/
 Preview/
-
-# UV
-uv.lock
