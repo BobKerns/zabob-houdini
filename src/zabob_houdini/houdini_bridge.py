@@ -73,8 +73,8 @@ def _normalize_result(raw_result: Any) -> HoudiniResult:
                 if "traceback" in parsed:
                     result["traceback"] = str(parsed["traceback"])
 
-                # Add remaining fields as result data
-                result_data = {k: str(v) for k, v in parsed.items()
+                # Add remaining fields as result data (preserve original types)
+                result_data = {k: v for k, v in parsed.items()
                              if k not in ["success", "error", "traceback"]}
                 if result_data:
                     result["result"] = result_data
@@ -93,8 +93,8 @@ def _normalize_result(raw_result: Any) -> HoudiniResult:
         if "traceback" in raw_result:
             result["traceback"] = str(raw_result["traceback"])
 
-        # Add remaining fields as result data
-        result_data = {k: str(v) for k, v in raw_result.items()
+        # Add remaining fields as result data (preserve original types)
+        result_data = {k: v for k, v in raw_result.items()
                      if k not in ["success", "error", "traceback"]}
         if result_data:
             result["result"] = result_data

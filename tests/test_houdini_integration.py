@@ -55,11 +55,11 @@ def test_zabob_chain_creation(hython_test):
     result_data = result['result']
     assert "chain_length" in result_data
     assert "node_paths" in result_data
-    assert result_data["chain_length"] == "3"
-    assert len(result_data["node_paths"].split(",")) == 3
+    assert result_data["chain_length"] == 3
+    assert len(result_data["node_paths"]) == 3
 
     # Verify the node names in the chain
-    paths = result_data["node_paths"].split(",")
+    paths = result_data["node_paths"]
     assert any("chain_box" in path for path in paths)
     assert any("chain_xform" in path for path in paths)
     assert any("chain_subdivide" in path for path in paths)
@@ -77,7 +77,7 @@ def test_node_input_connections(hython_test):
     assert "connection_exists" in result_data
     assert "connected_to" in result_data
 
-    assert result_data["connection_exists"] == "True"
+    assert result_data["connection_exists"] is True
     assert result_data["connected_to"] == result_data["box_path"]
 
 
