@@ -34,6 +34,7 @@ Usage Patterns:
 from importlib.metadata import version, PackageNotFoundError
 
 lazy_imports = ("node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", "HoudiniNodeBase", "CreatableNode", "ChainableNode", "get_node_instance", "wrap_node", "hou_node")
+_imports_loaded = False
 
 try:
     __version__ = version("zabob-houdini")
@@ -44,22 +45,15 @@ except PackageNotFoundError:
 # Lazy imports to avoid importing hou when not needed
 def __getattr__(name: str):
     """Lazy import core API components only when accessed."""
+    global _imports_loaded
+
     if name in lazy_imports:
-        from zabob_houdini.core import node, chain, NodeInstance, Chain, NodeType, NodeParent, HoudiniNodeBase, CreatableNode, ChainableNode, get_node_instance, wrap_node, hou_node
-        globals().update({
-            "node": node,
-            "chain": chain,
-            "NodeInstance": NodeInstance,
-            "Chain": Chain,
-            "NodeType": NodeType,
-            "NodeParent": NodeParent,
-            "HoudiniNodeBase": HoudiniNodeBase,
-            "CreatableNode": CreatableNode,
-            "ChainableNode": ChainableNode,
-            "get_node_instance": get_node_instance,
-            "wrap_node": wrap_node,
-            "hou_node": hou_node
-        })
+        if not _imports_loaded:
+            import zabob_houdini.core as core
+            globals().update({
+                attr: getattr(core, attr) for attr in lazy_imports
+            })
+            _imports_loaded = True
         return globals()[name]
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
