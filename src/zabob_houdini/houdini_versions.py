@@ -26,14 +26,15 @@ from collections import defaultdict
 
 import requests
 import click
+from click import Parameter, Context
 from semver import Version
 # Add dotenv support
 from dotenv import load_dotenv
 
 load_dotenv()  # Load from .env if available]
 
-HOUDINI_FALLBACK_VERSION: Final[Version] = Version.parse(os.getenv("HOUDINI_FALLBACK_VERSION", "20.5.584"))
-HOUDINI_DEFAULT_MIN_VERSION: Final[Version] = Version(20, 5)
+HOUDINI_FALLBACK_VERSION: Final[Version] = Version.parse(os.getenv("HOUDINI_FALLBACK_VERSION", "21.0.512"))
+HOUDINI_DEFAULT_MIN_VERSION: Final[Version] = Version(21, 0)
 HOUDINI_VERSIONS_CACHE_NAME: Final[str] = "houdini_versions_cache.json"
 HOUDINI_DEFAULT_CACHE_DIR: Final[Path] = Path(os.getenv("CACHE_DIRECTORY", Path.home() / '.houdini-cache'))
 HOUDINI_VERSIONS_CACHE: Final[Path] = HOUDINI_DEFAULT_CACHE_DIR / HOUDINI_VERSIONS_CACHE_NAME
@@ -86,22 +87,6 @@ class SemVerParamType(click.ParamType):
         self._min_version = min_version
         self._max_version = max_version
 
-
-def _version(version: Version|str) -> Version:
-    """
-    Convert a version to a semver.Version object.
-
-    Args:
-        version (Version|str): The version to convert.
-
-    Returns:
-        Version: The converted version.
-    """
-    if isinstance(version, Version):
-        return version
-    return Version.parse(version, optional_minor_and_patch=True)
-
-
     def convert(self, value: str, param: Parameter|None, ctx: Context|None) -> Version:
         """Converts the value from string into semver type.
 
@@ -145,6 +130,21 @@ def _version(version: Version|str) -> Version:
                 return result
             except ValueError as e:
                 self.fail('Not a valid version, {0}'.format(str(e)), param, ctx)
+
+
+def _version(version: Version|str) -> Version:
+    """
+    Convert a version to a semver.Version object.
+
+    Args:
+        version (Version|str): The version to convert.
+
+    Returns:
+        Version: The converted version.
+    """
+    if isinstance(version, Version):
+        return version
+    return Version.parse(version, optional_minor_and_patch=True)
 
 
 def platform_ui(name: PlatformSFX|Platform|PlatformUI=_OS) -> PlatformUI:
