@@ -17,7 +17,9 @@ def test_hou_module_available(hython_test):
     result_data = result['result']
     assert "hou_version" in result_data
     assert "hou_app" in result_data
-    assert isinstance(result_data["hou_version"], str)
+    assert isinstance(result_data["hou_version"], list)
+    assert len(result_data["hou_version"]) == 3
+    assert all(isinstance(v, int) for v in result_data["hou_version"])
     assert len(result_data["hou_version"]) > 0
 
 
