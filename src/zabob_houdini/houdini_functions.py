@@ -6,15 +6,12 @@ These functions are called by the hython bridge decorator.
 """
 
 import hou
-from zabob_houdini.core import node, chain
+from zabob_houdini.core import node, chain, hou_node
+from zabob_houdini.houdini_bridge import houdini_message, houdini_result, JsonObject
 
-def hou_node(path: str) -> 'hou.Node':
-    n =  hou.node(path)
-    if n is None:
-        raise ValueError(f"Node at path '{path}' does not exist.")
-    return n
 
-def simple_houdini_test():
+@houdini_message
+def simple_houdini_test() -> str:
     """Simple test that creates a box node."""
     # Get or create geometry node
     obj = hou_node("/obj")
@@ -26,7 +23,8 @@ def simple_houdini_test():
     return f"Created box at: {box.path()}"
 
 
-def chain_creation_test():
+@houdini_result
+def chain_creation_test() -> JsonObject:
     """Test creating a chain using Zabob API in hython."""
     # Get or create geometry node
     obj = hou_node("/obj")
@@ -42,10 +40,15 @@ def chain_creation_test():
     # Create the chain
     created_nodes = processing_chain.create()
 
-    return f"Created chain with {len(created_nodes)} nodes in {geo.path()}"
+    return {
+        "message": f"Created chain with {len(created_nodes)} nodes in {geo.path()}",
+        "node_count": len(created_nodes),
+        "parent_path": geo.path()
+    }
 
 
-def create_test_chain():
+@houdini_message
+def create_test_chain() -> str:
     """Create a test processing chain for CLI testing."""
     # Ensure we have a geometry node
     geo = hou.node("/obj/geo1")
@@ -64,7 +67,8 @@ def create_test_chain():
     return f"Chain created successfully: {len(result)} nodes"
 
 
-def get_houdini_info():
+@houdini_result
+def get_houdini_info() -> JsonObject:
     """Get Houdini environment information."""
     try:
         return {

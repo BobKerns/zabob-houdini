@@ -2,21 +2,92 @@
 Bridge for running Houdini functions either directly or via hython subprocess.
 """
 
+from collections.abc import Callable
+from curses import raw
+import functools
 import json
 import subprocess
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, TypedDict, NotRequired
+from typing import Any, ParamSpec, TypeAlias, TypedDict, NotRequired
 
+
+JsonAtomicValue: TypeAlias = str | int | float | bool | None
+'''An atomic JSON value, such as a string, number, boolean, or null.'''
+JsonArray: TypeAlias = 'list[JsonValue]'
+'''A Json array, which is a list of JSON values.'''
+JsonObject: TypeAlias = 'dict[str, JsonValue]'
+'''A Json object, which is a dictionary with string keys and JSON values.'''
+JsonValue: TypeAlias = 'JsonAtomicValue | JsonArray | JsonObject'
+'''A Json value, which can be an atomic value, array, or object.'''
 
 class HoudiniResult(TypedDict):
     """Result structure from Houdini function calls."""
     success: bool
-    result: NotRequired[dict[str, str]]
+    result: NotRequired[JsonObject]
     error: NotRequired[str]
     traceback: NotRequired[str]
 
+P = ParamSpec('P')
+
+def houdini_result(func: Callable[P, dict[str, JsonValue]]) -> Callable[P, HoudiniResult]:
+    """
+    Decorator that converts function return values to JSON result values.
+
+    The decorated function will return a JSON string representation of the
+    original return value, while preserving the exact parameter types and names
+    of the original function.
+
+    Args:
+        func: Function to decorate
+
+    Returns:
+        Decorated function that returns JSON strings with preserved parameter types
+
+    Example:
+        @json_result
+        def get_node_info(node: hou.Node, include_parms: bool = False) -> str:
+            return {"name": node.name(), "type": node.type().name()}
+
+        # Type checker knows the parameters: get_node_info(node: hou.Node, include_parms: bool = False) -> str
+        # Returns: '{"name": "geo1", "type": "geo"}'
+    """
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> HoudiniResult:
+        try:
+            result = func(*args, **kwargs)
+            return {
+                'success': True,
+                'result': result
+                }
+        except Exception as e:
+            import traceback
+            return {
+                'success': False,
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            }
+
+    return wrapper
+
+def houdini_message(func: Callable[P, str]) -> Callable[P, HoudiniResult]:
+    """
+    Decorator that converts a function returning a string message to a HoudiniResult.
+
+    The decorated function will return a HoudiniResult with the message in the 'result' field.
+
+    Args:
+        func: Function to decorate
+
+    Returns:
+        Decorated function that returns a HoudiniResult with the message
+    """
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> dict[str, JsonValue]:
+        message = func(*args, **kwargs)
+        return {'message': message}
+    return houdini_result(wrapper)
 
 def _is_in_houdini() -> bool:
     """Check if we're currently running in Houdini Python environment."""
@@ -62,60 +133,20 @@ def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_fun
 
 def _normalize_result(raw_result: Any) -> HoudiniResult:
     """Convert raw function result to normalized HoudiniResult."""
-    if isinstance(raw_result, str):
-        try:
-            parsed = json.loads(raw_result)
-            if isinstance(parsed, dict):
-                # Convert parsed dict to HoudiniResult
-                result: HoudiniResult = {"success": bool(parsed.get("success", False))}
-                if "error" in parsed:
-                    result["error"] = str(parsed["error"])
-                if "traceback" in parsed:
-                    result["traceback"] = str(parsed["traceback"])
-
-                # Add remaining fields as result data (preserve original types)
-                result_data = {k: v for k, v in parsed.items()
-                             if k not in ["success", "error", "traceback"]}
-                if result_data:
-                    result["result"] = result_data
-
-                return result
-            else:
-                return {"success": True, "result": {"value": str(parsed)}}
-        except json.JSONDecodeError:
-            return {"success": True, "result": {"value": raw_result}}
-
-    elif isinstance(raw_result, dict):
-        # Convert dict to HoudiniResult
-        result: HoudiniResult = {"success": bool(raw_result.get("success", True))}
-        if "error" in raw_result:
-            result["error"] = str(raw_result["error"])
-        if "traceback" in raw_result:
-            result["traceback"] = str(raw_result["traceback"])
-
-        # Add remaining fields as result data (preserve original types)
-        result_data = {k: v for k, v in raw_result.items()
-                     if k not in ["success", "error", "traceback"]}
-        if result_data:
-            result["result"] = result_data
-
-        return result
-
-    else:
-        return {"success": True, "result": {"value": str(raw_result)}}
+    return json.loads(raw_result)
 
 
 def _run_function_via_subprocess(func_name: str, args: tuple, module: str = "houdini_functions") -> Any:
-    """Execute function using 'hython -m zabob_houdini <module> <function_name> <args...>'."""
+    """Execute function using 'hython -m zabob_houdini _exec <module> <function_name> <args...>'."""
     hython_path = _find_hython()
 
     # Convert arguments to strings
     str_args = [str(arg) for arg in args]
 
-    cmd = [str(hython_path), "-m", "zabob_houdini", module, func_name, *str_args]
+    cmd = [str(hython_path), "-m", "zabob_houdini", "_exec", module, func_name, *str_args]
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"hython -m zabob_houdini {module} {func_name} failed: {e.stderr}")
+        raise RuntimeError(f"hython -m zabob_houdini _exec {module} {func_name} failed: {e.stderr}")
 

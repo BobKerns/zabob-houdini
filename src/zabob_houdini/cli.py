@@ -19,11 +19,11 @@ import click
 import os
 import sys
 
-from zabob_houdini.houdini_bridge import call_houdini_function
+from zabob_houdini.houdini_bridge import JsonValue, call_houdini_function
 
-def get_environment_info() -> dict[str, str]:
+def get_environment_info() -> dict[str, JsonValue]:
     """Get information about the current Python and Houdini environment."""
-    info = {
+    info: dict[str, JsonValue] = {
         'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         'python_executable': sys.executable or 'unknown',
         'platform': sys.platform,

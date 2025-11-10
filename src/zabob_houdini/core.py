@@ -6,18 +6,18 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 
 from __future__ import annotations
 
-import copy
 import functools
 from abc import ABC, abstractmethod
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Any, Union
+from typing import Any
 from types import MappingProxyType
 import weakref
 
 
 
-from typing import Any, TypeAlias, overload, Iterator
+from typing import Any, TypeAlias, overload
+from collections.abc import Iterator
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
@@ -621,3 +621,4 @@ def wrap_node(hou_node: hou.Node) -> 'NodeInstance':
         NodeInstance object (either original or newly created wrapper)
     """
     return _wrap_hou_node(hou_node)
+
