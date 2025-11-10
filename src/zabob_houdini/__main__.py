@@ -8,7 +8,9 @@ import sys
 
 from zabob_houdini.cli import main as dev_main, diagnostics
 from zabob_houdini.__version__ import __version__, __distribution__
-from zabob_houdini.houdini_versions import cli as houdini_cli
+
+IN_HOUDINI: bool = 'hou' in sys.modules
+
 
 @click.group()
 @click.version_option(version=__version__, prog_name=__distribution__)
@@ -20,58 +22,65 @@ def main() -> None:
     """
     pass
 
-@click.command(name='_exec', hidden=True)
-@click.argument('module_name')
-@click.argument('function_name')
-@click.argument('args', nargs=-1)
-def _exec(module_name: str, function_name: str, args: tuple[str, ...]) -> None:
-    """
-    Internal dispatcher for hython execution.
+if IN_HOUDINI:
+    @click.command(name='_exec', hidden=True)
+    @click.argument('module_name')
+    @click.argument('function_name')
+    @click.argument('args', nargs=-1)
+    def _exec(module_name: str, function_name: str, args: tuple[str, ...]) -> None:
+        """
+        Internal dispatcher for hython execution.
 
-    Usage: hython -m zabob_houdini _exec <module_name> <function_name> [args...]
+        Usage: hython -m zabob_houdini _exec <module_name> <function_name> [args...]
 
-    This command is hidden from help and used internally by the houdini_bridge
-    to execute functions within the Houdini Python environment.
-    """
-    try:
-        # Import the specified module and call the requested function
-        houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
-        func = getattr(houdini_module, function_name)
+        This command is hidden from help and used internally by the houdini_bridge
+        to execute functions within the Houdini Python environment.
+        """
+        try:
+            # Import the specified module and call the requested function
+            houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
+            func = getattr(houdini_module, function_name)
 
-        # Call function with arguments and capture result
-        result = func(*args)
-        json.dump(result, sys.stdout)
+            # Call function with arguments and capture result
+            result = func(*args)
+            json.dump(result, sys.stdout)
 
-    except ImportError as e:
-        output = {
-            'success': False,
-            'error': f"Module 'zabob_houdini.{module_name}' not found: {e}"
-        }
-        json.dump(output, sys.stdout)
-        sys.exit(1)
+        except ImportError as e:
+            output = {
+                'success': False,
+                'error': f"Module 'zabob_houdini.{module_name}' not found: {e}"
+            }
+            json.dump(output, sys.stdout)
+            sys.exit(1)
 
-    except AttributeError as e:
-        output = {
-            'success': False,
-            'error': f"Function '{function_name}' not found in {module_name}: {e}"
-        }
-        print(json.dumps(output))
-        sys.exit(1)
+        except AttributeError as e:
+            output = {
+                'success': False,
+                'error': f"Function '{function_name}' not found in {module_name}: {e}"
+            }
+            print(json.dumps(output))
+            sys.exit(1)
 
-    except Exception as e:
-        output = {
-            'success': False,
-            'error': f"Error executing {module_name}.{function_name}: {e}"
-        }
-        print(json.dumps(output))
-        sys.exit(1)
+        except Exception as e:
+            output = {
+                'success': False,
+                'error': f"Error executing {module_name}.{function_name}: {e}"
+            }
+            print(json.dumps(output))
+            sys.exit(1)
 
 
-# Add the hidden _exec command to the existing CLI when module is imported
-main.add_command(_exec)
+    # Add the hidden _exec command to the existing CLI when module is imported
+    main.add_command(_exec)
+else:
+    # Don't load houdini_versions in hython.
+    # It is not needed, and depends on dotenv, which is not installed
+    # by default.
+    from zabob_houdini.houdini_versions import cli as houdini_cli
+    main.add_command(houdini_cli, "houdini")
+
 main.add_command(dev_main, "dev")
 main.add_command(diagnostics, "diagnostics")
-main.add_command(houdini_cli, "houdini")
 for cmd in dev_main.commands.values():
     if not isinstance(cmd, click.Group):
         main.add_command(cmd)
