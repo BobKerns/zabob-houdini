@@ -5,14 +5,17 @@ bgeo
 bgeoc
 dataclasses
 docstrings
+dotenv
 ehthumbs
 fromlist
 hconfig
 hdanc
+hengine
 hiplc
 hipnc
 htmlcov
 hython
+KHTML
 mocap
 mygeometry
 mypy
@@ -32,7 +35,10 @@ PYTHONPATH
 radx
 rady
 radz
+Referer
+rtype
 sdist
+SIDEFX
 simdata
 sizex
 sizey
@@ -45,6 +51,7 @@ timeclass
 timestep
 undos
 venv
+vstr
 xform
 yourword
 zabob
