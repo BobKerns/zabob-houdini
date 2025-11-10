@@ -1,3 +1,4 @@
+![Zabob Banner](docs/images/zabob-banner.jpg)
 # Zabob-Houdini
 
 [![Tests](https://github.com/BobKerns/zabob-houdini/actions/workflows/test.yml/badge.svg)](https://github.com/BobKerns/zabob-houdini/actions/workflows/test.yml)

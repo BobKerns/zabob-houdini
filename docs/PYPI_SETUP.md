@@ -1,3 +1,4 @@
+![Zabob Banner](images/zabob-banner.jpg)
 # PyPI Publishing Setup
 
 This document describes the GitHub Actions workflow for publishing `zabob-houdini` to PyPI.

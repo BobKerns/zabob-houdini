@@ -1,3 +1,4 @@
+![Zabob Banner](../docs/images/zabob-banner.jpg)
 # Houdini Type Stubs
 
 This directory contains hand-maintained type stubs for Houdini's `hou` module to provide IntelliSense and type checking when developing outside of Houdini.

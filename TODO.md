@@ -1,3 +1,4 @@
+![Zabob Banner](docs/images/zabob-banner.jpg)
 # TODO
 
 ## Deferred Tasks

@@ -1,3 +1,4 @@
+![Zabob Banner](../docs/images/zabob-banner.jpg)
 # Houdini Type Safety Improvements
 
 This document explains how our enhanced Houdini stubs address the real-world type checking issues that arise when working with Houdini's `hou` module.
