@@ -166,6 +166,43 @@ uv run pytest -v
 - **Releases**: Run unit tests + linting + spell checking
 - **Integration tests**: Run manually or on `main` branch with special label
 
+### Release Management
+
+**Quick Release Commands:**
+
+```bash
+./release.sh status      # Check current version and git status
+./release.sh test        # Test release workflow (TestPyPI)
+./release.sh bump patch  # Bump version (patch/minor/major)
+./release.sh release     # Create production release
+```
+
+**Release Workflow:**
+
+1. **Test Release to TestPyPI:**
+   ```bash
+   ./release.sh test                    # Test current version
+   # OR
+   ./release.sh bump patch && ./release.sh test  # Bump and test
+   ```
+   - Go to [GitHub Actions](https://github.com/BobKerns/zabob-houdini/actions/workflows/publish.yml)
+   - Click "Run workflow" → Select "testpypi"
+   - Test install: `pip install -i https://test.pypi.org/simple/ zabob-houdini`
+
+2. **Production Release to PyPI:**
+   ```bash
+   ./release.sh bump patch              # Update version
+   git add pyproject.toml && git commit -m "Bump version to X.Y.Z"
+   ./release.sh release                 # Create tag and push (auto-publishes)
+   ```
+   - Creates git tag → triggers automated PyPI release
+   - Generates GitHub Release with artifacts
+
+**Manual Release (GitHub UI):**
+- Go to [GitHub Actions](https://github.com/BobKerns/zabob-houdini/actions/workflows/publish.yml)
+- Click "Run workflow"
+- Select repository: `testpypi` or `pypi`
+
 ### Setting up the Virtual Environment
 
 1. **Clone the repository:**

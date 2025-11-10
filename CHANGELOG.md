@@ -7,25 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-11-09
+
 ### Added
-- Core `node()` and `chain()` API functions
-- `NodeInstance` and `Chain` classes with `.create()` methods
-- Comprehensive Houdini type stubs with modern Python types
-- VS Code development environment setup
-- cSpell spell checking configuration
-- Comprehensive test suite with mocked Houdini integration
-- CLI tools for validation and testing
-- GitHub workflow for PyPI publishing
+- Automated changelog management with keepachangelog library integration
+- Python-based release workflow automation
+
+### Fixed
+- Package naming consistency in pyproject.toml dependency groups
+
+## [0.1.0] - 2025-11-09
+
+### Added
+- Two-tier testing: unit tests (CI-compatible) + integration tests (Houdini required)
+- Test runner script (`./test.sh`) with multiple execution modes
+- Release management script (`./release.sh`) for version bumping and publishing
+- Comprehensive CI/CD with GitHub Actions
+- NodeInstance registry using WeakKeyDictionary for node-to-instance mapping
+- Houdini installer download functionality with SideFX authentication
+- Automated changelog integration in GitHub releases
 
 ### Changed
-- Migrated from legacy typing imports to modern built-in types
-- Enhanced parameter setting to use `setParms()` for better performance
+- Eliminated all test mocking in favor of hython bridge pattern
+- Improved lazy imports with dict comprehension and completion flag
+- Fixed charset-normalizer compatibility issues with Python 3.14 alpha
+- Enhanced type system with CreatableNode vs ChainableNode distinction
+
+### Fixed
+- SemVerParamType class method indentation and import issues
+- Test architecture to avoid segfaults with hou module imports
+- Version parsing in houdini_versions.py script
 
 ### Technical
-- Python 3.13+ compatibility with 3.14 development environment
-- UV package manager integration
-- Modern Python packaging with hatchling
-- Hand-maintained Houdini type stubs for better IDE support
+- Pytest markers for test categorization (@pytest.mark.unit, @pytest.mark.integration)
+- GitHub Actions status badges and comprehensive CI workflows
+- Environment variable documentation in .env.example.* files
 
 ## [0.1.0] - 2025-11-07
 
@@ -34,5 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic API design and documentation
 - Development environment setup
 
-[Unreleased]: https://github.com/BobKerns/zabob-houdini/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/BobKerns/zabob-houdini/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/BobKerns/zabob-houdini/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/BobKerns/zabob-houdini/releases/tag/v0.1.0

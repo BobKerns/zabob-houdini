@@ -139,6 +139,38 @@ jobs:
       id: version
       run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+    - name: Extract changelog for this version
+      id: changelog
+      run: |
+        if [ -f "CHANGELOG.md" ]; then
+          # Extract changelog section for this version
+          awk "/^## \[?v?${{ steps.version.outputs.version }}\]?/,/^## \[?v?[0-9]/ { if (/^## \[?v?[0-9]/ && !/^## \[?v?${{ steps.version.outputs.version }}\]?/) exit; print }" CHANGELOG.md | head -n -1 > changelog_section.md
+          if [ -s changelog_section.md ]; then
+            echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+            cat changelog_section.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "changelog_content=" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "changelog_content=" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate release notes from commits
+      id: commits
+      run: |
+        # Get previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$PREV_TAG" ]; then
+          echo "commits_content<<EOF" >> $GITHUB_OUTPUT
+          echo "### Changes since $PREV_TAG" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          git log --oneline --no-merges $PREV_TAG..HEAD | sed 's/^/- /' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "commits_content=" >> $GITHUB_OUTPUT
+        fi
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
@@ -158,7 +190,7 @@ jobs:
           uv add zabob-houdini==${{ steps.version.outputs.version }}
           ```
 
-          See the [CHANGELOG](CHANGELOG.md) for details about this release.
+          ${{ steps.changelog.outputs.changelog_content || steps.commits.outputs.commits_content || '### Changes\n\nSee the [CHANGELOG](CHANGELOG.md) for details about this release.' }}
         files: dist/*
         draft: false
         prerelease: false

@@ -1,3 +1,4 @@
+addopts
 argparse
 bakpac
 bclip
@@ -15,7 +16,9 @@ hiplc
 hipnc
 htmlcov
 hython
+keepachangelog
 KHTML
+minversion
 mocap
 mygeometry
 mypy
@@ -23,6 +26,7 @@ mytransform
 nodename
 nosetests
 nurbs
+oneline
 Parms
 prefs
 pycache
@@ -46,6 +50,7 @@ sizez
 softprops
 testbox
 testgeo
+testpaths
 TestPyPI
 timeclass
 timestep
