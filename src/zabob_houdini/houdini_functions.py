@@ -66,7 +66,7 @@ def chain_creation_test() -> JsonObject:
     xform_node = node(geo.path(), "xform", name="transform")
     subdivide_node = node(geo.path(), "subdivide", name="refine")
 
-    processing_chain = chain(geo.path(), box_node, xform_node, subdivide_node)
+    processing_chain = chain(box_node, xform_node, subdivide_node)
 
     # Create the chain
     created_nodes = processing_chain.create()
@@ -91,7 +91,7 @@ def create_test_chain() -> str:
     xform_node = node(geo.path(), "xform", name="transform")
     subdivide_node = node(geo.path(), "subdivide", name="refine")
 
-    processing_chain = chain(geo.path(), box_node, xform_node, subdivide_node)
+    processing_chain = chain(box_node, xform_node, subdivide_node)
 
     # Create the chain
     result = processing_chain.create()

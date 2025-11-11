@@ -33,7 +33,12 @@ Usage Patterns:
 
 from importlib.metadata import version, PackageNotFoundError
 
-lazy_imports = ("node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", "HoudiniNodeBase", "CreatableNode", "ChainableNode", "get_node_instance", "wrap_node", "hou_node")
+lazy_imports = (
+    "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent",
+    "HoudiniNodeBase", "CreatableNode", "ChainableNode", "InputNode",
+    "InputNodes", "ResolvedInput", "Inputs",
+    "get_node_instance", "wrap_node", "hou_node", "wrap_node",
+)
 _imports_loaded = False
 
 try:
@@ -61,7 +66,11 @@ def __getattr__(name: str):
 # via lazy loading through __getattr__ but the linter can't check for us, so be careful to keep
 # __all__ accurate.
 __all__ = ['__version__',
-           "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", "HoudiniNodeBase", "CreatableNode", "ChainableNode", "get_node_instance", "wrap_node", "hou_node"] # type: ignore
+    "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", # type: ignore
+    "HoudiniNodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
+    "InputNodes", "ResolvedInput", "Inputs", # type: ignore
+    "get_node_instance", "wrap_node", "hou_node", "wrap_node", # type: ignore
+    ]
 
 # Validate __all__ consistency at import time
 _expected_all = set(lazy_imports) | {'__version__'}

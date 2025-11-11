@@ -113,7 +113,7 @@ def test_zabob_chain_creation() -> JsonObject:
     xform_node = node(geo.path(), "xform", name="chain_xform")
     subdivide_node = node(geo.path(), "subdivide", name="chain_subdivide")
 
-    processing_chain = chain(geo.path(), box_node, xform_node, subdivide_node)
+    processing_chain = chain(box_node, xform_node, subdivide_node)
     created_nodes = processing_chain.create()
 
     if PYTEST_AVAILABLE:
@@ -234,7 +234,7 @@ def test_chain_create_returns_node_instances() -> JsonObject:
     # Create a chain
     node1 = node(geo.path(), "box", name="chain_box")
     node2 = node(geo.path(), "sphere", name="chain_sphere")
-    test_chain = chain(geo.path(), node1, node2)
+    test_chain = chain(node1, node2)
 
     result_tuple = test_chain.create()
 
@@ -272,7 +272,7 @@ def test_chain_convenience_methods() -> JsonObject:
     node1 = node(geo.path(), "box", name="first_box")
     node2 = node(geo.path(), "sphere", name="middle_sphere")
     node3 = node(geo.path(), "merge", name="last_merge")
-    test_chain = chain(geo.path(), node1, node2, node3)
+    test_chain = chain(node1, node2, node3)
 
     # Test convenience methods
     first = test_chain.first_node()
@@ -305,7 +305,7 @@ def test_chain_empty_methods() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create empty chain
-    test_chain = chain(geo.path())
+    test_chain = chain()
 
     # Test methods that should work with empty chain
     all_nodes = test_chain.hou_nodes()
@@ -328,6 +328,7 @@ def test_chain_empty_methods() -> JsonObject:
     return {
         'all_nodes_empty': len(all_nodes) == 0,
         'nodes_iter_empty': len(nodes_list) == 0,
+        'parent': test_chain.parent.name,
         'first_error': first_error,
         'last_error': last_error,
     }
@@ -380,11 +381,11 @@ def test_node_instance_copy_with_inputs() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create a chain to use as input
-    inner_node = node(geo.path(), "sphere")
-    inner_chain = chain(geo.path(), inner_node)
+    inner_node = node(geo, "sphere")
+    inner_chain = chain(inner_node)
 
     # Create node with chain input
-    original = node(geo.path(), "merge", _input=inner_chain)
+    original = node(geo, "merge", _input=inner_chain)
     copied = original.copy()
 
     # Test input structure
@@ -415,9 +416,9 @@ def test_chain_flatten_memoization() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create a chain
-    node1 = node(geo.path(), "box")
-    node2 = node(geo.path(), "sphere")
-    test_chain = chain(geo.path(), node1, node2)
+    node1 = node(geo, "box")
+    node2 = node(geo, "sphere")
+    test_chain = chain(node1, node2)
 
     # First call to _flatten_nodes
     flattened1 = test_chain._flatten_nodes()
@@ -444,12 +445,12 @@ def test_chain_flatten_nested() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create nested chains
-    node1 = node(geo.path(), "box")
-    node2 = node(geo.path(), "sphere")
-    inner_chain = chain(geo.path(), node1, node2)
+    node1 = node(geo, "box")
+    node2 = node(geo, "sphere")
+    inner_chain = chain( node1, node2)
 
-    node3 = node(geo.path(), "merge")
-    outer_chain = chain(geo.path(), inner_chain, node3)
+    node3 = node(geo, "merge")
+    outer_chain = chain(inner_chain, node3)
 
     # Flatten the outer chain
     flattened = outer_chain._flatten_nodes()
@@ -477,9 +478,9 @@ def test_chain_copy() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create original chain
-    node1 = node(geo.path(), "box")
-    node2 = node(geo.path(), "sphere")
-    original = chain(geo.path(), node1, node2)
+    node1 = node(geo, "box")
+    node2 = node(geo, "sphere")
+    original = chain(node1, node2)
 
     # Copy the chain
     copied = original.copy()
@@ -508,9 +509,9 @@ def test_chain_copy_deep_nodes() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create original chain with attributed nodes
-    node1 = node(geo.path(), "box", sizex=1.0)
-    node2 = node(geo.path(), "sphere")
-    original = chain(geo.path(), node1, node2)
+    node1 = node(geo, "box", sizex=1.0)
+    node2 = node(geo, "sphere")
+    original = chain(node1, node2)
 
     # Copy the chain
     copied = original.copy()
@@ -519,9 +520,9 @@ def test_chain_copy_deep_nodes() -> JsonObject:
     nodes_length = len(copied.nodes)
     nodes_different = all(copied.nodes[i] is not original.nodes[i] for i in range(len(copied.nodes)))
 
-    # Test basic structure - just verify we have NodeInstance-like objects
-    first_is_node_instance = hasattr(copied.nodes[0], 'node_type') and hasattr(copied.nodes[0], 'attributes')
-    second_is_node_instance = hasattr(copied.nodes[1], 'node_type') and hasattr(copied.nodes[1], 'attributes')
+    # Test basic structure - just verify we have NodeInstance objects
+    first_is_node_instance = isinstance(copied.nodes[0], NodeInstance)
+    second_is_node_instance = isinstance(copied.nodes[1], NodeInstance)
 
     return {
         'nodes_length': nodes_length,
@@ -543,10 +544,10 @@ def test_chain_copy_nested() -> JsonObject:
 
     # Create nested structure
     inner_node = node(geo.path(), "box")
-    inner_chain = chain(geo.path(), inner_node)
+    inner_chain = chain(inner_node)
 
-    outer_node = node(geo.path(), "merge")
-    original = chain(geo.path(), inner_chain, outer_node)
+    outer_node = node(geo, "merge")
+    original = chain(inner_chain, outer_node)
 
     # Copy the chain
     copied = original.copy()
@@ -578,7 +579,7 @@ def test_empty_chain_create() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create empty chain
-    test_chain = chain(geo.path())  # Empty chain
+    test_chain = chain()  # Empty chain
     result = test_chain.create()
 
     is_tuple = isinstance(result, tuple)
@@ -644,7 +645,7 @@ def test_node_registry() -> JsonObject:
     # Test 3: Create another node with the hou.Node in a chain - should use original
     sphere_node = node(geo.path(), "sphere", name="registry_test_sphere")
     # Create a chain that includes the raw hou.Node
-    test_chain = chain(geo.path(), created_hou_node, sphere_node)
+    test_chain = chain(box_node, sphere_node)
     created_chain_nodes = test_chain.create()
 
     # The first node in the chain should be the original NodeInstance

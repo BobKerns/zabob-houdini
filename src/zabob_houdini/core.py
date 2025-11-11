@@ -10,14 +10,11 @@ import functools
 from abc import ABC, abstractmethod
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast, TypeAlias, overload
 from types import MappingProxyType
 import weakref
-
-
-
-from typing import Any, TypeAlias, overload
-from collections.abc import Iterator
+from itertools import zip_longest, islice
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
@@ -51,7 +48,7 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
     node_name = node_path.split('/')[-1]
 
     wrapped = NodeInstance(
-        parent=parent_path,
+        _parent=parent_path,
         node_type=hou_node.type().name(),
         name=node_name,
         _node=hou_node  # Pass the existing node so create() returns it
@@ -119,25 +116,40 @@ NodeType: TypeAlias = str
 CreatableNode: TypeAlias = 'NodeInstance | Chain'
 """A node or chain that can be created via .create() method."""
 
-ChainableNode: TypeAlias = 'NodeInstance | Chain | hou.Node'
+ChainableNode: TypeAlias = 'NodeInstance | Chain'
 """A node or chain that can be used in a chain - includes existing hou.Node objects."""
 
-InputNode: TypeAlias = 'NodeInstance | Chain | hou.Node | None'
+InputNode: TypeAlias = 'NodeInstance | Chain | hou.Node | None | str'
 """A node that can be used as input - NodeInstance, Chain (uses last node), actual hou.Node, or None for sparse connections."""
 
+InputNodes: TypeAlias = 'Sequence[InputNode]'
 
-class HoudiniNodeBase(ABC):
+ResolvedInput: TypeAlias = 'NodeInstance | None'
+"""InputInstance or None, after resolution."""
+
+Inputs: TypeAlias = 'tuple[ResolvedInput, ...]'
+"""The inputs for a node or chain, as a tuple of ResolvedInput objects (NodeInstance or None)."""
+
+
+def _merge_inputs(in1: InputNodes, in2: InputNodes) -> InputNodes:
+    """Merge two input lists, preferring non-None values from the second list."""
+    if not in1:
+        return tuple(in2)
+    if not in2:
+        return tuple(in1)
+
+    return [
+            l if l else r
+            for l, r in zip_longest(in1, in2, fillvalue=None)
+    ]
+
+    return tuple(merged)
+class NodeBase(ABC):
     """
     Base class for Houdini node representations.
 
     Provides common functionality for NodeInstance and Chain classes.
     """
-
-    def __init__(self, parent: NodeParent, attributes: dict[str, Any] | None = None,
-                 inputs: tuple[InputNode, ...] | None = None):
-        self.parent = parent
-        self.attributes = attributes if attributes is not None else {}
-        self.inputs = inputs if inputs is not None else tuple()
 
     @abstractmethod
     @functools.cache
@@ -145,13 +157,36 @@ class HoudiniNodeBase(ABC):
         """Create the actual Houdini node(s). Return type varies by implementation."""
         pass
 
+    @functools.cached_property
     @abstractmethod
-    def copy(self) -> 'HoudiniNodeBase':
+    def parent(self) -> NodeInstance:
+        """Return the parent NodeInstance for this node/chain."""
+        pass
+
+    @functools.cached_property
+    @abstractmethod
+    def inputs(self) -> Inputs:
+        """Return the input nodes for this node/chain."""
+        pass
+
+    @functools.cached_property
+    @abstractmethod
+    def first(self) -> NodeInstance:
+        """Return the first node for this node/chain."""
+        pass
+
+    @functools.cached_property
+    @abstractmethod
+    def last(self) -> NodeInstance:
+        """Return the last node for this node/chain."""
+        pass
+
+    @abstractmethod
+    def copy(self, /, _inputs: InputNodes=()) -> 'NodeBase':
         """Return a copy of this node/chain object. Copies are independent for creation.
 
         This is used by Chain.create() to avoid mutating original definitions when
-        creating Houdini nodes. Implementations should deep-copy mutable containers
-        like attributes and inputs but need not copy hou.Node objects.
+        creating Houdini nodes.
         """
         pass
 
@@ -165,19 +200,49 @@ class HoudiniNodeBase(ABC):
 
 
 @dataclasses.dataclass(frozen=True)
-class NodeInstance(HoudiniNodeBase):
+class NodeInstance(NodeBase):
     """
     Represents a single Houdini node with parameters and inputs.
 
     This is an immutable node definition that can be cached and reused.
     Node creation is deferred until create() is called.
     """
-    parent: NodeParent
+
+    _parent: NodeParent
     node_type: str
     name: str | None = None
     attributes: HashableMapping = field(default_factory=HashableMapping)
-    inputs: tuple["InputNode", ...] = field(default_factory=tuple)
+    _inputs: tuple["InputNode", ...] = field(default_factory=tuple)
     _node: "hou.Node | None" = field(default=None, hash=False)
+
+    @functools.cached_property
+    def parent(self) -> NodeInstance:
+        match self._parent:
+            case '/':
+                return ROOT
+            case str():
+                return wrap_node(hou_node(self._parent))
+            case NodeInstance():
+                return self._parent
+            case hou.Node():
+                return wrap_node(self._parent)
+            case _:
+                raise RuntimeError(f"Invalid parent: {self._parent!r}")
+
+    @functools.cached_property
+    def first(self) -> NodeInstance:
+        """Return the first node in this instance, which is itself."""
+        return self
+
+    @functools.cached_property
+    def last(self) -> NodeInstance:
+        """Return the last node in this instance, which is itself."""
+        return self
+
+    @functools.cached_property
+    def inputs(self) -> Inputs:
+        """Return the input nodes for this node/chain."""
+        return tuple((_wrap_input(inp) for inp in self._inputs))
 
     @functools.cache
     def create(self) -> hou.Node:
@@ -192,23 +257,7 @@ class NodeInstance(HoudiniNodeBase):
         if self._node is not None:
             return self._node
 
-        # Resolve parent node
-        match self.parent:
-            case str() as parent_path:
-                parent_node = hou.node(parent_path)
-                if parent_node is None:
-                    raise ValueError(f"Parent node not found: {parent_path}")
-            case NodeInstance() as parent_instance:
-                # Parent is another NodeInstance - it should be created first
-                parent_node = parent_instance.create()
-            case hou.Node() as houdini_node:
-                # It's already a Houdini node
-                parent_node = houdini_node
-            case _:
-                raise TypeError(
-                    f"Parent must be a path string, NodeInstance, or hou.Node object, "
-                    f"got {type(self.parent).__name__}"
-                )
+        parent_node = self.parent.create()
 
         # Create the node
         created_node = parent_node.createNode(self.node_type, self.name)
@@ -256,43 +305,66 @@ class NodeInstance(HoudiniNodeBase):
 
         return created_node
 
-    def copy(self) -> 'NodeInstance':
+    def copy(self, /, _inputs: InputNodes=()) -> 'NodeInstance':
         """Return a shallow copy suitable for creation.
 
         Attributes dict and inputs list are copied to avoid mutating originals.
         """
-        copied_inputs = []
-        if self.inputs:
-            for inp in self.inputs:
-                # If input is a Chain or NodeInstance, prefer to keep the object
-                # but if it's a Chain we call its copy to avoid shared state.
-                if isinstance(inp, Chain):
-                    copied_inputs.append(inp.copy())
-                else:
-                    copied_inputs.append(inp)
-
+        merged_inputs = _merge_inputs(_inputs, self._inputs)
         return NodeInstance(
-            parent=self.parent,
+            _parent=self._parent,
             node_type=self.node_type,
             name=self.name,
             attributes=HashableMapping(self.attributes.copy()) if self.attributes else HashableMapping(),
-            inputs=tuple(copied_inputs),
+            _inputs=tuple(merged_inputs),
             _node=None  # Copy should not preserve the created node reference
         )
 
-
 @dataclass(frozen=True)
-class Chain(HoudiniNodeBase):
+class Chain(NodeBase):
     """
     Represents a chain of Houdini nodes that can be created.
 
     Nodes in the chain are automatically connected in sequence.
     """
-    parent: NodeParent
     nodes: tuple[ChainableNode, ...]
     name_prefix: str | None = None
     attributes: HashableMapping | None = None
-    inputs: tuple[InputNode, ...] | None = None
+
+    @functools.cached_property
+    def parent(self) -> NodeInstance:
+        match self.nodes:
+            case ():
+                return ROOT
+            case NodeInstance() as n, *_:
+                return n.parent
+            case Chain() as c, *_:
+                return c.parent
+            case hou.Node() as n, *_:
+                return wrap_node(n)
+            case _:
+                raise RuntimeError(f"Invalid parent: {self.nodes[0]}")
+
+    @functools.cached_property
+    def first(self) -> NodeInstance:
+        """Return the first node in this chain."""
+        if not self.nodes:
+            raise RuntimeError("Chain is empty.")
+        return wrap_node(self.nodes[0], first=True)
+
+    @functools.cached_property
+    def last(self) -> NodeInstance:
+        """Return the last node in this chain."""
+        if not self.nodes:
+            raise RuntimeError("Chain is empty.")
+        return wrap_node(self.nodes[-1], first=False)
+
+    @functools.cached_property
+    def inputs(self) -> Inputs:
+        """Return the input nodes for this chain, which are the inputs of the first node."""
+        if not self.nodes:
+            return tuple()
+        return self.first.inputs
 
     @functools.cache
     def _flatten_nodes(self) -> tuple['NodeInstance', ...]:
@@ -350,11 +422,9 @@ class Chain(HoudiniNodeBase):
                 # Return a new Chain with the subset of nodes
                 subset = flattened[slice_obj]
                 return Chain(
-                    parent=self.parent,
                     nodes=subset,
                     name_prefix=self.name_prefix,
                     attributes=HashableMapping(self.attributes.copy()) if self.attributes else None,
-                    inputs=self.inputs  # Tuples are immutable, no need to copy
                 )
             case str() as name:
                 # Find node by name
@@ -461,22 +531,23 @@ class Chain(HoudiniNodeBase):
             if i == 0 and self.inputs:
                 # First node gets chain inputs plus its own inputs
                 if node_instance.inputs:
-                    modified_inputs = node_instance.inputs + self.inputs
+                    first = self.first
+                    merged_inputs = _merge_inputs(first._inputs, node_instance._inputs)
                 else:
-                    modified_inputs = self.inputs
+                    merged_inputs = self.inputs
                 node_copy = node_instance.copy()
                 # Create new instance with modified inputs using dataclasses.replace
                 import dataclasses
-                node_copy = dataclasses.replace(node_copy, inputs=modified_inputs)
+                node_copy = dataclasses.replace(node_copy, _inputs=merged_inputs)
             elif i > 0 and previous_node is not None:
                 # Subsequent nodes get previous node as input
                 node_copy = node_instance.copy()
                 if node_copy.inputs:
-                    modified_inputs = (previous_node,) + node_copy.inputs
+                    merged_inputs = (previous_node,) + node_copy.inputs
                 else:
-                    modified_inputs = (previous_node,)
+                    merged_inputs = (previous_node,)
                 import dataclasses
-                node_copy = dataclasses.replace(node_copy, inputs=modified_inputs)
+                node_copy = dataclasses.replace(node_copy, _inputs=merged_inputs)
             else:
                 node_copy = node_instance.copy()
 
@@ -489,24 +560,34 @@ class Chain(HoudiniNodeBase):
 
         return tuple(created_node_instances)
 
-    def copy(self) -> 'Chain':
+    def copy(self, /, _inputs: InputNodes=()) -> 'Chain':
         """Return a copy of this Chain (copies contained NodeInstances/Chains)."""
-        copied_nodes: list[ChainableNode] = []
-        for item in self.nodes:
-            if isinstance(item, NodeInstance):
-                copied_nodes.append(item.copy())
-            elif isinstance(item, Chain):
-                copied_nodes.append(item.copy())
-            else:
-                # hou.Node or other: keep as-is
-                copied_nodes.append(item)
+        self_inputs: InputNodes = ()
+        if self.nodes:
+            first_node = self.nodes[0]
+            match first_node:
+                case NodeInstance():
+                    self_inputs = first_node.inputs
+                case Chain():
+                    self_inputs = first_node.first._inputs
+                case hou.Node():
+                    wrapped = _wrap_hou_node(first_node)
+                    self_inputs = wrapped._inputs
+                case str():
+                    wrapped = _wrap_hou_node(hou_node(first_node))
+                    self_inputs = wrapped._inputs
+                case _:
+                    raise TypeError(f"Invalid node type in chain: {type(first_node).__name__}")
+
+        merged_inputs = _merge_inputs(_inputs, self_inputs)
+        first = self.first.copy(_inputs=merged_inputs)
+
+        nodes = (first, *(n.copy() for n in islice(self.nodes, 1, None)))
 
         return Chain(
-            parent=self.parent,
-            nodes=tuple(copied_nodes),
+            nodes=tuple(nodes),
             name_prefix=self.name_prefix,
-            attributes=HashableMapping(self.attributes.copy()) if self.attributes else None,
-            inputs=self.inputs  # Tuples are immutable, no need to copy
+            attributes=self.attributes,
         )
 
 
@@ -541,17 +622,16 @@ def node(
                 inputs.append(single_input)
 
     return NodeInstance(
-        parent=parent,
+        _parent=parent,
         node_type=node_type,
         name=name,
         attributes=HashableMapping(attributes) if attributes else HashableMapping(),
-        inputs=tuple(inputs),
+        _inputs=tuple(inputs),
         _node=_node
     )
 
 
 def chain(
-    parent: NodeParent,
     *nodes: ChainableNode,
     _input: "InputNode | list[InputNode] | None" = None,
     name_prefix: str | None = None,
@@ -579,11 +659,9 @@ def chain(
                 inputs.append(single_input)
 
     return Chain(
-        parent=parent,
         nodes=nodes,  # nodes is already a tuple from *nodes
         name_prefix=name_prefix,
         attributes=HashableMapping(attributes) if attributes else None,
-        inputs=tuple(inputs) if inputs else None
     )
 
 
@@ -608,7 +686,7 @@ def get_node_instance(hou_node: hou.Node) -> 'NodeInstance | None':
     return _node_registry.get(hou_node)
 
 
-def wrap_node(hou_node: hou.Node) -> 'NodeInstance':
+def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=None) -> 'NodeInstance':
     """
     Wrap a hou.Node in a NodeInstance, preferring the original if available.
 
@@ -620,5 +698,44 @@ def wrap_node(hou_node: hou.Node) -> 'NodeInstance':
     Returns:
         NodeInstance object (either original or newly created wrapper)
     """
-    return _wrap_hou_node(hou_node)
 
+    match hnode:
+        case hou.Node():
+            return _wrap_hou_node(hnode)
+        case str():
+            return _wrap_hou_node(hou_node(hnode))
+        case NodeInstance():
+            # If it's already a NodeInstance, just return it
+            return hnode
+        case Chain() if first is True:
+            return hnode.first
+        case Chain() if first is False:
+            return hnode.last
+        case _:
+            raise TypeError(f"Invalid node type: {type(hnode).__name__}")
+
+
+def _wrap_input(input: InputNode) -> ResolvedInput:
+    """Wrap an input node if it's a hou.Node, otherwise return as-is."""
+    match input:
+        case None:
+            return None
+        case hou.Node():
+            return wrap_node(input)
+        case str():
+            return wrap_node(hou_node(input))
+        case NodeInstance():
+            return input
+        case Chain():
+            return input.last
+        case _:
+            raise TypeError(f"Invalid input node: {input}. Expected InputNode or hou.Node")
+
+ROOT: NodeInstance = NodeInstance(
+    _parent=cast(NodeInstance, None),
+    node_type='root',
+    name='/',
+    attributes=HashableMapping({}),
+    _inputs=(),
+    _node=hou.node('/')
+)

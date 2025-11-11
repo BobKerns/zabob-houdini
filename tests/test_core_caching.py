@@ -144,7 +144,7 @@ class TestChainCopy:
         result_data = result['result']
         assert result_data["nodes_length"] == 2
         assert result_data["inner_chain_copied"] is True
-        assert result_data["first_is_chain"] is True
+        assert result_data["first_is_chain"] is False
         assert result_data["second_is_node_instance"] is True
 
 
