@@ -97,3 +97,17 @@ def test_direct_houdini_check(houdini_available):
 
     # This would only run if we're actually in hython
     assert houdini_available is True
+
+@pytest.mark.integration
+def test_node_parentage(hython_test):
+    """Test that created nodes have correct parentage."""
+    result = hython_test("test_node_parentage")
+
+    assert result['success'] is True
+    assert 'result' in result
+    data = result['result']
+    assert data['box_path'] == '/obj/test_geo/test_box1'
+    assert data['geo_path'] == '/obj/test_geo'
+    assert data['obj_path'] == '/obj'
+    assert data['root_path'] == '/'
+    assert data['root_is_root'] is True

@@ -6,10 +6,13 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 
 from __future__ import annotations
 
+from collections import defaultdict
+from email.policy import default
 import functools
 from abc import ABC, abstractmethod
 import dataclasses
 from dataclasses import dataclass, field
+from os import name, path
 from typing import Any, cast, TypeAlias, overload
 from types import MappingProxyType
 import weakref
@@ -61,6 +64,16 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
 
     return wrapped
 
+_generated_names: dict[str, int] = defaultdict(lambda: 1)
+def _generate_name(parent: str, type: str) -> str:
+    """Generate a unique name with the given prefix."""
+    while True:
+        count = _generated_names[type]
+        _generated_names[type] += 1
+        name = f"{type}{count}"
+        path = f"{parent}/{name}"
+        if hou.node(path) is None:
+            return name
 
 class HashableMapping:
     """
@@ -305,6 +318,14 @@ class NodeInstance(NodeBase):
         _node_registry[created_node.path()] = self
 
         return created_node
+
+    @property
+    def path(self) -> str:
+        """Return the path of the node."""
+        if self._node is not None:
+            return self._node.path()
+        else:
+           return f'{self.parent.path}/{self.name or self.node_type}'
 
     def copy(self, /, _inputs: InputNodes=()) -> 'NodeInstance':
         """Return a shallow copy suitable for creation.
@@ -621,6 +642,23 @@ def node(
                 inputs.extend(input_list)  # List can contain None values for sparse inputs
             case _ as single_input:
                 inputs.append(single_input)
+
+    if name is None:
+        match parent:
+            case '/':
+                parent_path = ''
+            case str():
+                parent_path = parent
+            case NodeInstance():
+                parent_path = parent.path
+            case hou.Node():
+                parent_path = parent.path()
+            case _:
+                raise TypeError(f"Invalid parent type: {type(parent).__name__}")
+
+        if parent_path.endswith('/'):
+            parent_path = parent_path[:-1]
+        name = _generate_name(parent_path, node_type)
 
     return NodeInstance(
         _parent=parent,

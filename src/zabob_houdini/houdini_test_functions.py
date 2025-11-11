@@ -33,7 +33,7 @@ import re
 import hou
 import json
 import traceback
-from zabob_houdini.core import NodeInstance, get_node_instance, hou_node, node, chain, wrap_node
+from zabob_houdini.core import ROOT, NodeInstance, get_node_instance, hou_node, node, chain, wrap_node
 from zabob_houdini.houdini_bridge import JsonArray, houdini_result, JsonObject
 
 # Import pytest but make it optional for when running standalone
@@ -672,4 +672,23 @@ def test_hou_available() -> JsonObject:
     return {
         'hou_version': list(version),
         'hou_app': app_name,
+    }
+
+@houdini_result
+def test_node_parentage() -> JsonObject:
+    """Test that parentage is correctly handled in NodeInstance."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    # Create geometry object for testing
+    obj = hou_node("/obj")
+    geo = obj.createNode("geo", "test_geo")
+    box = node(geo, 'test_box')
+
+    return {
+        'box_path': box.path,
+        'geo_path': box.parent.path,
+        'obj_path': box.parent.parent.path,
+        'root_path': box.parent.parent.parent.path,
+        'root_is_root': box.parent.parent.parent is ROOT,
     }
