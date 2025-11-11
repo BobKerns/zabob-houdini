@@ -35,9 +35,9 @@ from importlib.metadata import version, PackageNotFoundError
 
 lazy_imports = (
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent",
-    "HoudiniNodeBase", "CreatableNode", "ChainableNode", "InputNode",
+    "NodeBase", "CreatableNode", "ChainableNode", "InputNode",
     "InputNodes", "ResolvedInput", "Inputs",
-    "get_node_instance", "wrap_node", "hou_node", "wrap_node",
+    "get_node_instance", "wrap_node", "hou_node", "wrap_node", 'ROOT',
 )
 _imports_loaded = False
 
@@ -67,9 +67,9 @@ def __getattr__(name: str):
 # __all__ accurate.
 __all__ = ['__version__',
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", # type: ignore
-    "HoudiniNodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
+    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
     "InputNodes", "ResolvedInput", "Inputs", # type: ignore
-    "get_node_instance", "wrap_node", "hou_node", "wrap_node", # type: ignore
+    "get_node_instance", "wrap_node", "hou_node", "wrap_node", "ROOT", # type: ignore
     ]
 
 # Validate __all__ consistency at import time
