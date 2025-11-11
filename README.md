@@ -33,6 +33,8 @@ node(parent, node_type, name=None, **attributes)
 - **attributes**: Node parameters as keyword arguments
 - **_input**: Special parameter to connect input nodes
 
+`node()` returns a `NodeInstance` object. To get the underlying `hou.Node`, call the `.create()` method. You can call it multiple times; it will always return the same `hou.Node` instance created on the first call.
+
 ### The `chain()` Function
 
 Create linear sequences of connected nodes:
@@ -53,7 +55,7 @@ Access nodes in chains with familiar Python syntax:
 
 ### Creation Pattern
 
-Both `NodeInstance` and `Chain` objects use `.create()` to instantiate in Houdini:
+Both `NodeInstance` and `Chain` objects use `.create()` to instantiate in Houdini. Both can be called multiple times; the underlying `hou.Node` instances are created on the first call.
 
 ```python
 geo_node = node("/obj", "geo", name="mygeometry")
@@ -96,36 +98,6 @@ transform_instance = transform_node.create()
 chain_instance = processing_chain.create()
 ```
 
-## Installation
-
-### From PyPI (Recommended)
-
-```bash
-# Using uv (recommended)
-uv add zabob-houdini
-
-# Using pip
-pip install zabob-houdini
-```
-
-### For Houdini Integration
-
-Once installed, you can use Zabob-Houdini in several ways:
-
-1. **Install as Houdini Package** (Recommended):
-   ```bash
-   zabob-houdini install-package
-   zabob-houdini validate  # Verify installation
-   ```
-
-2. **Direct Import in Houdini Scripts**:
-   ```python
-   # In Houdini's Python shell, shelf tools, or HDAs
-   from zabob_houdini import node, chain
-   ```
-
-3. **Development Setup**: See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup instructions.
-
 ### Installation from PyPI
 
 Once published, users can install with:
@@ -140,12 +112,16 @@ cd zabob-houdini
 
 # Using uv (recommended)
 uv venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # macOS/Linux
+# .venv\Scripts\activate   # Windows (Command Prompt)
+# .venv\Scripts\Activate.ps1  # Windows (PowerShell)
 uv add zabob-houdini
 
 # Using pip
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # macOS/Linux
+# .venv\Scripts\activate   # Windows (Command Prompt)
+# .venv\Scripts\Activate.ps1  # Windows (PowerShell)
 pip install zabob-houdini
 
 # Install into Houdini:
@@ -153,6 +129,13 @@ zabob-houdini install-package
 
 # Validate:
 zabob-houdini validate
+```
+
+### For Houdini Integration
+
+```python
+# In Houdini's Python shell, shelf tools, or HDAs
+from zabob_houdini import node, chain
 ```
 
 ## Documentation

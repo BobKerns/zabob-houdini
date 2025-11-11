@@ -8,16 +8,19 @@ dataclasses
 docstrings
 dotenv
 ehthumbs
+fillvalue
 fromlist
 hconfig
 hdanc
 hengine
 hiplc
 hipnc
+hnode
 htmlcov
 hython
 keepachangelog
 KHTML
+kwargs
 minversion
 mocap
 mygeometry
@@ -35,6 +38,7 @@ pypa
 PyPI
 pyproject
 pytest
+Pythonic
 PYTHONPATH
 radx
 rady
