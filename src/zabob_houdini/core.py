@@ -21,8 +21,10 @@ import functools
 import hou
 
 # Global registry to map hou.Node objects back to their originating NodeInstance
-# Uses WeakKeyDictionary so that when hou.Node objects are deleted, the mapping is automatically cleaned up
-_node_registry: weakref.WeakKeyDictionary[hou.Node, 'NodeInstance'] = weakref.WeakKeyDictionary()
+# Uses WeakKValueDictionary. It turns out that hou.Node objects do not have
+# stable identity; each hou.node() call returns a new object, so we need
+# to key by path instead of object identity.
+_node_registry: weakref.WeakValueDictionary[str, 'NodeInstance'] = weakref.WeakValueDictionary()
 
 
 def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
@@ -39,13 +41,13 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
         NodeInstance object (either original or newly created wrapper)
     """
     # Check if we already have this node in our registry
-    if hou_node in _node_registry:
-        return _node_registry[hou_node]
+    path = hou_node.path()
+    if path in _node_registry:
+        return _node_registry[path]
 
     # Create a new wrapper NodeInstance
-    node_path = hou_node.path()
-    parent_path = '/'.join(node_path.split('/')[:-1]) or '/'
-    node_name = node_path.split('/')[-1]
+    parent_path = '/'.join(path.split('/')[:-1]) or ROOT
+    node_name = path.split('/')[-1]
 
     wrapped = NodeInstance(
         _parent=parent_path,
@@ -55,7 +57,7 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
     )
 
     # Register this wrapper in case it gets referenced again
-    _node_registry[hou_node] = wrapped
+    _node_registry[hou_node.path()] = wrapped
 
     return wrapped
 
@@ -198,7 +200,6 @@ class NodeBase(ABC):
         """Equality based on object identity - these represent specific node instances."""
         return self is other
 
-
 @dataclasses.dataclass(frozen=True)
 class NodeInstance(NodeBase):
     """
@@ -208,7 +209,7 @@ class NodeInstance(NodeBase):
     Node creation is deferred until create() is called.
     """
 
-    _parent: NodeParent
+    _parent: NodeParent = field(repr=False)
     node_type: str
     name: str | None = None
     attributes: HashableMapping = field(default_factory=HashableMapping)
@@ -218,7 +219,7 @@ class NodeInstance(NodeBase):
     @functools.cached_property
     def parent(self) -> NodeInstance:
         match self._parent:
-            case '/':
+            case '/' | None:
                 return ROOT
             case str():
                 return wrap_node(hou_node(self._parent))
@@ -301,7 +302,7 @@ class NodeInstance(NodeBase):
                     print(f"Warning: Failed to connect input {i}: {e}")
 
         # Register this NodeInstance as the creator of this hou.Node
-        _node_registry[created_node] = self
+        _node_registry[created_node.path()] = self
 
         return created_node
 
@@ -673,17 +674,17 @@ def hou_node(path: str) -> 'hou.Node':
     return n
 
 
-def get_node_instance(hou_node: hou.Node) -> 'NodeInstance | None':
+def get_node_instance(hnode: hou.Node) -> 'NodeInstance | None':
     """
     Get the original NodeInstance that created a hou.Node, if any.
 
     Args:
-        hou_node: The Houdini node to look up
+        hnode: The Houdini node to look up
 
     Returns:
         The original NodeInstance that created this node, or None if not found
     """
-    return _node_registry.get(hou_node)
+    return _node_registry.get(hnode.path())
 
 
 def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=None) -> 'NodeInstance':
@@ -693,7 +694,7 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
     This is the public interface to _wrap_hou_node.
 
     Args:
-        hou_node: The Houdini node to wrap
+        hnode: The Houdini node to wrap
 
     Returns:
         NodeInstance object (either original or newly created wrapper)
@@ -703,6 +704,9 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
         case hou.Node():
             return _wrap_hou_node(hnode)
         case str():
+            existing = _node_registry.get(hnode)
+            if existing is not None:
+                return existing
             return _wrap_hou_node(hou_node(hnode))
         case NodeInstance():
             # If it's already a NodeInstance, just return it
@@ -731,11 +735,22 @@ def _wrap_input(input: InputNode) -> ResolvedInput:
         case _:
             raise TypeError(f"Invalid input node: {input}. Expected InputNode or hou.Node")
 
+_ROOT: hou.Node = hou_node('/')
+'''
+The root node, unwrapped.
+'''
+
 ROOT: NodeInstance = NodeInstance(
     _parent=cast(NodeInstance, None),
     node_type='root',
     name='/',
     attributes=HashableMapping({}),
     _inputs=(),
-    _node=hou.node('/')
+    _node=_ROOT
 )
+'''
+The root node, wrapped as a `NodeInstance`.
+'''
+
+# Register it
+_node_registry['/'] = ROOT
