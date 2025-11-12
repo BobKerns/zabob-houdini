@@ -5,6 +5,7 @@ bakpac
 bclip
 bgeo
 bgeoc
+blosc
 colorspace
 dataclasses
 diffable
@@ -19,6 +20,7 @@ hengine
 hiplc
 hipnc
 hnode
+Hscript
 htmlcov
 hython
 keepachangelog
