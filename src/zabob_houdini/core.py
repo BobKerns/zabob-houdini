@@ -332,6 +332,8 @@ class NodeInstance(NodeBase):
         # Register this NodeInstance as the creator of this hou.Node
         _node_registry[created_node.path()] = self
 
+        created_node.moveToGoodPosition()
+
         return self._asType(created_node, as_type)
 
     def _asType(self, node: hou.Node, cls: type[T]) -> T:
