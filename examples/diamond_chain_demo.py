@@ -17,43 +17,41 @@ This is a common pattern in procedural workflows where you want to:
 from zabob_houdini import chain, node
 
 def create_diamond_chains():
-    """Create a diamond pattern of connected chains."""
+    """Create a diamond pattern of connected chains within a single geo node."""
+
+    # Create the container geometry node
+    geo = node("/obj", "geo", name="diamond_chain")
 
     # Chain A: Create base geometry
     chain_A = chain(
-        node("/obj", "geo", "base_geometry"),
-        node("/obj/base_geometry", "box", "source_box", sizex=2, sizey=2, sizez=2),
-        node("/obj/base_geometry", "xform", "center", tx=0, ty=0, tz=0),
+        node(geo, "box", "source_box", sizex=2, sizey=2, sizez=2),
+        node(geo, "xform", "center", tx=0, ty=0, tz=0),
         name_prefix="base_"
     )
 
     # Chain B2: First processing path (e.g., scale and rotate)
     chain_B2 = chain(
-        node("/obj", "geo", "process_branch2"),
-        node("/obj/process_branch2", "xform", "scale_up", sx=1.5, sy=1.5, sz=1.5),
-        node("/obj/process_branch2", "xform", "rotate_y", ry=45),
-        _input=chain_A,  # Connect A → B2
+        node(geo, "xform", "scale_up", sx=1.5, sy=1.5, sz=1.5, _input=chain_A),  # Connect A → B2
+        node(geo, "xform", "rotate_y", ry=45),
         name_prefix="branch2_"
     )
 
     # Chain B3: Second processing path (e.g., different scale and rotation)
     chain_B3 = chain(
-        node("/obj", "geo", "process_branch3"),
-        node("/obj/process_branch3", "xform", "scale_down", sx=0.8, sy=0.8, sz=0.8),
-        node("/obj/process_branch3", "xform", "rotate_x", rx=30),
-        _input=chain_A,  # Connect A → B3
+        node(geo, "xform", "scale_down", sx=0.8, sy=0.8, sz=0.8, _input=chain_A),  # Connect A → B3
+        node(geo, "xform", "rotate_x", rx=30),
         name_prefix="branch3_"
     )
 
     # Chain C: Merge both processing paths
     chain_C = chain(
-        node("/obj", "geo", "merged_result"),
-        node("/obj/merged_result", "merge", "combine_branches", _input=[chain_B2, chain_B3]),
-        node("/obj/merged_result", "xform", "final_position", ty=2),
+        node(geo, "merge", "combine_branches", _input=[chain_B2, chain_B3]),
+        node(geo, "xform", "final_position", ty=2),
         name_prefix="final_"
     )
 
     return {
+        'geo': geo,
         'A': chain_A,
         'B2': chain_B2,
         'B3': chain_B3,
@@ -66,6 +64,10 @@ def create_and_demonstrate():
 
     print("Creating diamond chain pattern...")
     chains = create_diamond_chains()
+
+    # Create the geo container first
+    print("\nCreating geometry container...")
+    chains['geo'].create()
 
     # Create all chains in Houdini
     print("\nCreating Chain A (base geometry)...")
@@ -119,61 +121,56 @@ def create_and_demonstrate():
 
 
 def advanced_diamond_example():
-    """More complex diamond pattern with multiple merge points."""
+    """More complex diamond pattern with multiple merge points within a single geo node."""
 
     print("\n" + "="*60)
     print("ADVANCED DIAMOND PATTERN")
     print("="*60)
 
+    # Create the container geometry node
+    adv_geo = node("/obj", "geo", name="advanced_diamond")
+
     # Base chain
     base = chain(
-        node("/obj", "geo", "advanced_base"),
-        node("/obj/advanced_base", "sphere", "source_sphere", radx=1),
+        node(adv_geo, "sphere", "source_sphere", radx=1),
         name_prefix="adv_base_"
     )
 
     # Multiple processing branches
     branch_A = chain(
-        node("/obj", "geo", "branch_a"),
-        node("/obj/branch_a", "mountain", "noise_a", height=0.5),
-        node("/obj/branch_a", "xform", "move_a", tx=-2),
-        _input=base,
+        node(adv_geo, "xform", "noise_a", sx=1.2, sy=1.2, sz=1.2, _input=base),
+        node(adv_geo, "xform", "move_a", tx=-2),
         name_prefix="branch_a_"
     )
 
     branch_B = chain(
-        node("/obj", "geo", "branch_b"),
-        node("/obj/branch_b", "twist", "twist_b", strength=90),
-        node("/obj/branch_b", "xform", "move_b", tx=2),
-        _input=base,
+        node(adv_geo, "xform", "twist_b", ry=90, _input=base),
+        node(adv_geo, "xform", "move_b", tx=2),
         name_prefix="branch_b_"
     )
 
     branch_C = chain(
-        node("/obj", "geo", "branch_c"),
-        node("/obj/branch_c", "bend", "bend_c", bend=45),
-        node("/obj/branch_c", "xform", "move_c", tz=2),
-        _input=base,
+        node(adv_geo, "xform", "bend_c", rz=45, _input=base),
+        node(adv_geo, "xform", "move_c", tz=2),
         name_prefix="branch_c_"
     )
 
     # First merge point: combine A and B
     merge_AB = chain(
-        node("/obj", "geo", "merge_ab"),
-        node("/obj/merge_ab", "merge", "combine_ab", _input=[branch_A, branch_B]),
+        node(adv_geo, "merge", "combine_ab", _input=[branch_A, branch_B]),
         name_prefix="merge_ab_"
     )
 
     # Final merge: combine AB with C
     final_result = chain(
-        node("/obj", "geo", "final_advanced"),
-        node("/obj/final_advanced", "merge", "final_merge", _input=[merge_AB, branch_C]),
-        node("/obj/final_advanced", "xform", "final_scale", sx=0.8, sy=0.8, sz=0.8),
+        node(adv_geo, "merge", "final_merge", _input=[merge_AB, branch_C]),
+        node(adv_geo, "xform", "final_scale", sx=0.8, sy=0.8, sz=0.8),
         name_prefix="final_adv_"
     )
 
     # Create all chains
     print("Creating advanced diamond pattern...")
+    adv_geo.create()
     base.create()
     branch_A.create()
     branch_B.create()

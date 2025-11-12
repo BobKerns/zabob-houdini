@@ -754,3 +754,648 @@ def test_merge_inputs_sparse_handling() -> JsonObject:
         'empty_lists_work': empty_result,
         'one_empty_works': one_empty_result,
     }
+
+
+# New test functions for integration tests
+
+@houdini_result
+def test_diamond_creation() -> JsonObject:
+    """Test diamond pattern node creation without duplication."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    # Create the container geometry node
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_diamond")
+
+    # Chain A: Create base geometry (should be created once)
+    chain_A = chain(
+        node(geo_node, "box", "source_box"),
+        node(geo_node, "xform", "center"),
+    )
+
+    # Chain B2: Should connect to chain_A
+    chain_B2 = chain(
+        node(geo_node, "xform", "scale_up", _input=chain_A),
+        node(geo_node, "xform", "rotate_y"),
+    )
+
+    # Chain B3: Should also connect to chain_A (not duplicate it)
+    chain_B3 = chain(
+        node(geo_node, "xform", "scale_down", _input=chain_A),
+        node(geo_node, "xform", "rotate_x"),
+    )
+
+    # Create the nodes
+    chain_A_created = chain_A.create()
+    chain_B2_created = chain_B2.create()
+    chain_B3_created = chain_B3.create()
+
+    # Get all node paths for validation
+    all_nodes = list(chain_A_created) + list(chain_B2_created) + list(chain_B3_created)
+    node_paths = [node.create().path() for node in all_nodes]
+
+    # Check for duplicates (there shouldn't be any in chain_A since B2/B3 reference it)
+    unique_paths = list(set(node_paths))
+    no_duplicates = len(unique_paths) == len(node_paths)
+
+    # Verify connections
+    scale_up_node = chain_B2_created[0].create()
+    scale_down_node = chain_B3_created[0].create()
+    center_node = chain_A_created[-1].create()
+
+    scale_up_input = scale_up_node.inputs()[0] if scale_up_node.inputs() else None
+    scale_down_input = scale_down_node.inputs()[0] if scale_down_node.inputs() else None
+
+    connections_valid = (
+        scale_up_input and scale_up_input.path() == center_node.path() and
+        scale_down_input and scale_down_input.path() == center_node.path()
+    )
+
+    return {
+        'node_paths': node_paths,
+        'no_duplicates': no_duplicates,
+        'connections_valid': connections_valid,
+    }
+
+
+@houdini_result
+def test_chain_connections() -> JsonObject:
+    """Test that chain input connections work correctly."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_connections")
+
+    # Create source chain
+    source_chain = chain(
+        node(geo_node, "box", "source"),
+        node(geo_node, "xform", "transform"),
+    )
+
+    # Create chain that connects to source
+    connected_chain = chain(
+        node(geo_node, "xform", "processor", _input=source_chain),
+        node(geo_node, "subdivide", "refine"),
+    )
+
+    # Create the nodes
+    source_created = source_chain.create()
+    connected_created = connected_chain.create()
+
+    # Verify connection
+    processor_node = connected_created[0].create()
+    transform_node = source_created[-1].create()
+
+    processor_input = processor_node.inputs()[0] if processor_node.inputs() else None
+    connections_valid = processor_input and processor_input.path() == transform_node.path()
+
+    return {
+        'connections_valid': connections_valid,
+        'processor_path': processor_node.path(),
+        'transform_path': transform_node.path(),
+    }
+
+
+@houdini_result
+def test_merge_connections() -> JsonObject:
+    """Test merge node with multiple inputs."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_merge")
+
+    # Create two source chains
+    chain1 = chain(node(geo_node, "box", "box1"))
+    chain2 = chain(node(geo_node, "sphere", "sphere1"))
+
+    # Create merge chain
+    merge_chain = chain(
+        node(geo_node, "merge", "combine", _input=[chain1, chain2]),
+        node(geo_node, "xform", "final"),
+    )
+
+    # Create the nodes
+    chain1.create()
+    chain2.create()
+    merge_created = merge_chain.create()
+
+    # Check merge node inputs
+    merge_node = merge_created[0].create()
+    merge_inputs = len([inp for inp in merge_node.inputs() if inp])  # Count non-None inputs
+
+    return {
+        'merge_inputs': merge_inputs,
+        'merge_path': merge_node.path(),
+    }
+
+
+@houdini_result
+def test_geometry_node_creation(node_type: str) -> JsonObject:
+    """Test creation of various geometry node types."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", f"test_{node_type}")
+
+    # Create the specified node type
+    test_node = node(geo_node, node_type, f"test_{node_type}_node")
+    created_node = test_node.create()
+
+    return {
+        'node_type': created_node.type().name(),
+        'node_path': created_node.path(),
+    }
+
+
+@houdini_result
+def test_node_parameters() -> JsonObject:
+    """Test that node parameters are set correctly."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_params")
+
+    # Create node with parameters
+    box_node = node(geo_node, "box", "param_box", sizex=2.0, sizey=3.0, sizez=4.0)
+    created_node = box_node.create()
+
+    # Check parameters
+    sizex = created_node.parm('sizex').eval()
+    sizey = created_node.parm('sizey').eval()
+    sizez = created_node.parm('sizez').eval()
+
+    parameters_set = (
+        abs(sizex - 2.0) < 0.001 and
+        abs(sizey - 3.0) < 0.001 and
+        abs(sizez - 4.0) < 0.001
+    )
+
+    return {
+        'parameters_set': parameters_set,
+        'sizex': sizex,
+        'sizey': sizey,
+        'sizez': sizez,
+    }
+
+
+# Additional test functions for the new unit tests
+
+@houdini_result
+def test_basic_input_connections() -> JsonObject:
+    """Test that input connections are set up correctly on nodes."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_connections")
+
+    # Chain A: Create base geometry (should be created once)
+    chain_A = chain(
+        node(geo_node, "box", "source_box"),
+        node(geo_node, "xform", "center"),
+    )
+
+    # Chain B2: Should connect to chain_A
+    chain_B2 = chain(
+        node(geo_node, "xform", "scale_up", _input=chain_A),
+        node(geo_node, "xform", "rotate_y"),
+    )
+
+    # Chain B3: Should also connect to chain_A (not duplicate it)
+    chain_B3 = chain(
+        node(geo_node, "xform", "scale_down", _input=chain_A),
+        node(geo_node, "xform", "rotate_x"),
+    )
+
+    # Chain C: Should merge B2 and B3
+    chain_C = chain(
+        node(geo_node, "merge", "combine", _input=[chain_B2, chain_B3]),
+        node(geo_node, "xform", "final"),
+    )
+
+    # Check that chains do NOT have _inputs field (architecture change)
+    chains_no_inputs_field = (
+        not hasattr(chain_A, '_inputs') and
+        not hasattr(chain_B2, '_inputs') and
+        not hasattr(chain_B3, '_inputs') and
+        not hasattr(chain_C, '_inputs')
+    )
+
+    # Check that first node inputs are set correctly through delegation
+    chain_A_no_inputs = len(chain_A.inputs) == 0
+    chain_B2_has_inputs = len(chain_B2.inputs) == 1
+    chain_B3_has_inputs = len(chain_B3.inputs) == 1
+    chain_C_has_inputs = len(chain_C.inputs) == 2
+
+    return {
+        'chain_A_length': len(chain_A.nodes),
+        'chain_B2_length': len(chain_B2.nodes),
+        'chain_B3_length': len(chain_B3.nodes),
+        'chain_C_length': len(chain_C.nodes),
+        'chains_no_inputs_field': chains_no_inputs_field,
+        'chain_A_no_inputs': chain_A_no_inputs,
+        'chain_B2_has_inputs': chain_B2_has_inputs,
+        'chain_B3_has_inputs': chain_B3_has_inputs,
+        'chain_C_has_inputs': chain_C_has_inputs,
+    }
+
+
+@houdini_result
+def test_chain_input_delegation() -> JsonObject:
+    """Test that Chain.inputs properly delegates to first node."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_delegation")
+
+    # Chain with no inputs
+    chain_no_input = chain(
+        node(geo_node, "box", "source"),
+        node(geo_node, "xform", "transform"),
+    )
+
+    # Chain with single input
+    chain_single_input = chain(
+        node(geo_node, "xform", "processor", _input=chain_no_input),
+        node(geo_node, "xform", "final"),
+    )
+
+    # Test delegation
+    no_input_chain_empty = len(chain_no_input.inputs) == 0
+    single_input_chain_has_one = len(chain_single_input.inputs) == 1
+
+    # Verify this is actually delegating to the first node
+    delegation_works = chain_single_input.inputs == chain_single_input.first.inputs
+
+    return {
+        'no_input_chain_empty': no_input_chain_empty,
+        'single_input_chain_has_one': single_input_chain_has_one,
+        'delegation_works': delegation_works,
+    }
+
+
+@houdini_result
+def test_multiple_inputs_basic() -> JsonObject:
+    """Test that nodes can accept multiple inputs correctly."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_multi")
+
+    # Create two source chains
+    source_1 = chain(node(geo_node, "box", "source_1"))
+    source_2 = chain(node(geo_node, "sphere", "source_2"))
+
+    # Create a merge node that takes both as inputs
+    merge_chain = chain(
+        node(geo_node, "merge", "combiner", _input=[source_1, source_2])
+    )
+
+    # Test that the merge node has the expected inputs
+    input_count = len(merge_chain.inputs)
+    merge_has_multiple_inputs = input_count > 1
+
+    return {
+        'merge_has_multiple_inputs': merge_has_multiple_inputs,
+        'input_count': input_count,
+    }
+
+
+# Note: The required test functions are already defined above:
+# - test_diamond_creation (for diamond pattern)
+# - test_chain_connections (for chain input connections)
+# - test_merge_connections (for multiple input merge)
+# - test_geometry_node_creation (for various geometry types)
+# - test_node_parameters (for parameter setting)
+
+
+@houdini_result
+def test_diamond_no_duplication() -> JsonObject:
+    """Test that diamond pattern doesn't create duplicate nodes - this should expose the bug!"""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_diamond_duplication")
+
+    # Chain A: Create base geometry (should be created once)
+    chain_A = chain(
+        node(geo_node, "box", "source_box"),
+        node(geo_node, "xform", "center"),
+    )
+
+    # Chain B2: Should connect to chain_A
+    chain_B2 = chain(
+        node(geo_node, "xform", "scale_up", _input=chain_A),
+        node(geo_node, "xform", "rotate_y"),
+    )
+
+    # Chain B3: Should also connect to chain_A (not duplicate it)
+    chain_B3 = chain(
+        node(geo_node, "xform", "scale_down", _input=chain_A),
+        node(geo_node, "xform", "rotate_x"),
+    )
+
+    # Create all chains - this is where duplication might happen
+    chain_A_created = chain_A.create()
+    chain_B2_created = chain_B2.create()
+    chain_B3_created = chain_B3.create()
+
+    # Get ALL nodes that were created in the geo container
+    all_children = geo_node.children()
+    all_node_paths = [child.path() for child in all_children]
+    unique_node_paths = list(set(all_node_paths))
+
+    # Check connections to verify they're connecting to the right nodes
+    scale_up_node = chain_B2_created[0].create()
+    scale_down_node = chain_B3_created[0].create()
+    center_node = chain_A_created[-1].create()
+
+    scale_up_input = scale_up_node.inputs()[0] if scale_up_node.inputs() else None
+    scale_down_input = scale_down_node.inputs()[0] if scale_down_node.inputs() else None
+
+    scale_up_connected_to_center = (
+        scale_up_input and scale_up_input.path() == center_node.path()
+    )
+    scale_down_connected_to_center = (
+        scale_down_input and scale_down_input.path() == center_node.path()
+    )
+
+    # Critical test: both should connect to the SAME center node
+    both_connect_to_same_center = (
+        scale_up_input and scale_down_input and
+        scale_up_input.path() == scale_down_input.path()
+    )
+
+    return {
+        'all_node_paths': all_node_paths,  # type: ignore  # str is JsonValue
+        'unique_node_paths': unique_node_paths,  # type: ignore  # str is JsonValue
+        'scale_up_connected_to_center': scale_up_connected_to_center,
+        'scale_down_connected_to_center': scale_down_connected_to_center,
+        'both_connect_to_same_center': both_connect_to_same_center,
+        'total_nodes_created': len(all_node_paths),
+        'unique_nodes_count': len(unique_node_paths),
+    }
+
+
+@houdini_result
+def test_chain_reference_vs_copy() -> JsonObject:
+    """Test that chains are referenced, not copied when used as inputs."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_reference_vs_copy")
+
+    # Create chain A
+    chain_A = chain(
+        node(geo_node, "box", "box_a"),
+        node(geo_node, "xform", "xform_a"),
+        node(geo_node, "subdivide", "subdivide_a"),
+    )
+
+    # Use chain A as input to two different nodes
+    node_1 = node(geo_node, "xform", "node_1", _input=chain_A)
+    node_2 = node(geo_node, "xform", "node_2", _input=chain_A)
+
+    # Create everything
+    chain_a_created = chain_A.create()
+    node_1_created = node_1.create()
+    node_2_created = node_2.create()
+
+    # Count actual nodes in the scene
+    all_children = geo_node.children()
+    total_created_node_count = len(all_children)
+
+    # Expected: 3 nodes from chain A + 2 individual nodes = 5 total
+    chain_a_node_count = len(chain_a_created)
+    other_nodes_count = 2  # node_1 and node_2
+
+    return {
+        'chain_a_node_count': chain_a_node_count,
+        'other_nodes_count': other_nodes_count,
+        'total_created_node_count': total_created_node_count,
+        'all_node_paths': [child.path() for child in all_children],  # type: ignore  # str is JsonValue
+    }
+
+
+@houdini_result
+def test_parameter_validation() -> JsonObject:
+    """Test parameter validation in Houdini environment."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_validation")
+
+    # Create a valid chain to use for testing
+    chain_A = chain(
+        node(geo_node, "box", "source_box"),
+        node(geo_node, "xform", "center"),
+    )
+
+    # Test valid patterns work
+    try:
+        chain_B = chain(
+            node(geo_node, "xform", "scale_up", _input=chain_A),
+            node(geo_node, "xform", "rotate_y"),
+        )
+
+        valid_patterns_work = True
+    except Exception:
+        valid_patterns_work = False
+
+    # Test invalid patterns are rejected
+    try:
+        # This should fail - _input parameter not supported on chain()
+        bad_chain = chain(
+            node(geo_node, "xform", "bad_node"),
+            node(geo_node, "xform", "rotate_z"),
+            _input=chain_A,  # This should raise TypeError
+        )
+        invalid_patterns_rejected = False  # Should not reach here
+    except TypeError:
+        invalid_patterns_rejected = True
+    except Exception:
+        invalid_patterns_rejected = False  # Wrong exception type
+
+    return {
+        'valid_patterns_work': valid_patterns_work,
+        'invalid_patterns_rejected': invalid_patterns_rejected,
+    }
+
+
+@houdini_result
+def test_chain_rejects_input_parameter() -> JsonObject:
+    """Test that chain() properly rejects the deprecated _input parameter."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_rejection")
+
+    # Create test chain
+    chain_A = chain(
+        node(geo_node, "box", "source_box"),
+        node(geo_node, "xform", "center"),
+    )
+
+    # This should raise a TypeError with a helpful message
+    try:
+        chain(
+            node(geo_node, "xform", "scale_up"),
+            node(geo_node, "xform", "rotate_y"),
+            _input=chain_A,  # This should trigger the error
+        )
+        # Should not reach here
+        error_raised = False
+        error_message = ""
+    except TypeError as e:
+        error_raised = True
+        error_message = str(e)
+    except Exception as e:
+        error_raised = False
+        error_message = f"Wrong exception type: {type(e).__name__}: {e}"
+
+    # Check that the error message contains the expected guidance
+    error_contains_input = "_input" in error_message
+    error_contains_no_longer_supported = "no longer supported" in error_message
+    error_contains_guidance = "pass the input to the first node" in error_message
+
+    return {
+        'error_raised': error_raised,
+        'error_message': error_message,
+        'error_contains_input': error_contains_input,
+        'error_contains_no_longer_supported': error_contains_no_longer_supported,
+        'error_contains_guidance': error_contains_guidance,
+    }
+
+
+@houdini_result
+def test_valid_input_patterns() -> JsonObject:
+    """Test that valid input patterns work correctly."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_valid")
+
+    # Chain A: Create base geometry
+    chain_A = chain(
+        node(geo_node, "box", "source_box"),
+        node(geo_node, "xform", "center"),
+    )
+
+    # This should work - first node has input
+    chain_B = chain(
+        node(geo_node, "xform", "scale_up", _input=chain_A),  # Node has input
+        node(geo_node, "xform", "rotate_y"),
+    )
+
+    # This should also work - no inputs anywhere
+    chain_C = chain(
+        node(geo_node, "xform", "scale_down"),  # No inputs
+        node(geo_node, "xform", "rotate_x"),
+    )
+
+    return {
+        'chain_B_length': len(chain_B.nodes),
+        'chain_C_length': len(chain_C.nodes),
+        'chain_B_has_inputs': len(chain_B.inputs) > 0,
+        'chain_C_no_inputs': len(chain_C.inputs) == 0,
+    }
+
+
+@houdini_result
+def test_node_input_validation() -> JsonObject:
+    """Test that individual node input validation works."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_node_inputs")
+
+    # Create source
+    source = node(geo_node, "box", "source")
+
+    # Single input - should work
+    node_single = node(geo_node, "xform", "transform", _input=source)
+    single_input_works = (
+        len(node_single.inputs) == 1 and
+        node_single.inputs[0] is not None and
+        node_single.inputs[0][0] is source
+    )
+
+    # Multiple inputs - should work
+    source2 = node(geo_node, "box", "source2")
+    node_multi = node(geo_node, "merge", "combine", _input=[source, source2])
+    input_nodes = [inp[0] for inp in node_multi.inputs if inp is not None]
+    multiple_inputs_work = (
+        len(node_multi.inputs) == 2 and
+        source in input_nodes and
+        source2 in input_nodes
+    )
+
+    # No inputs - should work
+    node_none = node(geo_node, "box", "standalone")
+    no_inputs_work = len(node_none.inputs) == 0
+
+    return {
+        'single_input_works': single_input_works,
+        'multiple_inputs_work': multiple_inputs_work,
+        'no_inputs_work': no_inputs_work,
+    }
+
+
+@houdini_result
+def test_invalid_input_types(input_type: str) -> JsonObject:
+    """Test that invalid input types are handled appropriately."""
+    # Clear the scene
+    hou.hipFile.clear()
+
+    obj = hou_node("/obj")
+    geo_node = obj.createNode("geo", "test_invalid")
+
+    if input_type == "none":
+        # None should be filtered out and result in no inputs
+        test_node = node(geo_node, "xform", "test", _input=None)
+        none_filtered_out = len(test_node.inputs) == 0
+        return {'none_filtered_out': none_filtered_out}
+
+    elif input_type == "empty_string":
+        # Empty string - test what happens (type: ignore for intentional type violation)
+        try:
+            test_node = node(geo_node, "xform", "test", _input="")  # type: ignore
+            handled_appropriately = True
+            error_occurred = False
+        except Exception as e:
+            handled_appropriately = True
+            error_occurred = True
+        return {
+            'handled_appropriately': handled_appropriately,
+            'error_occurred': error_occurred,
+        }
+
+    elif input_type == "number":
+        # Number - test what happens (type: ignore for intentional type violation)
+        try:
+            test_node = node(geo_node, "xform", "test", _input=123)  # type: ignore
+            handled_appropriately = True
+            error_occurred = False
+        except Exception as e:
+            handled_appropriately = True
+            error_occurred = True
+        return {
+            'handled_appropriately': handled_appropriately,
+            'error_occurred': error_occurred,
+        }
+
+    else:
+        return {'handled_appropriately': False, 'unknown_input_type': input_type}

@@ -36,6 +36,7 @@ The decorators handle:
 
 import os
 import sys
+from pathlib import Path
 import hou
 from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.houdini_bridge import houdini_message, houdini_result, JsonObject
@@ -121,10 +122,10 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, ver
     """
     import click
 
-    script_path_abs = os.path.abspath(script_path)
+    script_path_obj = Path(script_path).resolve()
 
     if verbose:
-        click.echo(f"Running script: {script_path_abs}")
+        click.echo(f"Running script: {script_path_obj}")
         if script_args:
             click.echo(f"Script arguments: {' '.join(script_args)}")
         if hipfile:
@@ -132,7 +133,7 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, ver
 
     try:
         # Add script directory to Python path so imports work
-        script_dir = os.path.dirname(script_path_abs)
+        script_dir = str(script_path_obj.parent)
         if script_dir not in sys.path:
             sys.path.insert(0, script_dir)
 
@@ -141,23 +142,22 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, ver
 
         try:
             # Set up sys.argv as if the script was called directly
-            sys.argv = [script_path_abs] + list(script_args)
+            sys.argv = [str(script_path_obj)] + list(script_args)
 
             # Read and execute the script
-            with open(script_path_abs, 'r') as script_file:
-                script_code = script_file.read()
+            script_code = script_path_obj.read_text()
 
             # Execute in global namespace so imports and variables persist
-            exec(script_code, {'__name__': '__main__', '__file__': script_path_abs})
+            exec(script_code, {'__name__': '__main__', '__file__': str(script_path_obj)})
 
-            click.echo(f"✓ Script executed successfully: {os.path.basename(script_path_abs)}")
+            click.echo(f"✓ Script executed successfully: {script_path_obj.name}")
 
             # Save hip file if requested
             if hipfile:
-                # Ensure directory exists
-                os.makedirs(os.path.dirname(hipfile), exist_ok=True)
-                hou.hipFile.save(hipfile)
-                click.echo(f"✓ Scene saved to: {hipfile}")
+                hipfile_path = Path(hipfile)
+                hipfile_path.parent.mkdir(parents=True, exist_ok=True)
+                hou.hipFile.save(str(hipfile_path))
+                click.echo(f"✓ Scene saved to: {hipfile_path}")
 
         finally:
             # Restore original sys.argv
@@ -169,8 +169,6 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, ver
         if verbose:
             traceback.print_exc()
         sys.exit(1)
-
-
 
 
 

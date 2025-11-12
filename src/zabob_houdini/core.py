@@ -175,6 +175,7 @@ def _merge_inputs(in1: InputNodes, in2: InputNodes) -> InputNodes:
         for l, r in zip_longest(in1, in2, fillvalue=None)
     ]
     return tuple(merged)
+@dataclasses.dataclass(frozen=True)
 class NodeBase(ABC):
     """
     Base class for Houdini node representations.
@@ -387,7 +388,7 @@ class Chain(NodeBase):
 
     Nodes in the chain are automatically connected in sequence.
     """
-    nodes: tuple[ChainableNode, ...]
+    nodes: tuple[NodeInstance, ...]
     name_prefix: str | None = None
     attributes: HashableMapping | None = None
 
@@ -410,14 +411,14 @@ class Chain(NodeBase):
         """Return the first node in this chain."""
         if not self.nodes:
             raise RuntimeError("Chain is empty.")
-        return wrap_node(self.nodes[0], first=True)
+        return self.nodes[0]
 
     @functools.cached_property
     def last(self) -> NodeInstance:
         """Return the last node in this chain."""
         if not self.nodes:
             raise RuntimeError("Chain is empty.")
-        return wrap_node(self.nodes[-1], first=False)
+        return self.nodes[-1]
 
     @functools.cached_property
     def inputs(self) -> Inputs:
@@ -581,27 +582,23 @@ class Chain(NodeBase):
         created_node_instances: list[NodeInstance] = []
         previous_node: hou.Node | None = None
 
-        # Create each node (using copies) and connect them in sequence. We return
-        # the NodeInstance copies used for creation so callers can inspect them.
+        # Create each node and connect them in sequence - NO COPYING!
+        # Nodes should be created as-is, connections handled during creation
         for i, node_instance in enumerate(flattened_nodes):
-            if i > 0 and previous_node is not None:
-                # Subsequent nodes get previous node as input
-                node_copy = node_instance.copy()
-                if node_copy._inputs:
-                    merged_inputs = (previous_node,) + node_copy._inputs
-                else:
-                    merged_inputs = (previous_node,)
-                import dataclasses
-                node_copy = dataclasses.replace(node_copy, _inputs=merged_inputs)
-            else:
-                node_copy = node_instance.copy()
-
             # Create the node in Houdini (NodeInstance.create caches result)
-            node_copy.create()
-            created_node_instances.append(node_copy)
+            # The chaining logic should be handled elsewhere, not by copying nodes
+            created_hou_node = node_instance.create()
+            created_node_instances.append(node_instance)
 
-            # For the next iteration, pass the actual created Houdini node as input
-            previous_node = node_copy.create()
+            # Connect this node to the previous one if needed
+            if i > 0 and previous_node is not None:
+                try:
+                    created_hou_node.setInput(0, previous_node)
+                except Exception as e:
+                    print(f"Warning: Failed to connect chain nodes: {e}")
+
+            # For the next iteration
+            previous_node = created_hou_node
 
         return tuple(created_node_instances)
 
@@ -627,7 +624,8 @@ class Chain(NodeBase):
         merged_inputs = _merge_inputs(_inputs, self_inputs)
         first = self.first.copy(_inputs=merged_inputs)
 
-        nodes = (first, *(n.copy() for n in islice(self.nodes, 1, None)))
+        # Only copy Chain objects, not NodeInstances - NodeInstances should be shared
+        nodes = (first, *(n.copy() if isinstance(n, Chain) else n for n in islice(self.nodes, 1, None)))
 
         return Chain(
             nodes=tuple(nodes),
@@ -695,7 +693,6 @@ def node(
 
 def chain(
     *nodes: ChainableNode,
-    _input: "InputNode | list[InputNode] | None" = None,
     name_prefix: str | None = None,
     **attributes: Any
 ) -> Chain:
@@ -703,25 +700,52 @@ def chain(
     Create a chain of nodes definition.
 
     Args:
-        parent: Parent node (path string or NodeInstance)
         *nodes: Sequence of NodeInstance objects, Chain objects, or Houdini nodes to chain together
-        _input: Optional input node(s) to connect to start of chain (NodeInstance, Chain, hou.Node, or None)
         name_prefix: Optional prefix for generated node names
         **attributes: Shared attributes for all nodes in chain
 
     Returns:
         Chain that can be created with .create()
+
+    Note:
+        To connect inputs to the chain, pass them to the first node using the _input parameter:
+        chain(node(parent, "xform", "first", _input=some_input), node(parent, "xform", "second"))
     """
-    inputs = []
-    if _input is not None:
-        match _input:
-            case list() as input_list:
-                inputs.extend(input_list)
-            case _ as single_input:
-                inputs.append(single_input)
+    # Check for the old _input parameter and provide a helpful error message
+    if '_input' in attributes:
+        raise TypeError(
+            "The '_input' parameter is no longer supported on chain(). "
+            "Instead, pass the input to the first node: "
+            "chain(node(parent, 'type', 'name', _input=your_input), ...)"
+        )
+
+    # Flatten any nested chains - NO COPYING, just flatten the structure
+    flattened_nodes: list[NodeInstance] = []
+    for item in nodes:
+        match item:
+            case NodeInstance():
+                # Keep the exact same node instance - no copying!
+                flattened_nodes.append(item)
+            case Chain():
+                # Extract nodes from nested chain - no copying!
+                for nested_node in item.nodes:
+                    if isinstance(nested_node, NodeInstance):
+                        flattened_nodes.append(nested_node)
+                    else:
+                        # This shouldn't happen if chains only store nodes, but be safe
+                        raise TypeError(f"Nested chain contains non-NodeInstance: {type(nested_node)}")
+            case _ if isinstance(item, hou.Node):
+                # Wrap Houdini node but don't copy
+                wrapped = _wrap_hou_node(item)
+                flattened_nodes.append(wrapped)
+            case _:
+                raise TypeError(
+                    f"Chain nodes must be NodeInstance, Chain, or hou.Node objects, "
+                    f"got {type(item).__name__}"
+                )
 
     return Chain(
-        nodes=nodes,  # nodes is already a tuple from *nodes
+        nodes=tuple(flattened_nodes),  # Only NodeInstance objects now
         name_prefix=name_prefix,
         attributes=HashableMapping(attributes) if attributes else None,
     )

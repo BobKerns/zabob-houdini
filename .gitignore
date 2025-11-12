@@ -109,3 +109,11 @@ cache/
 Cache/
 preview/
 Preview/
+
+# Houdini binary files we write write manually.
+# Exceptions should be made for any we intend to commit.
+
+*.hip
+*.hda
+*.hipnc
+*.hdanc

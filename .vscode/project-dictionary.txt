@@ -1,4 +1,6 @@
 addopts
+agentic
+Agentic
 argparse
 autofit
 bakpac
@@ -16,13 +18,16 @@ fillvalue
 fromlist
 hconfig
 hdanc
+heightfield
 hengine
+hipfile
 hiplc
 hipnc
 hnode
 Hscript
 htmlcov
 hython
+isinstance
 keepachangelog
 KHTML
 kwargs
@@ -73,7 +78,3 @@ vstr
 xform
 yourword
 zabob
-agentic
-Agentic
-heightfield
-isinstance
