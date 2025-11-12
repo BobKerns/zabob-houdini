@@ -342,8 +342,17 @@ def types(category: str):
     found_category = False
     category_info = None
     node_types = []
+    child_to_parent_categories: dict[str, list[str]] = {}
 
-    # Collect all node types for the category
+    # First pass: collect child category to parent category mapping
+    for item in analyze_categories():
+        if isinstance(item, NodeTypeInfo) and item.childCategory:
+            if item.childCategory not in child_to_parent_categories:
+                child_to_parent_categories[item.childCategory] = []
+            if item.category not in child_to_parent_categories[item.childCategory]:
+                child_to_parent_categories[item.childCategory].append(item.category)
+
+    # Second pass: collect node types for the requested category
     for item in analyze_categories():
         if isinstance(item, NodeCategoryInfo) and item.name.lower() == category.lower():
             found_category = True
@@ -372,14 +381,22 @@ def types(category: str):
 
     # Calculate column widths
     max_name_width = max(len(node.name) for node in node_types)
-    max_desc_width = min(60, max(len(node.description) for node in node_types))  # Cap description width
+    max_desc_width = min(35, max(len(node.description) for node in node_types))  # Cap description width
+
+    # Calculate max width for "IN CATEGORIES" column
+    max_categories_width = 0
+    for node in node_types:
+        if node.childCategory and node.childCategory in child_to_parent_categories:
+            categories_str = ", ".join(child_to_parent_categories[node.childCategory])
+            max_categories_width = max(max_categories_width, len(categories_str))
 
     # Ensure minimum widths
     name_width = max(20, max_name_width)
-    desc_width = max(30, max_desc_width)
+    desc_width = max(25, max_desc_width)
+    categories_width = max(12, min(30, max_categories_width))  # Cap categories width
 
     # Print table header
-    header = f"{'NAME':<{name_width}} {'DESCRIPTION':<{desc_width}} {'INPUTS':<8} {'OUTPUTS':<8} {'FLAGS'}"
+    header = f"{'NAME':<{name_width}} {'DESCRIPTION':<{desc_width}} {'INPUTS':<8} {'OUTPUTS':<8} {'IN CATEGORIES':<{categories_width}} {'FLAGS'}"
     click.echo(header)
     click.echo("-" * len(header))
 
@@ -392,6 +409,13 @@ def types(category: str):
         inputs = f"{node.minNumInputs}-{node.maxNumInputs}" if node.minNumInputs != node.maxNumInputs else str(node.minNumInputs)
         outputs = str(node.maxNumOutputs)
 
+        # Format "IN CATEGORIES"
+        if node.childCategory and node.childCategory in child_to_parent_categories:
+            categories_str = ", ".join(child_to_parent_categories[node.childCategory])
+            categories_str = categories_str[:categories_width-3] + "..." if len(categories_str) > categories_width else categories_str
+        else:
+            categories_str = "-"
+
         # Build flags
         flags = []
         if node.isDeprecated:
@@ -403,7 +427,7 @@ def types(category: str):
         flags_str = ", ".join(flags)
 
         # Print row
-        click.echo(f"{node.name:<{name_width}} {desc:<{desc_width}} {inputs:<8} {outputs:<8} {flags_str}")
+        click.echo(f"{node.name:<{name_width}} {desc:<{desc_width}} {inputs:<8} {outputs:<8} {categories_str:<{categories_width}} {flags_str}")
 
     click.echo(f"\nTotal: {len(node_types)} node types")
 
