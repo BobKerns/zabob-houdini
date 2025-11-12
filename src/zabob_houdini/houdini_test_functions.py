@@ -395,8 +395,8 @@ def test_node_instance_copy_with_inputs() -> JsonObject:
     # The input chain should be copied (different object)
     input_copied = False
     if copied.inputs and len(copied.inputs) > 0:
-    # Check if it's a different Chain object
-        input_copied = copied.inputs[0] is not inner_chain
+    # Check if it's a different Chain object - inputs now returns (node, output_index) tuples or None
+        input_copied = copied.inputs[0] is not None and copied.inputs[0][0] is not inner_chain
 
     return {
         'has_inputs': has_inputs,
@@ -609,7 +609,8 @@ def test_node_copy_non_chain_inputs() -> JsonObject:
 
     has_inputs = copied.inputs is not None
     input_length = len(copied.inputs) if copied.inputs else 0
-    first_input_same = copied.inputs[0] is input_node if copied.inputs and len(copied.inputs) > 0 else False
+    # inputs now returns (node, output_index) tuples for actual nodes, None for None inputs
+    first_input_same = (copied.inputs[0][0] is input_node and copied.inputs[0][1] == 0) if copied.inputs and len(copied.inputs) > 0 and copied.inputs[0] is not None else False
     second_input_none = copied.inputs[1] is None if copied.inputs and len(copied.inputs) > 1 else False
 
     return {
@@ -691,4 +692,65 @@ def test_node_parentage() -> JsonObject:
         'obj_path': box.parent.parent.path,
         'root_path': box.parent.parent.parent.path,
         'root_is_root': box.parent.parent.parent is ROOT,
+    }
+
+
+@houdini_result
+def test_merge_inputs_sparse_handling() -> JsonObject:
+    """Test _merge_inputs function with sparse (None) inputs."""
+    from zabob_houdini.core import _merge_inputs, node
+
+    # Clear the scene
+    hou.hipFile.clear()
+
+    # Create test nodes to use as inputs
+    obj = hou_node("/obj")
+    geo = obj.createNode("geo", "test_geo")
+    node1 = node(geo.path(), "box", name="box1")
+    node2 = node(geo.path(), "sphere", name="sphere1")
+
+    # Test case 1: Both inputs are None - result should be None
+    result1 = _merge_inputs((None,), (None,))
+    both_none_result = result1[0] if result1 else None
+
+    # Test case 2: First is None, second is not None - result should be second
+    result2 = _merge_inputs((None,), (node2,))
+    first_none_result = result2[0] if result2 else None
+    first_none_is_node2 = first_none_result is node2
+
+    # Test case 3: First is not None, second is None - result should be first
+    result3 = _merge_inputs((node1,), (None,))
+    second_none_result = result3[0] if result3 else None
+    second_none_is_node1 = second_none_result is node1
+
+    # Test case 4: Both are not None - result should be first (preferring in1)
+    result4 = _merge_inputs((node1,), (node2,))
+    both_not_none_result = result4[0] if result4 else None
+    both_not_none_is_node1 = both_not_none_result is node1
+
+    # Test case 5: Multiple positions with mixed None/not-None
+    result5 = _merge_inputs((node1, None, node1), (None, node2, node2))
+    multi_pos_correct = (
+        len(result5) == 3 and
+        result5[0] is node1 and  # First prefers in1
+        result5[1] is node2 and  # None in1, so use in2
+        result5[2] is node1      # Both not None, prefer in1
+    )
+
+    # Test case 6: Empty lists
+    result6 = _merge_inputs((), ())
+    empty_result = len(result6) == 0
+
+    # Test case 7: One empty, one with content
+    result7 = _merge_inputs((), (node1, node2))
+    one_empty_result = len(result7) == 2 and result7[0] is node1 and result7[1] is node2
+
+    return {
+        'both_none_is_none': both_none_result is None,
+        'first_none_gets_second': first_none_is_node2,
+        'second_none_gets_first': second_none_is_node1,
+        'both_not_none_gets_first': both_not_none_is_node1,
+        'multi_position_correct': multi_pos_correct,
+        'empty_lists_work': empty_result,
+        'one_empty_works': one_empty_result,
     }

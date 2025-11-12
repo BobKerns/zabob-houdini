@@ -31,7 +31,7 @@ node(parent, node_type, name=None, **attributes)
 - **node_type**: Houdini node type (e.g., `"box"`, `"merge"`, `"xform"`)
 - **name**: Optional name for the node
 - **attributes**: Node parameters as keyword arguments
-- **_input**: Special parameter to connect input nodes
+- **_input**: Special parameter to connect input nodes. For multi-output nodes, use `(node, output_index)` tuples
 
 `node()` returns a `NodeInstance` object. To get the underlying `hou.Node`, call the `.create()` method. You can call it multiple times; it will always return the same `hou.Node` instance created on the first call.
 
@@ -73,6 +73,11 @@ geo_node = node("/obj", "geo", name="mygeometry")
 # Create individual SOP nodes
 box_node = node(geo_node, "box", name="mybox")
 transform_node = node(geo_node, "xform", name="mytransform", _input=box_node)
+
+# For nodes with multiple outputs, specify which output to connect to
+multi_output_node = node(geo_node, "partition", name="parts")
+part1_node = node(geo_node, "xform", name="part1", _input=(multi_output_node, 0))  # First output
+part2_node = node(geo_node, "xform", name="part2", _input=(multi_output_node, 1))  # Second output
 
 # Or create a chain of nodes for linear processing
 box_node2 = node(geo_node, "box", name="source")

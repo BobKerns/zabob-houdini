@@ -237,5 +237,27 @@ class TestNodeRegistry:
         assert "registry_test_box" in result_data["original_node_path"]
 
 
+class TestMergeInputsFunction:
+    """Test the _merge_inputs utility function."""
+
+    @pytest.mark.integration
+    def test_merge_inputs_sparse_handling(self, hython_test):
+        """Test _merge_inputs function handles sparse (None) inputs correctly."""
+        result = hython_test("test_merge_inputs_sparse_handling")
+
+        assert result['success'] is True
+        assert 'result' in result
+        result_data = result['result']
+
+        # Test all the merge scenarios
+        assert result_data["both_none_is_none"] is True
+        assert result_data["first_none_gets_second"] is True
+        assert result_data["second_none_gets_first"] is True
+        assert result_data["both_not_none_gets_first"] is True
+        assert result_data["multi_position_correct"] is True
+        assert result_data["empty_lists_work"] is True
+        assert result_data["one_empty_works"] is True
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

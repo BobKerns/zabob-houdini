@@ -134,30 +134,35 @@ CreatableNode: TypeAlias = 'NodeInstance | Chain'
 ChainableNode: TypeAlias = 'NodeInstance | Chain'
 """A node or chain that can be used in a chain - includes existing hou.Node objects."""
 
-InputNode: TypeAlias = 'NodeInstance | Chain | hou.Node | None | str'
-"""A node that can be used as input - NodeInstance, Chain (uses last node), actual hou.Node, or None for sparse connections."""
+InputConnection: TypeAlias = 'tuple[NodeInstance | Chain | hou.Node | str, int] | NodeInstance | Chain | hou.Node | str'
+"""A connection specification: either (<node>, <output_index>) tuple or just <node> (defaults to output 0)."""
+
+InputNode: TypeAlias = 'InputConnection | None'
+"""A node that can be used as input - InputConnection or None for sparse connections."""
 
 InputNodes: TypeAlias = 'Sequence[InputNode]'
 
 ResolvedInput: TypeAlias = 'NodeInstance | None'
 """InputInstance or None, after resolution."""
 
-Inputs: TypeAlias = 'tuple[ResolvedInput, ...]'
-"""The inputs for a node or chain, as a tuple of ResolvedInput objects (NodeInstance or None)."""
+ResolvedConnection: TypeAlias = 'tuple[ResolvedInput, int]'
+"""A resolved connection: (node, output_index)."""
+
+Inputs: TypeAlias = 'tuple[ResolvedConnection | None, ...]'
+"""The inputs for a node or chain, as a tuple of ResolvedConnection objects or None for sparse connections."""
 
 
 def _merge_inputs(in1: InputNodes, in2: InputNodes) -> InputNodes:
-    """Merge two input lists, preferring non-None values from the second list."""
+    """Merge two input lists, preferring non-None values from the first list."""
     if not in1:
         return tuple(in2)
     if not in2:
         return tuple(in1)
 
-    return [
-            l if l else r
-            for l, r in zip_longest(in1, in2, fillvalue=None)
+    merged = [
+        l if l else r
+        for l, r in zip_longest(in1, in2, fillvalue=None)
     ]
-
     return tuple(merged)
 class NodeBase(ABC):
     """
@@ -255,7 +260,11 @@ class NodeInstance(NodeBase):
 
     @functools.cached_property
     def inputs(self) -> Inputs:
-        """Return the input nodes for this node/chain."""
+        """
+        Return the input nodes for this node/chain.
+
+        Each input will be either None or a ResolvedConnection tuple of (NodeInstance, output_index).
+        """
         return tuple((_wrap_input(inp) for inp in self._inputs))
 
     @functools.cache
@@ -285,10 +294,12 @@ class NodeInstance(NodeBase):
 
         # Connect inputs
         if self.inputs:
-            for i, input_node in enumerate(self.inputs):
+            for i, connection in enumerate(self.inputs):
                 # Skip None inputs (for sparse input connections)
-                if input_node is None:
+                if connection is None:
                     continue
+
+                input_node, output_idx = connection
 
                 try:
                     match input_node:
@@ -310,7 +321,7 @@ class NodeInstance(NodeBase):
                                 f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
                                 f"got {type(input_node).__name__}"
                             )
-                    created_node.setInput(i, input_hou_node)
+                    created_node.setInput(i, input_hou_node, output_idx)
                 except Exception as e:
                     print(f"Warning: Failed to connect input {i}: {e}")
 
@@ -543,29 +554,14 @@ class Chain(NodeBase):
         created_node_instances: list[NodeInstance] = []
         previous_node: hou.Node | None = None
 
-        # Handle inputs to the first node in the chain
-        # Note: objects are frozen, so we modify during copying below
-
         # Create each node (using copies) and connect them in sequence. We return
         # the NodeInstance copies used for creation so callers can inspect them.
         for i, node_instance in enumerate(flattened_nodes):
-            # Handle chain inputs to first node and previous node connections
-            if i == 0 and self.inputs:
-                # First node gets chain inputs plus its own inputs
-                if node_instance.inputs:
-                    first = self.first
-                    merged_inputs = _merge_inputs(first._inputs, node_instance._inputs)
-                else:
-                    merged_inputs = self.inputs
-                node_copy = node_instance.copy()
-                # Create new instance with modified inputs using dataclasses.replace
-                import dataclasses
-                node_copy = dataclasses.replace(node_copy, _inputs=merged_inputs)
-            elif i > 0 and previous_node is not None:
+            if i > 0 and previous_node is not None:
                 # Subsequent nodes get previous node as input
                 node_copy = node_instance.copy()
-                if node_copy.inputs:
-                    merged_inputs = (previous_node,) + node_copy.inputs
+                if node_copy._inputs:
+                    merged_inputs = (previous_node,) + node_copy._inputs
                 else:
                     merged_inputs = (previous_node,)
                 import dataclasses
@@ -589,7 +585,7 @@ class Chain(NodeBase):
             first_node = self.nodes[0]
             match first_node:
                 case NodeInstance():
-                    self_inputs = first_node.inputs
+                    self_inputs = first_node._inputs
                 case Chain():
                     self_inputs = first_node.first._inputs
                 case hou.Node():
@@ -757,11 +753,34 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
             raise TypeError(f"Invalid node type: {type(hnode).__name__}")
 
 
-def _wrap_input(input: InputNode) -> ResolvedInput:
-    """Wrap an input node if it's a hou.Node, otherwise return as-is."""
+def _wrap_input(input: InputNode) -> ResolvedConnection | None:
+    """
+    Wrap an input node and extract output index.
+
+    Args:
+        input: Input specification - either (<node>, <output_index>) tuple or just <node>
+
+    Returns:
+        Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
+    """
     match input:
         case None:
             return None
+        case tuple() as conn if len(conn) == 2:
+            node_spec, output_idx = conn
+            if not isinstance(output_idx, int) or output_idx < 0:
+                raise ValueError(f"Output index must be a non-negative integer, got {output_idx}")
+            wrapped = _wrap_single_input(node_spec)
+            return (wrapped, output_idx)
+        case tuple():
+            raise ValueError(f"Input tuple must have exactly 2 elements: (<node>, <output_index>)")
+        case _:
+            # Single node specification, default to output 0
+            wrapped = _wrap_single_input(input)
+            return (wrapped, 0)
+def _wrap_single_input(input: 'NodeInstance | Chain | hou.Node | str') -> ResolvedInput:
+    """Wrap a single input node specification."""
+    match input:
         case hou.Node():
             return wrap_node(input)
         case str():
@@ -771,7 +790,7 @@ def _wrap_input(input: InputNode) -> ResolvedInput:
         case Chain():
             return input.last
         case _:
-            raise TypeError(f"Invalid input node: {input}. Expected InputNode or hou.Node")
+            raise TypeError(f"Invalid input node: {input}. Expected NodeInstance, Chain, hou.Node, or str")
 
 _ROOT: hou.Node = hou_node('/')
 '''
