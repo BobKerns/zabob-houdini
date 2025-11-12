@@ -340,21 +340,16 @@ def types(category: str):
     CATEGORY: The name of the node category to analyze (e.g., 'Sop', 'Object', 'Dop')
     """
     found_category = False
+    category_info = None
+    node_types = []
+
+    # Collect all node types for the category
     for item in analyze_categories():
         if isinstance(item, NodeCategoryInfo) and item.name.lower() == category.lower():
             found_category = True
-            click.echo(f"Node types in category '{item.name}' ({item.label}):")
+            category_info = item
         elif isinstance(item, NodeTypeInfo) and item.category.lower() == category.lower():
-            # Basic info about the node type
-            deprecated = " [DEPRECATED]" if item.isDeprecated else ""
-            generator = " [GENERATOR]" if item.isGenerator else ""
-            manager = " [MANAGER]" if item.isManager else ""
-            flags = f"{deprecated}{generator}{manager}"
-
-            click.echo(f"  {item.name}: {item.description}{flags}")
-            if item.childCategory:
-                click.echo(f"    Child Category: {item.childCategory}")
-            click.echo(f"    Inputs: {item.minNumInputs}-{item.maxNumInputs}, Outputs: {item.maxNumOutputs}")
+            node_types.append(item)
 
     if not found_category:
         click.echo(f"Category '{category}' not found. Available categories:")
@@ -362,4 +357,53 @@ def types(category: str):
             if isinstance(item, NodeCategoryInfo):
                 click.echo(f"  {item.name}")
                 break
+        return
+
+    # Print header
+    if category_info:
+        click.echo(f"Node types in category '{category_info.name}' ({category_info.label}):")
+    else:
+        click.echo(f"Node types in category '{category}':")
+    click.echo()
+
+    if not node_types:
+        click.echo("No node types found in this category.")
+        return
+
+    # Calculate column widths
+    max_name_width = max(len(node.name) for node in node_types)
+    max_desc_width = min(60, max(len(node.description) for node in node_types))  # Cap description width
+
+    # Ensure minimum widths
+    name_width = max(20, max_name_width)
+    desc_width = max(30, max_desc_width)
+
+    # Print table header
+    header = f"{'NAME':<{name_width}} {'DESCRIPTION':<{desc_width}} {'INPUTS':<8} {'OUTPUTS':<8} {'FLAGS'}"
+    click.echo(header)
+    click.echo("-" * len(header))
+
+    # Print table rows
+    for node in node_types:
+        # Truncate description if too long
+        desc = node.description[:desc_width-3] + "..." if len(node.description) > desc_width else node.description
+
+        # Format inputs/outputs
+        inputs = f"{node.minNumInputs}-{node.maxNumInputs}" if node.minNumInputs != node.maxNumInputs else str(node.minNumInputs)
+        outputs = str(node.maxNumOutputs)
+
+        # Build flags
+        flags = []
+        if node.isDeprecated:
+            flags.append("DEPRECATED")
+        if node.isGenerator:
+            flags.append("GENERATOR")
+        if node.isManager:
+            flags.append("MANAGER")
+        flags_str = ", ".join(flags)
+
+        # Print row
+        click.echo(f"{node.name:<{name_width}} {desc:<{desc_width}} {inputs:<8} {outputs:<8} {flags_str}")
+
+    click.echo(f"\nTotal: {len(node_types)} node types")
 
