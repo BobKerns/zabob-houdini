@@ -37,11 +37,14 @@ from collections.abc import Callable
 from curses import raw
 import functools
 import json
+from pydoc import cli
 import subprocess
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, ParamSpec, TypeAlias, TypedDict, NotRequired
+from typing import Any, ParamSpec, TypeAlias, TypedDict, NotRequired, cast
+
+import click
 
 
 JsonAtomicValue: TypeAlias = str | int | float | bool | None
@@ -167,17 +170,70 @@ def _normalize_result(raw_result: Any) -> HoudiniResult:
     return json.loads(raw_result)
 
 
-def _run_function_via_subprocess(func_name: str, args: tuple, module: str = "houdini_functions") -> Any:
+def _run_function_via_subprocess(func_name: str, args: tuple,
+                                 module: str = "houdini_functions",
+                                 runner: str="_exec") -> Any:
     """Execute function using 'hython -m zabob_houdini _exec <module> <function_name> <args...>'."""
     hython_path = _find_hython()
 
     # Convert arguments to strings
     str_args = [str(arg) for arg in args]
 
-    cmd = [str(hython_path), "-m", "zabob_houdini", "_exec", module, func_name, *str_args]
+    cmd = [str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"hython -m zabob_houdini _exec {module} {func_name} failed: {e.stderr}")
+        raise RuntimeError(f"hython -m zabob_houdini {runner} {module} {func_name} failed: {e.stderr}")
 
+
+def _run_command_via_subprocess(func_name: str, args: tuple,
+                                 runner: str="_command") -> Any:
+    """Execute function using 'hython -m zabob_houdini <runner> <module> <function_name> <args...>'."""
+    hython_path = _find_hython()
+
+    # Convert arguments to strings
+    str_args = [str(arg) for arg in args]
+
+    cmd = [str(hython_path), "-m", "zabob_houdini", runner, func_name, *str_args]
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        joined = ' '.join(str_args)
+        raise RuntimeError(f"hython -m zabob_houdini {runner} {func_name} {joined} failed: {e.stderr}")
+
+def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
+    """
+    Decorator to create a Houdini command that can be called from the command line.
+
+    The decorated function will be wrapped in a HoudiniResult and can be executed via hython.
+
+    Args:
+        func: Function to decorate a Houdini command, to run hython if needed.
+    Returns:
+        Decorated function that invokes hython if needed.
+    """
+    @functools.wraps(fn)
+    @click.pass_context
+    def wrapper(ctx: click.Context, *args: P.args, **kwargs: P.kwargs) -> None:
+        if _is_in_houdini():
+            # Already in Houdini, call function directly
+            import zabob_houdini.houdini_functions as houdini_functions
+            import zabob_houdini.houdini_info as houdini_info
+            for m in (houdini_functions, houdini_info):
+                if hasattr(m, fn.__name__):
+                    func = getattr(m, fn.__name__)
+                    print(f"Running {func} in Houdini with {args=} {kwargs=}...")
+                    #ctx.invoke(func, *args, **kwargs)
+                    return
+        else:
+            # Not in Houdini, execute via hython subprocess
+            name = fn.__name__
+            module = fn.__module__.split('.')[-1]
+            cmd_args = ("_command", *sys.argv[1:])
+            print(f"{name=}\n{args=}\n{module=}\n{cmd_args=}")
+            _run_command_via_subprocess(name, cmd_args)
+
+
+    return wrapper
