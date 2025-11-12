@@ -279,5 +279,31 @@ def types(category: str) -> None:
     """
     pass
 
+
+@main.command()
+@houdini_command
+@click.argument('script_path', type=click.Path(exists=True, readable=True))
+@click.argument('script_args', nargs=-1, type=str)
+@click.option('--hipfile', '-o', type=click.Path(),
+              help='Save the resulting Houdini scene to this file path')
+@click.option('--verbose', '-v', is_flag=True,
+              help='Show verbose output from script execution')
+def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, verbose: bool) -> None:
+    """
+    Run a Python script in hython and optionally save the resulting hip file.
+
+    SCRIPT_PATH: Path to the Python script to execute in hython
+    SCRIPT_ARGS: Additional arguments to pass to the script
+
+    Examples:
+        zabob-houdini run examples/diamond_chain_demo.py
+        zabob-houdini run my_script.py --hipfile /tmp/result.hip
+        zabob-houdini run examples/diamond_chain_demo.py arg1 arg2 --hipfile scene.hip
+    """
+    # This is just a stub - the real implementation is in houdini_functions.py
+    pass
+
+main.add_command(info)
+
 if __name__ == "__main__":
     main()

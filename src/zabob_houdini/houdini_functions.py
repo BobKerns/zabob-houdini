@@ -111,3 +111,67 @@ def get_houdini_info() -> JsonObject:
         }
     except Exception as e:
         return {'houdini_error': str(e)}
+
+
+def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, verbose: bool) -> None:
+    """
+    Run a Python script in hython and optionally save the resulting hip file.
+
+    This is the actual implementation that gets called by the @houdini_command decorator.
+    """
+    import click
+
+    script_path_abs = os.path.abspath(script_path)
+
+    if verbose:
+        click.echo(f"Running script: {script_path_abs}")
+        if script_args:
+            click.echo(f"Script arguments: {' '.join(script_args)}")
+        if hipfile:
+            click.echo(f"Will save scene to: {hipfile}")
+
+    try:
+        # Add script directory to Python path so imports work
+        script_dir = os.path.dirname(script_path_abs)
+        if script_dir not in sys.path:
+            sys.path.insert(0, script_dir)
+
+        # Store original sys.argv to restore later
+        original_argv = sys.argv.copy()
+
+        try:
+            # Set up sys.argv as if the script was called directly
+            sys.argv = [script_path_abs] + list(script_args)
+
+            # Read and execute the script
+            with open(script_path_abs, 'r') as script_file:
+                script_code = script_file.read()
+
+            # Execute in global namespace so imports and variables persist
+            exec(script_code, {'__name__': '__main__', '__file__': script_path_abs})
+
+            click.echo(f"✓ Script executed successfully: {os.path.basename(script_path_abs)}")
+
+            # Save hip file if requested
+            if hipfile:
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(hipfile), exist_ok=True)
+                hou.hipFile.save(hipfile)
+                click.echo(f"✓ Scene saved to: {hipfile}")
+
+        finally:
+            # Restore original sys.argv
+            sys.argv = original_argv
+
+    except Exception as e:
+        import traceback
+        click.echo(f"✗ Error executing script: {e}")
+        if verbose:
+            traceback.print_exc()
+        sys.exit(1)
+
+
+
+
+
+

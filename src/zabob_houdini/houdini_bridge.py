@@ -233,12 +233,11 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
             for m in (houdini_functions, houdini_info):
                 if hasattr(m, fn.__name__):
                     func = getattr(m, fn.__name__)
-                    return
+                    return func(*args, **kwargs)
         else:
             # Not in Houdini, execute via hython subprocess
             name = fn.__name__
-            module = fn.__module__.split('.')[-1]
-            cmd_args = (*sys.argv[1:],)
+            cmd_args = tuple(sys.argv[1:])
             _run_command_via_subprocess(name, cmd_args)
 
     return wrapper
