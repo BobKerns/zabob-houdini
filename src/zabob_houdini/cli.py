@@ -267,5 +267,17 @@ def categories(args: tuple[str, ...]) -> None:
     """
     pass
 
+
+@info.command('types')
+@houdini_command
+@click.argument('category', type=str)
+def types(category: str) -> None:
+    """
+    List node types in the specified category with basic information.
+
+    CATEGORY: The name of the node category to analyze (e.g., 'Sop', 'Object', 'Dop')
+    """
+    pass
+
 if __name__ == "__main__":
     main()

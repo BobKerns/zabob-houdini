@@ -330,3 +330,36 @@ def categories(categories):
         if isinstance(item, NodeCategoryInfo):
             click.echo(f"Category: {item.name} (Label: {item.label}, Has Subnetwork Type: {item.hasSubnetworkType})")
 
+
+@info.command('types')
+@click.argument('category', type=str, required=True)
+def types(category: str):
+    """
+    List node types in the specified category with basic information.
+
+    CATEGORY: The name of the node category to analyze (e.g., 'Sop', 'Object', 'Dop')
+    """
+    found_category = False
+    for item in analyze_categories():
+        if isinstance(item, NodeCategoryInfo) and item.name.lower() == category.lower():
+            found_category = True
+            click.echo(f"Node types in category '{item.name}' ({item.label}):")
+        elif isinstance(item, NodeTypeInfo) and item.category.lower() == category.lower():
+            # Basic info about the node type
+            deprecated = " [DEPRECATED]" if item.isDeprecated else ""
+            generator = " [GENERATOR]" if item.isGenerator else ""
+            manager = " [MANAGER]" if item.isManager else ""
+            flags = f"{deprecated}{generator}{manager}"
+
+            click.echo(f"  {item.name}: {item.description}{flags}")
+            if item.childCategory:
+                click.echo(f"    Child Category: {item.childCategory}")
+            click.echo(f"    Inputs: {item.minNumInputs}-{item.maxNumInputs}, Outputs: {item.maxNumOutputs}")
+
+    if not found_category:
+        click.echo(f"Category '{category}' not found. Available categories:")
+        for item in analyze_categories():
+            if isinstance(item, NodeCategoryInfo):
+                click.echo(f"  {item.name}")
+                break
+
