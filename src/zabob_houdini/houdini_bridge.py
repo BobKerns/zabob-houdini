@@ -187,21 +187,19 @@ def _run_function_via_subprocess(func_name: str, args: tuple,
         raise RuntimeError(f"hython -m zabob_houdini {runner} {module} {func_name} failed: {e.stderr}")
 
 
-def _run_command_via_subprocess(func_name: str, args: tuple,
-                                 runner: str="_command") -> Any:
+def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
     """Execute function using 'hython -m zabob_houdini <runner> <module> <function_name> <args...>'."""
     hython_path = _find_hython()
 
     # Convert arguments to strings
     str_args = [str(arg) for arg in args]
 
-    cmd = [str(hython_path), "-m", "zabob_houdini", runner, func_name, *str_args]
+    cmd = [str(hython_path), "-m", "zabob_houdini", *str_args]
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        return result.stdout
+        result = subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
         joined = ' '.join(str_args)
-        raise RuntimeError(f"hython -m zabob_houdini {runner} {func_name} {joined} failed: {e.stderr}")
+        raise RuntimeError(f"hython -m zabob_houdini {func_name} {joined} failed: {e.stderr}")
 
 def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
     """
@@ -224,15 +222,12 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
             for m in (houdini_functions, houdini_info):
                 if hasattr(m, fn.__name__):
                     func = getattr(m, fn.__name__)
-                    print(f"Running {func} in Houdini with {args=} {kwargs=}...")
-                    #ctx.invoke(func, *args, **kwargs)
                     return
         else:
             # Not in Houdini, execute via hython subprocess
             name = fn.__name__
             module = fn.__module__.split('.')[-1]
-            cmd_args = ("_command", *sys.argv[1:])
-            print(f"{name=}\n{args=}\n{module=}\n{cmd_args=}")
+            cmd_args = (*sys.argv[1:],)
             _run_command_via_subprocess(name, cmd_args)
 
 
