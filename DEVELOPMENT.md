@@ -135,6 +135,65 @@ uv run pytest -v
 - **Releases**: Run unit tests + linting + spell checking
 - **Integration tests**: Run manually or on `main` branch with special label
 
+## CLI Architecture Pattern
+
+The zabob-houdini CLI uses a bridge pattern to execute commands in both regular Python and Houdini's `hython` environment:
+
+### Bridge Pattern Implementation
+
+**1. CLI Entry Point (cli.py):**
+- Uses Click for command structure
+- Commands decorated with `@houdini_command` automatically dispatch to `hython`
+- Regular Python commands work normally; Houdini-specific commands are bridged
+
+**2. Houdini Implementation (houdini_info.py):**
+- Contains the actual command logic that runs in Houdini
+- Uses Click groups and commands that execute within `hython`
+- Processes Houdini objects and data structures
+
+**3. Bridge Mechanism:**
+- `@houdini_command` decorator intercepts CLI calls
+- Launches `hython -m zabob_houdini _exec <module> <function> <args>`
+- Returns structured JSON results back to the CLI
+
+### Example: Adding a New Python Info Command
+
+These directions apply for commands which must run in a Houdini environment.  They will launch hython to perform the command if run in ordinary python.
+
+#### Step 1: Add command to houdini_info.py
+
+`houdini_info.py` holds code which runs in the Houdini environment.
+
+```python
+@info.command('types')
+@click.argument('category', type=str, required=True)
+def types(category: str):
+    """List node types in the specified category."""
+    for item in analyze_categories():
+        if isinstance(item, NodeTypeInfo) and item.category.lower() == category.lower():
+            click.echo(f"  {item.name}: {item.description}")
+```
+
+#### Step 2: Add bridge command to cli.py
+
+This file gets a stub that runs hython with the same arguments. The mechanics for this are added by the `@houdini_command` decorator. The this should take the same arguments and options as the real command in `houdini_info.py`.
+
+```python
+@info.command('types')
+@houdini_command
+@click.argument('category', type=str, required=True)
+def types(category: str) -> None:
+    """List node types in the specified category."""
+    pass  # Implementation handled by bridge
+```
+
+### Benefits
+
+- **Dual Environment**: Same CLI works in both Python and Houdini contexts
+- **Type Safety**: Full typing support for development in regular Python
+- **Clean Separation**: Business logic separated from CLI bridging logic
+- **Extensible**: Easy to add new commands following the same pattern
+
 ## Release Management
 
 **Quick Release Commands:**
