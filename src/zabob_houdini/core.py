@@ -7,13 +7,11 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 from __future__ import annotations
 
 from collections import defaultdict
-from email.policy import default
 import functools
 from abc import ABC, abstractmethod
 import dataclasses
 from dataclasses import dataclass, field
-from os import name, path
-from typing import Any, cast, TypeAlias, overload
+from typing import Any, TypeVar, cast, TypeAlias, overload, Type
 from types import MappingProxyType
 import weakref
 from itertools import zip_longest, islice
@@ -22,6 +20,8 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
 import hou
+
+T = TypeVar('T')
 
 # Global registry to map hou.Node objects back to their originating NodeInstance
 # Uses WeakKValueDictionary. It turns out that hou.Node objects do not have
@@ -287,10 +287,14 @@ class NodeInstance(NodeBase):
 
         # Set attributes/parameters
         if self.attributes:
-            try:
-                created_node.setParms(dict(self.attributes))
-            except Exception as e:
-                print(f"Warning: Failed to set parameters: {e}")
+            match created_node:
+                case hou.OpNode():
+                    try:
+                        created_node.setParms(dict(self.attributes))
+                    except Exception as e:
+                        print(f"Warning: Failed to set parameters: {e}")
+                case _:
+                    print(f"Warning: Cannot set parameters on node type {created_node.type().name()} - skipping attributes")
 
         # Connect inputs
         if self.inputs:
@@ -329,6 +333,17 @@ class NodeInstance(NodeBase):
         _node_registry[created_node.path()] = self
 
         return created_node
+
+    def asType(self, cls: type[T]) -> T:
+        """
+        Create the node and narrow it to the specified type if possible.
+
+        Throws a TypeError if the created node cannot be cast to the specified type.
+        """
+        node = self.create()
+        if isinstance(node, cls):
+            return node
+        raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")
 
     @property
     def path(self) -> str:

@@ -81,7 +81,7 @@ def test_zabob_node_creation() -> JsonObject:
 
     # Create a Zabob node and execute it
     box_node = node(geo.path(), "box", name="zabob_box", sizex=2.0, sizey=2.0, sizez=2.0)
-    created_node = box_node.create()
+    created_node = box_node.asType(hou.OpNode)
 
         # Use pytest assertions if available
     if PYTEST_AVAILABLE:
