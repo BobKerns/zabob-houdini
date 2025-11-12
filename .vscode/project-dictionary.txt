@@ -6,6 +6,7 @@ bgeo
 bgeoc
 colorspace
 dataclasses
+diffable
 docstrings
 dotenv
 ehthumbs
