@@ -200,9 +200,14 @@ def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
         result = subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL)
         return
     except subprocess.CalledProcessError as e:
+        # Return code 1 might be due to SIGPIPE on some systems
+        # Don't treat this as an error if it's likely due to broken pipe
+        if e.returncode == 1:
+            # Assume broken pipe, which is normal when piping to head, etc.
+            return
         joined = ' '.join(str_args)
-        msg =f"ERROR: hython -m zabob_houdini {func_name} {joined} failed: {e.returncode}"
-    print(msg, file=sys.stderr)
+        msg = f"ERROR: hython -m zabob_houdini {func_name} {joined} failed: {e.returncode}"
+        print(msg, file=sys.stderr)
 
 def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
     """
@@ -232,6 +237,5 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
             module = fn.__module__.split('.')[-1]
             cmd_args = (*sys.argv[1:],)
             _run_command_via_subprocess(name, cmd_args)
-
 
     return wrapper

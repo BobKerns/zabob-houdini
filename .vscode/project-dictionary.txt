@@ -34,6 +34,7 @@ nurbs
 ocio
 oneline
 Parms
+preexec
 prefs
 pycache
 pylint
@@ -50,6 +51,8 @@ Referer
 rtype
 sdist
 SIDEFX
+signum
+SIGPIPE
 simdata
 sizex
 sizey
