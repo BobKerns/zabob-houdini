@@ -35,6 +35,19 @@ node(parent, node_type, name=None, **attributes)
 
 `node()` returns a `NodeInstance` object. To get the underlying `hou.Node`, call the `.create()` method. You can call it multiple times; it will always return the same `hou.Node` instance created on the first call.
 
+#### Type Narrowing with `as_type`
+
+The `.create()` method accepts an optional `as_type` parameter to narrow the return type to a specific Houdini node subclass:
+
+```python
+# Get a specifically-typed node for better IntelliSense and type safety
+sop_node = node("/obj/geo1", "box").create(as_type=hou.SopNode)  # Returns hou.SopNode
+obj_node = node("/obj", "geo").create(as_type=hou.ObjNode)       # Returns hou.ObjNode
+
+# Default behavior returns hou.Node
+generic_node = node("/obj", "geo").create()  # Returns hou.Node
+```
+
 ### The `chain()` Function
 
 Create linear sequences of connected nodes:
@@ -60,6 +73,9 @@ Both `NodeInstance` and `Chain` objects use `.create()` to instantiate in Houdin
 ```python
 geo_node = node("/obj", "geo", name="mygeometry")
 actual_node = geo_node.create()  # Creates the actual Houdini node
+
+# For type-safe access to specific node types
+sop_node = node("/obj/geo1", "box").create(as_type=hou.SopNode)
 ```
 
 ## Example Usage
@@ -97,10 +113,10 @@ subset_chain = processing_chain[1:3]          # New Chain with subset (transform
 named_node = processing_chain["transform"]    # Node by name
 
 # Create the nodes in Houdini
-geo_instance = geo_node.create()
-box_instance = box_node.create()
-transform_instance = transform_node.create()
-chain_instance = processing_chain.create()
+geo_instance = geo_node.create(as_type=hou.ObjNode)         # Get as ObjNode for type safety
+box_instance = box_node.create(as_type=hou.SopNode)         # Get as SopNode
+transform_instance = transform_node.create(as_type=hou.SopNode)
+chain_instance = processing_chain.create()                  # Returns tuple of NodeInstance objects
 ```
 
 ### Installation from PyPI

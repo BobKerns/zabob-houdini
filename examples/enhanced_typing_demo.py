@@ -3,6 +3,7 @@ Test file to demonstrate enhanced Houdini type stubs.
 This shows the improved type checking and IntelliSense capabilities.
 """
 from zabob_houdini import node
+import hou
 
 # This should now have excellent IntelliSense with the enhanced stubs
 def demo_enhanced_typing():
@@ -24,6 +25,18 @@ def demo_enhanced_typing():
     # - Parameter names and types are clear
     # - Optional return types are properly handled
     # - Exception patterns are documented
+
+    # NEW: Type narrowing with as_type parameter
+    # Get specifically-typed nodes for better IntelliSense
+    box_sop = box.create(as_type=hou.SopNode)      # Returns hou.SopNode
+    sphere_sop = sphere.create(as_type=hou.SopNode) # Returns hou.SopNode
+    merge_sop = merge.create(as_type=hou.SopNode)   # Returns hou.SopNode
+
+    # Now you have access to SOP-specific methods with full type safety:
+    # box_sop.geometry()        # Get output geometry
+    # box_sop.inputGeometry(0)  # Get input geometry
+    # box_sop.isDisplayFlagSet() # Check display flag
+    # etc.
 
     return merge
 

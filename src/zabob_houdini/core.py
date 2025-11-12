@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 import functools
 import hou
 
-T = TypeVar('T')
+T = TypeVar('T', bound=hou.Node)
 
 # Global registry to map hou.Node objects back to their originating NodeInstance
 # Uses WeakKValueDictionary. It turns out that hou.Node objects do not have
@@ -173,7 +173,7 @@ class NodeBase(ABC):
 
     @abstractmethod
     @functools.cache
-    def create(self) -> Any:
+    def create(self, as_type: type[T]) -> T:
         """Create the actual Houdini node(s). Return type varies by implementation."""
         pass
 
@@ -266,19 +266,29 @@ class NodeInstance(NodeBase):
         Each input will be either None or a ResolvedConnection tuple of (NodeInstance, output_index).
         """
         return tuple((_wrap_input(inp) for inp in self._inputs))
-
     @functools.cache
-    def create(self) -> hou.Node:
+    def create(self, as_type: type[T]=hou.Node) -> T:
         """
         Create the actual Houdini node.
 
+        Args:
+            as_type: Expected node type to narrow the return type to (e.g., hou.SopNode).
+                    Defaults to hou.Node for maximum compatibility.
+
         Returns:
-            The created Houdini node object (cached via @functools.cache).
+            The created Houdini node object, cast to the specified type.
+            Result is cached via @functools.cache.
+
+        Raises:
+            TypeError: If the created node cannot be cast to the specified type,
+                      or if an existing node is not of the expected type.
         """
 
         # Return existing node if provided
         if self._node is not None:
-            return self._node
+            if isinstance(self._node, as_type):
+                return self._node
+            raise TypeError(f"Existing node is not of type {as_type.__name__}, got {type(self._node).__name__}")
 
         parent_node = self.parent.create()
 
@@ -310,16 +320,6 @@ class NodeInstance(NodeBase):
                         case NodeInstance() as node_instance:
                             # Input is a NodeInstance - create it first
                             input_hou_node = node_instance.create()
-                        case Chain() as chain:
-                            # Input is a Chain - create it and use the last node's created hou.Node
-                            created_nodes = chain.create()
-                            if not created_nodes:
-                                raise ValueError(f"Input {i} is an empty chain, cannot use as input")
-                            last_node_instance = created_nodes[-1]
-                            input_hou_node = last_node_instance.create()  # Use last node in chain
-                        case hou.Node() as houdini_node:
-                            # It's already a Houdini node object
-                            input_hou_node = houdini_node
                         case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
@@ -332,15 +332,14 @@ class NodeInstance(NodeBase):
         # Register this NodeInstance as the creator of this hou.Node
         _node_registry[created_node.path()] = self
 
-        return created_node
+        return self._asType(created_node, as_type)
 
-    def asType(self, cls: type[T]) -> T:
+    def _asType(self, node: hou.Node, cls: type[T]) -> T:
         """
-        Create the node and narrow it to the specified type if possible.
+        Narrow the type of a node to the specified type if possible.
 
         Throws a TypeError if the created node cannot be cast to the specified type.
         """
-        node = self.create()
         if isinstance(node, cls):
             return node
         raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")

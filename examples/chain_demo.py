@@ -85,8 +85,11 @@ def main():
     print("   - Ready for .create() calls within Houdini environment")
     print()
     print("   Note: To actually create Houdini nodes, run .create() within Houdini:")
-    print("   >>> geo_instance = geo_node.create()")
-    print("   >>> chain_instance = processing_chain.create()")
+    print("   >>> geo_instance = geo_node.create(as_type=hou.ObjNode)  # Type-safe ObjNode")
+    print("   >>> chain_instances = processing_chain.create()          # Returns tuple of NodeInstance")
+    print("   >>> # Get typed SOP nodes from chain:")
+    print("   >>> for instance in chain_instances:")
+    print("   >>>     sop_node = instance.create(as_type=hou.SopNode)")
 
 
 if __name__ == "__main__":
