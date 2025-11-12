@@ -140,5 +140,6 @@ from zabob_houdini import node, chain
 
 ## Documentation
 
+- **[Command Line Interface](COMMAND.md)**: Complete CLI reference and usage guide
 - **[Development Guide](DEVELOPMENT.md)**: Detailed setup, testing, and contribution guidelines
 - **[PyPI Setup](docs/PYPI_SETUP.md)**: Publishing and release information

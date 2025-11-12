@@ -82,7 +82,6 @@ else:
     main.add_command(houdini_cli, "houdini")
     main.add_command(info, "info")
 
-main.add_command(dev_main, "dev")
 main.add_command(diagnostics, "diagnostics")
 for cmd in dev_main.commands.values():
     if not isinstance(cmd, click.Group):

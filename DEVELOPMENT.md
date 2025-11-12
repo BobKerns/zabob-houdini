@@ -137,7 +137,7 @@ uv run pytest -v
 
 ## CLI Architecture Pattern
 
-The zabob-houdini CLI uses a bridge pattern to execute commands in both regular Python and Houdini's `hython` environment:
+The zabob-houdini CLI uses a bridge pattern to execute commands in both regular Python and Houdini's `hython` environment. For complete CLI usage documentation, see **[Command Line Interface](COMMAND.md)**.
 
 ### Bridge Pattern Implementation
 
