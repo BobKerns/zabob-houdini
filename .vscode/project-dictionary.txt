@@ -4,6 +4,7 @@ bakpac
 bclip
 bgeo
 bgeoc
+colorspace
 dataclasses
 docstrings
 dotenv
@@ -29,6 +30,7 @@ mytransform
 nodename
 nosetests
 nurbs
+ocio
 oneline
 Parms
 prefs
