@@ -184,7 +184,10 @@ def _run_function_via_subprocess(func_name: str, args: tuple,
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
-        msg = f"ERROR:hython -m zabob_houdini {runner} {module} {func_name} {' '.join(str_args)} failed: {e.stderr}"
+        cmdline_args = ' '.join(str_args)
+        if cmdline_args:
+            cmdline_args = f"{cmdline_args} "
+        msg = f"ERROR: hython -m zabob_houdini {runner} {module} {func_name} {cmdline_args}failed: {e.stderr}"
     raise RuntimeError(msg)
 
 

@@ -54,7 +54,7 @@ def test_call_houdini_function_subprocess_error_handling():
 
         mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd', stderr="error message")
 
-        with pytest.raises(RuntimeError, match="hython -m zabob_houdini _exec houdini_functions test_function failed"):
+        with pytest.raises(RuntimeError, match="ERROR: hython -m zabob_houdini _exec houdini_functions test_function failed: error message"):
             call_houdini_function('test_function')
 
 
@@ -165,5 +165,5 @@ def test_call_houdini_function_subprocess_error():
 
         mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd', stderr="error message")
 
-        with pytest.raises(RuntimeError, match="hython -m zabob_houdini _exec houdini_functions test_function failed"):
+        with pytest.raises(RuntimeError, match="ERROR: hython -m zabob_houdini _exec houdini_functions test_function failed"):
             call_houdini_function('test_function')
