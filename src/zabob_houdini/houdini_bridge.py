@@ -184,7 +184,8 @@ def _run_function_via_subprocess(func_name: str, args: tuple,
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"hython -m zabob_houdini {runner} {module} {func_name} failed: {e.stderr}")
+        msg = f"ERROR:hython -m zabob_houdini {runner} {module} {func_name} {' '.join(str_args)} failed: {e.stderr}"
+    raise RuntimeError(msg)
 
 
 def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
@@ -197,9 +198,11 @@ def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
     cmd = [str(hython_path), "-m", "zabob_houdini", *str_args]
     try:
         result = subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL)
+        return
     except subprocess.CalledProcessError as e:
         joined = ' '.join(str_args)
-        raise RuntimeError(f"hython -m zabob_houdini {func_name} {joined} failed: {e.stderr}")
+        msg =f"ERROR: hython -m zabob_houdini {func_name} {joined} failed: {e.returncode}"
+    print(msg, file=sys.stderr)
 
 def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
     """
