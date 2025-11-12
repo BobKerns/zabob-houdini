@@ -20,7 +20,7 @@ import click
 import os
 import sys
 
-from zabob_houdini.houdini_bridge import JsonValue, call_houdini_function
+from zabob_houdini.houdini_bridge import JsonValue, call_houdini_function, houdini_command
 from zabob_houdini.__version__ import __version__, __distribution__
 
 def get_environment_info() -> dict[str, JsonValue]:
@@ -181,7 +181,7 @@ def uninstall_package():
 
 
 @main.command()
-def info() -> None:
+def environment() -> None:
     """
     Display Python and Houdini environment information.
     """
@@ -250,7 +250,22 @@ def validate() -> None:
         click.echo("✗ Houdini environment is not available")
         sys.exit(1)
 
+@click.group("info")
+def info():
+    """
+    Commands for extracting information about the Houdini environment.
+    """
+    pass
 
+
+@info.command('categories')
+@houdini_command
+@click.argument('args', nargs=-1, type=str)
+def categories(args: tuple[str, ...]) -> None:
+    """
+    Analyze node categories in the current Houdini session and print the results.
+    """
+    pass
 
 if __name__ == "__main__":
     main()

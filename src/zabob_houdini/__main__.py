@@ -6,7 +6,7 @@ import click
 import json
 import sys
 
-from zabob_houdini.cli import main as dev_main, diagnostics
+from zabob_houdini.cli import main as dev_main, diagnostics, info
 from zabob_houdini.__version__ import __version__, __distribution__
 
 IN_HOUDINI: bool = 'hou' in sys.modules
@@ -72,12 +72,15 @@ if IN_HOUDINI:
 
     # Add the hidden _exec command to the existing CLI when module is imported
     main.add_command(_exec)
+    from zabob_houdini.houdini_info import info as houdini_info
+    main.add_command(houdini_info, "info")
 else:
     # Don't load houdini_versions in hython.
     # It is not needed, and depends on dotenv, which is not installed
     # by default.
     from zabob_houdini.houdini_versions import cli as houdini_cli
     main.add_command(houdini_cli, "houdini")
+    main.add_command(info, "info")
 
 main.add_command(dev_main, "dev")
 main.add_command(diagnostics, "diagnostics")
