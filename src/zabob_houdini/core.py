@@ -11,7 +11,7 @@ import functools
 from abc import ABC, abstractmethod
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Any, TypeVar, cast, TypeAlias, overload, Type
+from typing import Any, TypeVar, cast, TypeAlias, overload, Type, TYPE_CHECKING
 from types import MappingProxyType
 import weakref
 from itertools import zip_longest, islice
@@ -19,9 +19,20 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
-import hou
 
-T = TypeVar('T', bound=hou.Node)
+if TYPE_CHECKING:
+    import hou
+else:
+    try:
+        import hou
+    except ImportError:
+        # hou module not available - this will be handled at runtime
+        hou = None  # type: ignore
+
+if TYPE_CHECKING:
+    T = TypeVar('T', bound=hou.Node)
+else:
+    T = TypeVar('T')
 
 # Global registry to map hou.Node objects back to their originating NodeInstance
 # Uses WeakKValueDictionary. It turns out that hou.Node objects do not have
@@ -808,22 +819,37 @@ def _wrap_single_input(input: 'NodeInstance | Chain | hou.Node | str') -> Resolv
         case _:
             raise TypeError(f"Invalid input node: {input}. Expected NodeInstance, Chain, hou.Node, or str")
 
-_ROOT: hou.Node = hou_node('/')
-'''
-The root node, unwrapped.
-'''
+if TYPE_CHECKING:
+    _ROOT: hou.Node = hou_node('/')
+    '''
+    The root node, unwrapped.
+    '''
 
-ROOT: NodeInstance = NodeInstance(
-    _parent=cast(NodeInstance, None),
-    node_type='root',
-    name='/',
-    attributes=HashableMapping({}),
-    _inputs=(),
-    _node=_ROOT
-)
-'''
-The root node, wrapped as a `NodeInstance`.
-'''
-
-# Register it
-_node_registry['/'] = ROOT
+    ROOT: NodeInstance = NodeInstance(
+        _parent=cast(NodeInstance, None),
+        node_type='root',
+        name='/',
+        attributes=HashableMapping({}),
+        _inputs=(),
+        _node=_ROOT
+    )
+    '''
+    The root node, wrapped as a `NodeInstance`.
+    '''
+else:
+    # Runtime initialization - only when hou is available
+    if hou is not None:
+        _ROOT = hou_node('/')
+        ROOT = NodeInstance(
+            _parent=cast(NodeInstance, None),
+            node_type='root',
+            name='/',
+            attributes=HashableMapping({}),
+            _inputs=(),
+            _node=_ROOT
+        )
+        # Register it
+        _node_registry['/'] = ROOT
+    else:
+        # Placeholder when hou is not available
+        ROOT = None  # type: ignore

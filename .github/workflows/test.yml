@@ -73,11 +73,12 @@ jobs:
 
     - name: Run type checking (if mypy is available)
       run: |
-        if uv run python -c "import mypy" 2>/dev/null; then
+        # Test if mypy can run without segfaulting
+        if timeout 10s uv run mypy --version >/dev/null 2>&1; then
           echo "Running mypy type checking..."
-          uv run mypy src/zabob_houdini --ignore-missing-imports || true
+          uv run mypy src/zabob_houdini --ignore-missing-imports || echo "MyPy found issues but continuing..."
         else
-          echo "Mypy not available, skipping type checking"
+          echo "Mypy not available or incompatible with this Python version, skipping type checking"
         fi
       continue-on-error: true
 

@@ -73,3 +73,7 @@ vstr
 xform
 yourword
 zabob
+agentic
+Agentic
+heightfield
+isinstance
