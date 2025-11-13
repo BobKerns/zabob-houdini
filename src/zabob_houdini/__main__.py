@@ -2,9 +2,12 @@
 Entry point for zabob-houdini CLI and hython dispatch.
 """
 
+from ctypes.util import test
 import click
 import json
 import sys
+import os
+from pathlib import Path
 
 from zabob_houdini.cli import main as dev_main, diagnostics, info
 from zabob_houdini.__version__ import __version__, __distribution__
@@ -44,6 +47,13 @@ if IN_HOUDINI:
             # Call function with arguments and capture result
             result = func(*args)
             json.dump(result, sys.stdout)
+            test_hip = Path(os.environ.get("TEST_HIP_DIR", "hip"))
+            if test_hip.exists():
+                hipfile = test_hip / f"{function_name}.hip"
+                import hou
+                hou.hipFile.save(str(hipfile))
+                print(f"Saved HIP file: {hipfile}", file=sys.stderr)
+
 
         except ImportError as e:
             output = {
