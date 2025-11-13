@@ -65,7 +65,7 @@ class HythonSession:
                 [hython_path, "-m", "zabob_houdini", "_batch_exec"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=None,
                 text=True,
                 bufsize=1  # Line buffered
             )
