@@ -87,8 +87,67 @@ if IN_HOUDINI:
             sys.exit(1)
 
 
-    # Add the hidden _exec command to the existing CLI when module is imported
+    @click.command(name='_batch_exec', hidden=True)
+    def _batch_exec() -> None:
+        """
+        Internal batch executor for multiple hython function calls.
+
+        Reads JSON lines from stdin, each containing:
+        {"module": "module_name", "function": "function_name", "args": ["arg1", "arg2"]}
+
+        Outputs one JSON result per line to stdout.
+        """
+        import hou  # Import here to ensure we're in Houdini
+
+        for line in sys.stdin:
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                request = json.loads(line)
+                module_name = request['module']
+                function_name = request['function']
+                args = request.get('args', [])
+
+                # Import the specified module and call the requested function
+                houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
+                func = getattr(houdini_module, function_name)
+
+                # Call function with arguments and capture result
+                result = func(*args)
+                json.dump(result, sys.stdout)
+                sys.stdout.write('\n')
+                sys.stdout.flush()
+
+                # Clear the node registry to avoid stale references between tests
+                # This prevents "object no longer exists" errors when using persistent hython
+                from zabob_houdini.core import _node_registry
+                _node_registry.clear()
+
+                # Optional: Save hip file for debugging
+                test_hip_dir = os.environ.get("TEST_HIP_DIR", "hip")
+                if test_hip_dir:
+                    test_hip_path = Path(test_hip_dir)
+                    if test_hip_path.exists():
+                        hipfile = test_hip_path / f"{function_name}.hip"
+                        hou.hipFile.save(str(hipfile))
+                        print(f"Saved HIP file: {hipfile}", file=sys.stderr)
+
+            except Exception as e:
+                import traceback
+                output = {
+                    'success': False,
+                    'error': str(e),
+                    'traceback': traceback.format_exc()
+                }
+                json.dump(output, sys.stdout)
+                sys.stdout.write('\n')
+                sys.stdout.flush()
+
+    # Add the hidden commands to the existing CLI when module is imported
     main.add_command(_exec)
+    main.add_command(_batch_exec)
     from zabob_houdini.houdini_info import info as houdini_info
     main.add_command(houdini_info, "info")
 else:
