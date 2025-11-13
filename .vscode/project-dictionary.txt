@@ -10,6 +10,7 @@ bgeoc
 blosc
 colorspace
 dataclasses
+debugpy
 diffable
 docstrings
 dotenv
