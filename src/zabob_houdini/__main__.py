@@ -47,9 +47,16 @@ if IN_HOUDINI:
             # Call function with arguments and capture result
             result = func(*args)
             json.dump(result, sys.stdout)
-            test_hip = Path(os.environ.get("TEST_HIP_DIR", "hip"))
-            if test_hip.exists():
-                hipfile = test_hip / f"{function_name}.hip"
+            # Debugging feature: if the directory in TEST_HIP_DIR (default "hip")
+            # exists. This is a documented debugging feature, do not remove!
+            # See DEVELOPMENT.md for details.
+            test_hip_dir = Path(os.environ.get("TEST_HIP_DIR", "hip"))
+            if not test_hip_dir:
+                # Skip writing HIP file if TEST_HIP_DIR is empty
+                return
+            test_hip_path = Path(test_hip_dir)
+            if test_hip_path.exists():
+                hipfile = test_hip_path / f"{function_name}.hip"
                 import hou
                 hou.hipFile.save(str(hipfile))
                 print(f"Saved HIP file: {hipfile}", file=sys.stderr)
