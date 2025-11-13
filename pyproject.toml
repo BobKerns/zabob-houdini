@@ -77,3 +77,7 @@ mypy_path = "stubs"
 ignore_missing_imports = true
 show_error_codes = true
 warn_unused_ignores = true
+
+[flake8]
+max-line-length = 120
+exclude = ".git,__pycache__,build,dist,stubs"
