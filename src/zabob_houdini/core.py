@@ -309,13 +309,14 @@ class NodeInstance(NodeBase):
         to allow caching independent of the arguments passed to `create`.
         The caching is essential to avoid recursion.
         '''
-        parent_node = self.parent.create()
-
-
+        # Don't create the parent if we've been supplied _node.
+        #
+        # Or we'll get infinite recursion at the root.
         if self._node is not None:
             # Use existing node if provided
             created_node = self._node
         else:
+            parent_node = self.parent.create()
             # Create the node
             created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
 
