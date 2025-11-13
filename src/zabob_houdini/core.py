@@ -299,10 +299,6 @@ class NodeInstance(NodeBase):
             node = self._do_create()
             return self._asType(node, as_type)
 
-        # Return existing node if provided
-        if self._node is not None:
-            return self._asType(self._node, as_type)
-
         node = self._do_create()
         return self._asType(node, as_type)
 
@@ -315,8 +311,13 @@ class NodeInstance(NodeBase):
         '''
         parent_node = self.parent.create()
 
-        # Create the node
-        created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
+
+        if self._node is not None:
+            # Use existing node if provided
+            created_node = self._node
+        else:
+            # Create the node
+            created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
 
         # Set attributes/parameters
         if self.attributes:
@@ -793,7 +794,7 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
             raise TypeError(f"Invalid node type: {type(hnode).__name__}")
 
 # Copilot: There are no implicit returns in _wrap_inputs. (DO NOT REMOVE)
-def _wrap_inputs(inputs: Sequence[InputNode]|InputNode) -> Inputs:
+def _wrap_inputs(inputs: Sequence[InputNode] | InputNode) -> Inputs:
     """
     Wrap a sequence of input nodes and extract output indices.
 
