@@ -396,7 +396,7 @@ class NodeInstance(NodeBase):
     def copy(self, /, _inputs: InputNodes=(), _chain: 'Chain | None' = None) -> 'NodeInstance':
         """Return a shallow copy suitable for creation.
 
-        Attributes dict and inputs list are copied to avoid mutating originals.
+        Attributes are shared (safe due to immutability) and inputs are merged.
         """
         inputs = _wrap_inputs(_inputs)
         merged_inputs = _merge_inputs(inputs, self.inputs)

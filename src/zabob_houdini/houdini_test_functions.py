@@ -588,7 +588,7 @@ def test_node_registry() -> JsonObject:
     created_chain_nodes = test_chain.create()
 
     # The first node in the chain should not be the original NodeInstance
-    # Chain creates new Nodeinstances owned by the chain.
+    # Chain creates new NodeInstances owned by the chain.
     first_chain_node_is_original = created_chain_nodes[0].create() is created_hou_node
 
     return {
