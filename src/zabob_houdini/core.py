@@ -206,7 +206,7 @@ class NodeBase(ABC):
         pass
 
     @abstractmethod
-    def copy(self, /, _inputs: InputNodes=()) -> 'NodeBase':
+    def copy(self, /, **kwargs) -> 'NodeBase':
         """Return a copy of this node/chain object. Copies are independent for creation.
 
         This is used by Chain.create() to avoid mutating original definitions when
