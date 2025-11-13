@@ -10,7 +10,6 @@ import sys
 import subprocess
 import json
 import shutil
-import atexit
 from typing import Optional
 
 
