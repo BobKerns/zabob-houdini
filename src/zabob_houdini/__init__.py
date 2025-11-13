@@ -36,7 +36,7 @@ from importlib.metadata import version, PackageNotFoundError
 lazy_imports = (
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent",
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode",
-    "InputNodes", "ResolvedInput", "Inputs",
+    "InputNodes", "Inputs",
     "get_node_instance", "wrap_node", "hou_node", "wrap_node", 'ROOT',
 )
 _imports_loaded = False
@@ -59,6 +59,7 @@ def __getattr__(name: str):
                 attr: getattr(core, attr) for attr in lazy_imports
             })
             _imports_loaded = True
+            print(f"Loaded {globals().get('node')}")
         return globals()[name]
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
@@ -68,7 +69,7 @@ def __getattr__(name: str):
 __all__ = ['__version__',
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", # type: ignore
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
-    "InputNodes", "ResolvedInput", "Inputs", # type: ignore
+    "InputNodes", "Inputs", # type: ignore
     "get_node_instance", "wrap_node", "hou_node", "wrap_node", "ROOT", # type: ignore
     ]
 
