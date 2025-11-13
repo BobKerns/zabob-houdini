@@ -309,9 +309,9 @@ class NodeInstance(NodeBase):
     @functools.cache
     def _do_create(self) -> hou.Node:
         '''
-        Actually create and cache the node. This is separated from
-        `create` to allow. caching independent of the arguments.
-        The caching is essential to avoid recursion,
+        Actually create and cache the node. This is separated from `create`
+        to allow caching independent of the arguments passed to `create`.
+        The caching is essential to avoid recursion.
         '''
         parent_node = self.parent.create()
 
@@ -792,7 +792,7 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
         case _:
             raise TypeError(f"Invalid node type: {type(hnode).__name__}")
 
-# Copilot: There are no implicit returns in _wrap_inputs.:
+# Copilot: There are no implicit returns in _wrap_inputs. (DO NOT REMOVE)
 def _wrap_inputs(inputs: Sequence[InputNode]|InputNode) -> Inputs:
     """
     Wrap a sequence of input nodes and extract output indices.
@@ -816,7 +816,7 @@ def _wrap_inputs(inputs: Sequence[InputNode]|InputNode) -> Inputs:
             return tuple(_wrap_input(inp, 0) for inp in inputs)
 
 
-# Copilot: There are no implicit returns in _wrap_input.
+# Copilot: There are no implicit returns in _wrap_input. (DO NOT REMOVE)
 def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
     """
     Wrap an input node and extract output index.
@@ -827,7 +827,7 @@ def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
     Returns:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
-    # Copilot: There are no implicit returns in _wrap_single_input.
+    # Copilot: There are no implicit returns in _wrap_single_input.  DO NOT REMOVE)
     def _wrap_single_input(input: InputNodeSpec) -> NodeInstance|None:
         """Wrap a single input node specification."""
         match input:
