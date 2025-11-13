@@ -829,7 +829,7 @@ def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
     Returns:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
-    # Copilot: There are no implicit returns in _wrap_single_input.  DO NOT REMOVE)
+    # Copilot: There are no implicit returns in _wrap_single_input. (DO NOT REMOVE)
     def _wrap_single_input(input: InputNodeSpec) -> NodeInstance|None:
         """Wrap a single input node specification."""
         match input:
