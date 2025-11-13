@@ -11,7 +11,7 @@ import functools
 from abc import ABC, abstractmethod
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Any, TypeVar, cast, TypeAlias, overload, Type, TYPE_CHECKING
+from typing import Any, TypeVar, cast, TypeAlias, overload, TYPE_CHECKING
 from types import MappingProxyType
 import weakref
 from itertools import zip_longest, islice
@@ -19,6 +19,8 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
+
+from hou import Node
 
 if TYPE_CHECKING:
     import hou
@@ -127,10 +129,6 @@ class HashableMapping:
     def values(self):
         return self._mapping.values()
 
-    def copy(self) -> dict[str, Any]:
-        """Return a copy as a regular dict."""
-        return dict(self._mapping)
-
 
 # Type aliases for clarity
 NodeParent: TypeAlias = "str | NodeInstance | hou.Node"
@@ -145,25 +143,24 @@ CreatableNode: TypeAlias = 'NodeInstance | Chain'
 ChainableNode: TypeAlias = 'NodeInstance | Chain'
 """A node or chain that can be used in a chain - includes existing hou.Node objects."""
 
-InputConnection: TypeAlias = 'tuple[NodeInstance | Chain | hou.Node | str, int] | NodeInstance | Chain | hou.Node | str'
+InputNodeSpec: TypeAlias = 'NodeInstance | Chain | hou.Node | str'
+
+InstanceNodeSpec: TypeAlias = 'tuple[InputNodeSpec, int] | InputNodeSpec'
 """A connection specification: either (<node>, <output_index>) tuple or just <node> (defaults to output 0)."""
 
-InputNode: TypeAlias = 'InputConnection | None'
+InputNode: TypeAlias = 'InstanceNodeSpec | None'
 """A node that can be used as input - InputConnection or None for sparse connections."""
 
 InputNodes: TypeAlias = 'Sequence[InputNode]'
 
-ResolvedInput: TypeAlias = 'NodeInstance | None'
-"""InputInstance or None, after resolution."""
-
-ResolvedConnection: TypeAlias = 'tuple[ResolvedInput, int]'
+ResolvedConnection: TypeAlias = 'tuple[NodeInstance, int]'
 """A resolved connection: (node, output_index)."""
 
 Inputs: TypeAlias = 'tuple[ResolvedConnection | None, ...]'
 """The inputs for a node or chain, as a tuple of ResolvedConnection objects or None for sparse connections."""
 
 
-def _merge_inputs(in1: InputNodes, in2: InputNodes) -> InputNodes:
+def _merge_inputs(in1: Inputs, in2: Inputs) -> Inputs:
     """Merge two input lists, preferring non-None values from the first list."""
     if not in1:
         return tuple(in2)
@@ -175,6 +172,7 @@ def _merge_inputs(in1: InputNodes, in2: InputNodes) -> InputNodes:
         for l, r in zip_longest(in1, in2, fillvalue=None)
     ]
     return tuple(merged)
+
 @dataclasses.dataclass(frozen=True)
 class NodeBase(ABC):
     """
@@ -182,12 +180,6 @@ class NodeBase(ABC):
 
     Provides common functionality for NodeInstance and Chain classes.
     """
-
-    @abstractmethod
-    @functools.cache
-    def create(self, as_type: type[T]) -> T:
-        """Create the actual Houdini node(s). Return type varies by implementation."""
-        pass
 
     @functools.cached_property
     @abstractmethod
@@ -230,7 +222,7 @@ class NodeBase(ABC):
         """Equality based on object identity - these represent specific node instances."""
         return self is other
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, eq=False)
 class NodeInstance(NodeBase):
     """
     Represents a single Houdini node with parameters and inputs.
@@ -245,6 +237,9 @@ class NodeInstance(NodeBase):
     attributes: HashableMapping = field(default_factory=HashableMapping)
     _inputs: tuple["InputNode", ...] = field(default_factory=tuple)
     _node: "hou.Node | None" = field(default=None, hash=False)
+    _display: bool = field(default=False, hash=False)
+    _render: bool = field(default=False, hash=False)
+    _chain: "Chain | None" = field(default=None, hash=False)
 
     @functools.cached_property
     def parent(self) -> NodeInstance:
@@ -277,15 +272,16 @@ class NodeInstance(NodeBase):
 
         Each input will be either None or a ResolvedConnection tuple of (NodeInstance, output_index).
         """
-        return tuple((_wrap_input(inp) for inp in self._inputs))
-    @functools.cache
-    def create(self, as_type: type[T]=hou.Node) -> T:
+        return tuple((_wrap_input(inp, 0) for inp in self._inputs))
+
+    def create(self, as_type: type[T]=hou.Node, _skip_chain: bool = False) -> T:
         """
         Create the actual Houdini node.
 
         Args:
             as_type: Expected node type to narrow the return type to (e.g., hou.SopNode).
                     Defaults to hou.Node for maximum compatibility.
+            _skip_chain: Internal flag to avoid recursion when creating chain nodes.
 
         Returns:
             The created Houdini node object, cast to the specified type.
@@ -296,16 +292,26 @@ class NodeInstance(NodeBase):
                       or if an existing node is not of the expected type.
         """
 
+        # If this node is part of a chain, create the entire chain first
+        if self._chain is not None and not _skip_chain:
+            self._chain.create()
+            # Now call _do_create again with skip flag to get the cached result
+            node = self._do_create()
+            return self._asType(node, as_type)
+
         # Return existing node if provided
         if self._node is not None:
-            if isinstance(self._node, as_type):
-                return self._node
-            raise TypeError(f"Existing node is not of type {as_type.__name__}, got {type(self._node).__name__}")
+            return self._asType(self._node, as_type)
 
+        node = self._do_create()
+        return self._asType(node, as_type)
+
+    @functools.cache
+    def _do_create(self) -> hou.Node:
         parent_node = self.parent.create()
 
         # Create the node
-        created_node = parent_node.createNode(self.node_type, self.name)
+        created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
 
         # Set attributes/parameters
         if self.attributes:
@@ -341,12 +347,28 @@ class NodeInstance(NodeBase):
                 except Exception as e:
                     print(f"Warning: Failed to connect input {i}: {e}")
 
+        # Set display and render flags (only works on SopNode types)
+        if self._display:
+            try:
+                if hasattr(created_node, 'setDisplayFlag'):
+                    created_node.setDisplayFlag(True)  # type: ignore
+            except Exception as e:
+                print(f"Warning: Failed to set display flag: {e}")
+
+        if self._render:
+            try:
+                if hasattr(created_node, 'setRenderFlag'):
+                    created_node.setRenderFlag(True)  # type: ignore
+            except Exception as e:
+                print(f"Warning: Failed to set render flag: {e}")
+
         # Register this NodeInstance as the creator of this hou.Node
         _node_registry[created_node.path()] = self
 
+        # TODO: Create our own placement algorithm, calling moveToGoodPosition is really ugly
         created_node.moveToGoodPosition()
 
-        return self._asType(created_node, as_type)
+        return created_node
 
     def _asType(self, node: hou.Node, cls: type[T]) -> T:
         """
@@ -366,22 +388,27 @@ class NodeInstance(NodeBase):
         else:
            return f'{self.parent.path}/{self.name or self.node_type}'
 
-    def copy(self, /, _inputs: InputNodes=()) -> 'NodeInstance':
+    def copy(self, /, _inputs: InputNodes=(), _chain: 'Chain | None' = None) -> 'NodeInstance':
         """Return a shallow copy suitable for creation.
 
         Attributes dict and inputs list are copied to avoid mutating originals.
         """
-        merged_inputs = _merge_inputs(_inputs, self._inputs)
+        inputs = _wrap_inputs(_inputs)
+        merged_inputs = _merge_inputs(inputs, self.inputs)
         return NodeInstance(
             _parent=self._parent,
             node_type=self.node_type,
             name=self.name,
-            attributes=HashableMapping(self.attributes.copy()) if self.attributes else HashableMapping(),
+            attributes=self.attributes,
             _inputs=tuple(merged_inputs),
-            _node=None  # Copy should not preserve the created node reference
+            _node=None,  # Copy should not preserve the created node reference
+            _display=self._display,
+            _render=self._render,
+            _chain=_chain,
         )
 
-@dataclass(frozen=True)
+
+@dataclass(frozen=True, eq=False)
 class Chain(NodeBase):
     """
     Represents a chain of Houdini nodes that can be created.
@@ -389,8 +416,10 @@ class Chain(NodeBase):
     Nodes in the chain are automatically connected in sequence.
     """
     nodes: tuple[NodeInstance, ...]
-    name_prefix: str | None = None
-    attributes: HashableMapping | None = None
+
+    def __init__(self, nodes: Sequence[NodeInstance]):
+        nodes = tuple(n.copy(_chain=self) for n in nodes)
+        object.__setattr__(self, 'nodes', tuple(nodes))
 
     @functools.cached_property
     def parent(self) -> NodeInstance:
@@ -399,10 +428,6 @@ class Chain(NodeBase):
                 return ROOT
             case NodeInstance() as n, *_:
                 return n.parent
-            case Chain() as c, *_:
-                return c.parent
-            case hou.Node() as n, *_:
-                return wrap_node(n)
             case _:
                 raise RuntimeError(f"Invalid parent: {self.nodes[0]}")
 
@@ -427,34 +452,6 @@ class Chain(NodeBase):
             return tuple()
         return self.first.inputs
 
-    @functools.cache
-    def _flatten_nodes(self) -> tuple['NodeInstance', ...]:
-        """
-        Flatten the chain, splicing in any Chain objects.
-
-        Returns:
-            A tuple of NodeInstance objects (immutable for caching).
-        """
-        flattened: list[NodeInstance] = []
-        for item in self.nodes:
-            match item:
-                case NodeInstance():
-                    flattened.append(item)
-                case Chain():
-                    flattened.extend(item._flatten_nodes())
-                case _ if isinstance(item, hou.Node):
-                    # It's a Houdini node - wrap it using the registry-aware helper
-                    wrapped = _wrap_hou_node(item)
-                    flattened.append(wrapped)
-                case _:
-                    raise TypeError(
-                        f"Chain nodes must be NodeInstance, Chain, or hou.Node objects, "
-                        f"got {type(item).__name__}"
-                    )
-
-        # Return immutable tuple for caching
-        return tuple(flattened)
-
     @overload
     def __getitem__(self, key: int) -> NodeInstance: ...
 
@@ -474,22 +471,20 @@ class Chain(NodeBase):
         Returns:
             NodeInstance for int/str keys, Chain for slice keys
         """
-        flattened = self._flatten_nodes()
+        nodes = self.nodes
 
         match key:
             case int() as index:
-                return flattened[index]
+                return nodes[index]
             case slice() as slice_obj:
                 # Return a new Chain with the subset of nodes
-                subset = flattened[slice_obj]
+                subset = nodes[slice_obj]
                 return Chain(
                     nodes=subset,
-                    name_prefix=self.name_prefix,
-                    attributes=HashableMapping(self.attributes.copy()) if self.attributes else None,
                 )
             case str() as name:
                 # Find node by name
-                for node_instance in flattened:
+                for node_instance in nodes:
                     if node_instance.name == name:
                         return node_instance
                 raise KeyError(f"No node found with name '{name}'")
@@ -497,12 +492,12 @@ class Chain(NodeBase):
                 raise TypeError(f"Chain indices must be integers, slices, or strings, not {type(key).__name__}")
 
     def __len__(self) -> int:
-        """Return the number of nodes in the flattened chain."""
-        return len(self._flatten_nodes())
+        """Return the number of nodes in the chain chain."""
+        return len(self.nodes)
 
     def __iter__(self) -> "Iterator[NodeInstance]":
         """Return an iterator over the flattened nodes in the chain."""
-        return iter(self._flatten_nodes())
+        return iter(self.nodes)
 
     def first_node(self) -> hou.Node:
         """
@@ -575,19 +570,18 @@ class Chain(NodeBase):
             Tuple of NodeInstance objects for created nodes. Same instances
             returned on subsequent calls (cached via @functools.cache).
         """
-        flattened_nodes = self._flatten_nodes()
-        if not flattened_nodes:
+        nodes = self.nodes
+        if not nodes:
             return tuple()
 
         created_node_instances: list[NodeInstance] = []
         previous_node: hou.Node | None = None
 
         # Create each node and connect them in sequence - NO COPYING!
-        # Nodes should be created as-is, connections handled during creation
-        for i, node_instance in enumerate(flattened_nodes):
+        # Use _skip_chain=True to avoid recursion since we're already creating the chain
+        for i, node_instance in enumerate(nodes):
             # Create the node in Houdini (NodeInstance.create caches result)
-            # The chaining logic should be handled elsewhere, not by copying nodes
-            created_hou_node = node_instance.create()
+            created_hou_node = node_instance.create(_skip_chain=True)
             created_node_instances.append(node_instance)
 
             # Connect this node to the previous one if needed
@@ -603,35 +597,31 @@ class Chain(NodeBase):
         return tuple(created_node_instances)
 
     def copy(self, /, _inputs: InputNodes=()) -> 'Chain':
-        """Return a copy of this Chain (copies contained NodeInstances/Chains)."""
-        self_inputs: InputNodes = ()
+        """Return a copy of this Chain (copies contained NodeInstances)."""
+
+        inputs = _wrap_inputs(_inputs)
+        self_inputs: Inputs = ()
         if self.nodes:
             first_node = self.nodes[0]
-            match first_node:
-                case NodeInstance():
-                    self_inputs = first_node._inputs
-                case Chain():
-                    self_inputs = first_node.first._inputs
-                case hou.Node():
-                    wrapped = _wrap_hou_node(first_node)
-                    self_inputs = wrapped._inputs
-                case str():
-                    wrapped = _wrap_hou_node(hou_node(first_node))
-                    self_inputs = wrapped._inputs
-                case _:
-                    raise TypeError(f"Invalid node type in chain: {type(first_node).__name__}")
+            self_inputs = first_node.inputs
 
-        merged_inputs = _merge_inputs(_inputs, self_inputs)
+        merged_inputs = _merge_inputs(inputs, self_inputs)
+
+        # Copy first node with merged inputs
         first = self.first.copy(_inputs=merged_inputs)
 
-        # Only copy Chain objects, not NodeInstances - NodeInstances should be shared
-        nodes = (first, *(n.copy() if isinstance(n, Chain) else n for n in islice(self.nodes, 1, None)))
-
-        return Chain(
-            nodes=tuple(nodes),
-            name_prefix=self.name_prefix,
-            attributes=self.attributes,
+        # Chain.copy() MUST copy all NodeInstances - chains can't share nodes
+        # This is the ONLY place that should copy NodeInstances
+        nodes = (
+            first,
+            *(n.copy() for n in islice(self.nodes, 1, None))
         )
+
+        # Create new chain - __post_init__ will set _chain references
+        new_chain = Chain(
+            nodes=tuple(nodes),
+        )
+        return new_chain
 
 
 def node(
@@ -640,6 +630,8 @@ def node(
     name: str | None = None,
     _input: 'InputNode | list[InputNode] | None' = None,
     _node: 'hou.Node | None' = None,
+    _display: bool = False,
+    _render: bool = False,
     **attributes: Any
 ) -> NodeInstance:
     """
@@ -651,6 +643,8 @@ def node(
         name: Optional name for the node
         _input: Optional input node(s) to connect
         _node: Optional existing hou.Node to return from create()
+        _display: Set display flag on this node when created
+        _render: Set render flag on this node when created
         **attributes: Node parameter values
 
     Returns:
@@ -687,13 +681,14 @@ def node(
         name=name,
         attributes=HashableMapping(attributes) if attributes else HashableMapping(),
         _inputs=tuple(inputs),
-        _node=_node
+        _node=_node,
+        _display=_display,
+        _render=_render
     )
 
 
 def chain(
     *nodes: ChainableNode,
-    name_prefix: str | None = None,
     **attributes: Any
 ) -> Chain:
     """
@@ -701,8 +696,6 @@ def chain(
 
     Args:
         *nodes: Sequence of NodeInstance objects, Chain objects, or Houdini nodes to chain together
-        name_prefix: Optional prefix for generated node names
-        **attributes: Shared attributes for all nodes in chain
 
     Returns:
         Chain that can be created with .create()
@@ -719,35 +712,21 @@ def chain(
             "chain(node(parent, 'type', 'name', _input=your_input), ...)"
         )
 
-    # Flatten any nested chains - NO COPYING, just flatten the structure
-    flattened_nodes: list[NodeInstance] = []
-    for item in nodes:
+    def _handle_entry(item: ChainableNode) -> Iterator[NodeInstance]:
         match item:
             case NodeInstance():
-                # Keep the exact same node instance - no copying!
-                flattened_nodes.append(item)
+                yield item
             case Chain():
-                # Extract nodes from nested chain - no copying!
-                for nested_node in item.nodes:
-                    if isinstance(nested_node, NodeInstance):
-                        flattened_nodes.append(nested_node)
-                    else:
-                        # This shouldn't happen if chains only store nodes, but be safe
-                        raise TypeError(f"Nested chain contains non-NodeInstance: {type(nested_node)}")
-            case _ if isinstance(item, hou.Node):
-                # Wrap Houdini node but don't copy
-                wrapped = _wrap_hou_node(item)
-                flattened_nodes.append(wrapped)
-            case _:
-                raise TypeError(
-                    f"Chain nodes must be NodeInstance, Chain, or hou.Node objects, "
-                    f"got {type(item).__name__}"
-                )
+                yield from item.nodes
+
+    flattened_nodes = tuple((
+        node
+        for item in nodes
+        for node in _handle_entry(item)
+    ))
 
     return Chain(
-        nodes=tuple(flattened_nodes),  # Only NodeInstance objects now
-        name_prefix=name_prefix,
-        attributes=HashableMapping(attributes) if attributes else None,
+        nodes=flattened_nodes,  # Only NodeInstance objects now
     )
 
 
@@ -803,8 +782,30 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
         case _:
             raise TypeError(f"Invalid node type: {type(hnode).__name__}")
 
+def _wrap_inputs(inputs: Sequence[InputNode]|InputNode) -> Inputs:
+    """
+    Wrap a sequence of input nodes and extract output indices.
 
-def _wrap_input(input: InputNode) -> ResolvedConnection | None:
+    Args:
+        inputs: Sequence of input specifications - either (<node>, <output_index>) tuples or just <node>
+
+    Returns:
+        Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
+    """
+    match inputs:
+        case NodeInstance()|Chain()|hou.Node()|str() as input, int() as idx:
+            resolved = _wrap_input(input, idx)
+            return (resolved,)
+        case NodeInstance()|Chain()|hou.Node()|str() as input:
+            resolved = _wrap_input(input, 0)
+            return (resolved,)
+        case None:
+            return ()
+        case _:
+            return tuple(_wrap_input(inp, 0) for inp in inputs)
+
+
+def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
     """
     Wrap an input node and extract output index.
 
@@ -814,49 +815,50 @@ def _wrap_input(input: InputNode) -> ResolvedConnection | None:
     Returns:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
+    def _wrap_single_input(input: InputNodeSpec) -> NodeInstance|None:
+        """Wrap a single input node specification."""
+        match input:
+            case NodeInstance():
+                return input
+            case Chain() if len(input.nodes) == 0:
+                return None
+            case Chain():
+                return input.last
+            case hou.Node():
+                return wrap_node(input)
+            case str():
+                return wrap_node(hou_node(input))
+            case _:
+                raise TypeError(f"Invalid input specification: {input}. Expected NodeInstance, Chain, hou.Node, or str.")
+
     match input:
         case None:
             return None
-        case tuple() as conn if len(conn) == 2:
-            node_spec, output_idx = conn
+        case node_spec, output_idx:
             if not isinstance(output_idx, int) or output_idx < 0:
                 raise ValueError(f"Output index must be a non-negative integer, got {output_idx}")
             wrapped = _wrap_single_input(node_spec)
+            if wrapped is None:
+                return None
             return (wrapped, output_idx)
         case tuple():
             raise ValueError(f"Input tuple must have exactly 2 elements: (<node>, <output_index>)")
-        case _:
+        case NodeInstance() | Chain() | hou.Node() | str():
             # Single node specification, default to output 0
             wrapped = _wrap_single_input(input)
-            return (wrapped, 0)
-def _wrap_single_input(input: 'NodeInstance | Chain | hou.Node | str') -> ResolvedInput:
-    """Wrap a single input node specification."""
-    match input:
-        case hou.Node():
-            return wrap_node(input)
-        case str():
-            return wrap_node(hou_node(input))
-        case NodeInstance():
-            return input
-        case Chain():
-            return input.last
+            if wrapped is None:
+                return None
+            return (wrapped, idx)
         case _:
-            raise TypeError(f"Invalid input node: {input}. Expected NodeInstance, Chain, hou.Node, or str")
+            raise TypeError(f"Invalid input specification: {input}. Expected None, (<node>, <output_index>), or <node>")
 
 if TYPE_CHECKING:
-    _ROOT: hou.Node = hou_node('/')
+    _ROOT: hou.Node
     '''
     The root node, unwrapped.
     '''
 
-    ROOT: NodeInstance = NodeInstance(
-        _parent=cast(NodeInstance, None),
-        node_type='root',
-        name='/',
-        attributes=HashableMapping({}),
-        _inputs=(),
-        _node=_ROOT
-    )
+    ROOT: NodeInstance
     '''
     The root node, wrapped as a `NodeInstance`.
     '''

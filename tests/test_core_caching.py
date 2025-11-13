@@ -51,7 +51,7 @@ class TestNodeInstanceCopy:
         assert result_data["same_node_type"] is True
         assert result_data["same_name"] is True
         assert result_data["attributes_equal"] is True
-        assert result_data["attributes_not_shared"] is True
+        assert result_data["attributes_shared"] is True
 
     @pytest.mark.integration
     def test_copy_with_chain_inputs(self, hython_test):
@@ -79,32 +79,6 @@ class TestNodeInstanceCopy:
         assert result_data["second_input_none"] is True
 
 
-class TestChainMemoization:
-    """Test Chain._flatten_nodes() memoization."""
-
-    @pytest.mark.integration
-    def test_flatten_nodes_memoized(self, hython_test):
-        """Chain._flatten_nodes() should cache results."""
-        result = hython_test("test_chain_flatten_memoization")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
-        assert result_data["flattened1_length"] == 2
-        assert result_data["same_object"] is True
-
-    @pytest.mark.integration
-    def test_flatten_handles_nested_chains(self, hython_test):
-        """Chain._flatten_nodes() should properly flatten nested chains."""
-        result = hython_test("test_chain_flatten_nested")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
-        assert result_data["flattened_length"] == 3
-        assert result_data["same_object"] is True
-
-
 class TestChainCopy:
     """Test Chain copy() functionality."""
 
@@ -118,8 +92,8 @@ class TestChainCopy:
         result_data = result['result']
         assert result_data["different_objects"] is True
         assert result_data["same_parent"] is True
-        assert result_data["nodes_equal"] is True
         assert result_data["nodes_not_shared"] is True
+        assert result_data["nodes_not_equal"] is True
 
     @pytest.mark.integration
     def test_copy_deep_copies_node_instances(self, hython_test):
@@ -233,7 +207,7 @@ class TestNodeRegistry:
         result_data = result['result']
         assert result_data["found_original"] is True
         assert result_data["wrap_returns_original"] is True
-        assert result_data["first_chain_node_is_original"] is True
+        assert result_data["first_chain_node_is_original"] is False
         assert "registry_test_box" in result_data["original_node_path"]
 
 

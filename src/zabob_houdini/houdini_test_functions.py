@@ -29,12 +29,11 @@ Test functions should return structured data that describes the test results,
 making it easy for external callers to understand what was tested and the outcome.
 """
 
-import re
+from typing import Any
 import hou
-import json
-import traceback
-from zabob_houdini.core import ROOT, NodeInstance, get_node_instance, hou_node, node, chain, wrap_node
-from zabob_houdini.houdini_bridge import JsonArray, houdini_result, JsonObject
+from zabob_houdini.core import ROOT, Inputs, NodeInstance, get_node_instance, hou_node, node, chain, wrap_node
+from zabob_houdini.houdini_bridge import houdini_result
+from zabob_houdini.utils import JsonObject, JsonArray
 
 # Import pytest but make it optional for when running standalone
 try:
@@ -358,7 +357,7 @@ def test_node_instance_copy() -> JsonObject:
 
     # Test that attributes are copied (not shared)
     attributes_equal = copied.attributes == original.attributes
-    attributes_not_shared = copied.attributes is not original.attributes
+    attributes_shared = copied.attributes is original.attributes
 
     return {
         'different_objects': different_objects,
@@ -366,7 +365,7 @@ def test_node_instance_copy() -> JsonObject:
         'same_node_type': same_node_type,
         'same_name': same_name,
         'attributes_equal': attributes_equal,
-        'attributes_not_shared': attributes_not_shared,
+        'attributes_shared': attributes_shared,
     }
 
 
@@ -406,68 +405,6 @@ def test_node_instance_copy_with_inputs() -> JsonObject:
 
 
 @houdini_result
-def test_chain_flatten_memoization() -> JsonObject:
-    """Test Chain._flatten_nodes() memoization."""
-    # Clear the scene
-    hou.hipFile.clear()
-
-    # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
-
-    # Create a chain
-    node1 = node(geo, "box")
-    node2 = node(geo, "sphere")
-    test_chain = chain(node1, node2)
-
-    # First call to _flatten_nodes
-    flattened1 = test_chain._flatten_nodes()
-    flattened1_length = len(flattened1)
-
-    # Second call should return cached result
-    flattened2 = test_chain._flatten_nodes()
-    same_object = flattened2 is flattened1
-
-    return {
-        'flattened1_length': flattened1_length,
-        'same_object': same_object,
-    }
-
-
-@houdini_result
-def test_chain_flatten_nested() -> JsonObject:
-    """Test Chain._flatten_nodes() with nested chains."""
-    # Clear the scene
-    hou.hipFile.clear()
-
-    # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
-
-    # Create nested chains
-    node1 = node(geo, "box")
-    node2 = node(geo, "sphere")
-    inner_chain = chain( node1, node2)
-
-    node3 = node(geo, "merge")
-    outer_chain = chain(inner_chain, node3)
-
-    # Flatten the outer chain
-    flattened = outer_chain._flatten_nodes()
-    flattened_length = len(flattened)
-
-    # Should have 3 individual NodeInstance objects
-    # Test memoization as well
-    flattened2 = outer_chain._flatten_nodes()
-    same_object = flattened2 is flattened
-
-    return {
-        'flattened_length': flattened_length,
-        'same_object': same_object,
-    }
-
-
-@houdini_result
 def test_chain_copy() -> JsonObject:
     """Test Chain.copy() creates independent copy."""
     # Clear the scene
@@ -488,14 +425,15 @@ def test_chain_copy() -> JsonObject:
     # Test basic properties
     different_objects = copied is not original
     same_parent = copied.parent == original.parent
-    nodes_equal = copied.nodes == original.nodes
+    nodes_not_equal = all(a != b for (a, b) in zip(original.nodes, copied.nodes))
     nodes_not_shared = copied.nodes is not original.nodes
 
     return {
         'different_objects': different_objects,
         'same_parent': same_parent,
-        'nodes_equal': nodes_equal,
+        "nodes_length": len(original.nodes) == len(copied.nodes),
         'nodes_not_shared': nodes_not_shared,
+        'nodes_not_equal': nodes_not_equal,
     }
 
 @houdini_result
@@ -632,7 +570,7 @@ def test_node_registry() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
 
     # Create a NodeInstance and get its hou.Node
-    box_node = node(geo.path(), "box", name="registry_test_box")
+    box_node = node(geo, "box", name="registry_test_box")
     created_hou_node = box_node.create()
 
     # Test 1: get_node_instance should return the original NodeInstance
@@ -644,12 +582,13 @@ def test_node_registry() -> JsonObject:
     wrap_returns_original = wrapped_instance is box_node
 
     # Test 3: Create another node with the hou.Node in a chain - should use original
-    sphere_node = node(geo.path(), "sphere", name="registry_test_sphere")
+    sphere_node = node(geo, "sphere", name="registry_test_sphere")
     # Create a chain that includes the raw hou.Node
     test_chain = chain(box_node, sphere_node)
     created_chain_nodes = test_chain.create()
 
-    # The first node in the chain should be the original NodeInstance
+    # The first node in the chain should not be the original NodeInstance
+    # Chain creates new Nodeinstances owned by the chain.
     first_chain_node_is_original = created_chain_nodes[0].create() is created_hou_node
 
     return {
@@ -708,33 +647,37 @@ def test_merge_inputs_sparse_handling() -> JsonObject:
     geo = obj.createNode("geo", "test_geo")
     node1 = node(geo.path(), "box", name="box1")
     node2 = node(geo.path(), "sphere", name="sphere1")
+    c1 = (node1, 0)
+    c2 = (node2, 0)
+    in1: Inputs = (c1, )
+    in2: Inputs = (c2, )
 
     # Test case 1: Both inputs are None - result should be None
     result1 = _merge_inputs((None,), (None,))
     both_none_result = result1[0] if result1 else None
 
     # Test case 2: First is None, second is not None - result should be second
-    result2 = _merge_inputs((None,), (node2,))
+    result2 = _merge_inputs((None,), in2)
     first_none_result = result2[0] if result2 else None
-    first_none_is_node2 = first_none_result is node2
+    first_none_is_node2 = first_none_result is c2
 
     # Test case 3: First is not None, second is None - result should be first
-    result3 = _merge_inputs((node1,), (None,))
+    result3 = _merge_inputs(in1, (None,))
     second_none_result = result3[0] if result3 else None
-    second_none_is_node1 = second_none_result is node1
+    second_none_is_node1 = second_none_result is c1
 
     # Test case 4: Both are not None - result should be first (preferring in1)
-    result4 = _merge_inputs((node1,), (node2,))
+    result4 = _merge_inputs(in1, in2)
     both_not_none_result = result4[0] if result4 else None
-    both_not_none_is_node1 = both_not_none_result is node1
+    both_not_none_is_node1 = both_not_none_result is c1
 
     # Test case 5: Multiple positions with mixed None/not-None
-    result5 = _merge_inputs((node1, None, node1), (None, node2, node2))
+    result5 = _merge_inputs((c1, None, c1), (None, c2, c2))
     multi_pos_correct = (
         len(result5) == 3 and
-        result5[0] is node1 and  # First prefers in1
-        result5[1] is node2 and  # None in1, so use in2
-        result5[2] is node1      # Both not None, prefer in1
+        result5[0] is c1 and  # First prefers in1
+        result5[1] is c2 and  # None in1, so use in2
+        result5[2] is c1      # Both not None, prefer in1
     )
 
     # Test case 6: Empty lists
@@ -742,8 +685,8 @@ def test_merge_inputs_sparse_handling() -> JsonObject:
     empty_result = len(result6) == 0
 
     # Test case 7: One empty, one with content
-    result7 = _merge_inputs((), (node1, node2))
-    one_empty_result = len(result7) == 2 and result7[0] is node1 and result7[1] is node2
+    result7 = _merge_inputs((), (c1, c2))
+    one_empty_result = len(result7) == 2 and result7[0] is c1 and result7[1] is c2
 
     return {
         'both_none_is_none': both_none_result is None,
@@ -793,7 +736,7 @@ def test_diamond_creation() -> JsonObject:
 
     # Get all node paths for validation
     all_nodes = list(chain_A_created) + list(chain_B2_created) + list(chain_B3_created)
-    node_paths = [node.create().path() for node in all_nodes]
+    node_paths: JsonArray = [node.create().path() for node in all_nodes]
 
     # Check for duplicates (there shouldn't be any in chain_A since B2/B3 reference it)
     unique_paths = list(set(node_paths))
@@ -922,12 +865,16 @@ def test_node_parameters() -> JsonObject:
 
     # Create node with parameters
     box_node = node(geo_node, "box", "param_box", sizex=2.0, sizey=3.0, sizez=4.0)
-    created_node = box_node.create()
+    created_node = box_node.create(hou.OpNode)
+
+    def val(node: hou.OpNode, parm_name: str) -> Any:
+        parm = node.parm(parm_name)
+        return parm.eval() if parm else None
 
     # Check parameters
-    sizex = created_node.parm('sizex').eval()
-    sizey = created_node.parm('sizey').eval()
-    sizez = created_node.parm('sizez').eval()
+    sizex = val(created_node, "sizex")
+    sizey = val(created_node, "sizey")
+    sizez = val(created_node, "sizez")
 
     parameters_set = (
         abs(sizex - 2.0) < 0.001 and
