@@ -129,6 +129,39 @@ uv run pytest -v
   - Test actual node creation and graph building
   - Run locally or in specialized CI environments
 
+### Debugging
+
+Because most of the tests do their work in a `hython` subprocess, it is challenging to debug what happens during a test.
+
+If you have a directory named `hip/` in your working directory, the tests will write out hip files when they finish. This allows you to inspect the Houdini environment with the Houdini editor, or explore the final state interactively with the Houdini python shell. The directory to use can be overridden with the `TEST_HIP_DIR` environment variable, or suppressed by setting it to the empty string or a directory which does not exist. The `hip` directory does not exist in CI so it is not written in that context.
+
+To debug in the debugger, first examine the test to find what function it runs in `hython` in [`houdini_test_functions.py`](src/zabob_houdini/houdini_test_functions.py).
+
+Then use a launch configuration like this:
+```json
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python Debugger: Module",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "zabob_houdini",
+            "args": [
+                "_exec", "houdini_test_functions", "test_chain_reference_vs_copy"
+            ],
+            "justMyCode": false,
+            "python": "/Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/bin/hython"
+
+        }
+    ]
+}
+```
+
 **CI/CD:**
 
 - **Pull Requests**: Run unit tests on Python 3.11, 3.12, 3.13

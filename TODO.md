@@ -22,3 +22,8 @@
 - [x] Test multi-output connection functionality with integration tests
 - [x] Test sparse input merging functionality with comprehensive test cases
 - [ ] Add validation for output index bounds checking
+
+### Node Placement and Visual Improvements
+- [ ] Create our own placement algorithm to replace moveToGoodPosition()
+  - Current usage of moveToGoodPosition() is really ugly
+  - Should implement intelligent node positioning based on connection topology

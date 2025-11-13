@@ -36,7 +36,7 @@ from importlib.metadata import version, PackageNotFoundError
 lazy_imports = (
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent",
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode",
-    "InputNodes", "ResolvedInput", "Inputs",
+    "InputNodes", "Inputs",
     "get_node_instance", "wrap_node", "hou_node", "wrap_node", 'ROOT',
 )
 _imports_loaded = False
@@ -62,13 +62,14 @@ def __getattr__(name: str):
         return globals()[name]
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-# Note: Core API components (node, chain, NodeInstance, Chain, NodeType, NodeParent) are available
+# Note: Core API components (node, chain, NodeInstance, Chain, NodeType, NodeParent, etc) are available
 # via lazy loading through __getattr__ but the linter can't check for us, so be careful to keep
 # __all__ accurate.
+# Although these appear to be undefined to static analysis, they are actually defined at runtime.
 __all__ = ['__version__',
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", # type: ignore
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
-    "InputNodes", "ResolvedInput", "Inputs", # type: ignore
+    "InputNodes", "Inputs", # type: ignore
     "get_node_instance", "wrap_node", "hou_node", "wrap_node", "ROOT", # type: ignore
     ]
 

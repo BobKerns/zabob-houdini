@@ -5,6 +5,8 @@ Entry point for zabob-houdini CLI and hython dispatch.
 import click
 import json
 import sys
+import os
+from pathlib import Path
 
 from zabob_houdini.cli import main as dev_main, diagnostics, info
 from zabob_houdini.__version__ import __version__, __distribution__
@@ -44,6 +46,21 @@ if IN_HOUDINI:
             # Call function with arguments and capture result
             result = func(*args)
             json.dump(result, sys.stdout)
+            # Debugging feature: if the directory in TEST_HIP_DIR (default "hip")
+            # exists, save a hip file into the directory, named after the test function.
+            # This is a documented debugging feature, do not remove!
+            # See DEVELOPMENT.md for details.
+            test_hip_dir = os.environ.get("TEST_HIP_DIR", "hip")
+            if not test_hip_dir:
+                # Skip writing HIP file if TEST_HIP_DIR is empty
+                return
+            test_hip_path = Path(test_hip_dir)
+            if test_hip_path.exists():
+                hipfile = test_hip_path / f"{function_name}.hip"
+                import hou
+                hou.hipFile.save(str(hipfile))
+                print(f"Saved HIP file: {hipfile}", file=sys.stderr)
+
 
         except ImportError as e:
             output = {

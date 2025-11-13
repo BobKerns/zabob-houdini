@@ -40,14 +40,12 @@ def create_diamond_chains():
     chain_B3 = chain(
         node(geo, "xform", "scale_down", sx=0.8, sy=0.8, sz=0.8, _input=chain_A),  # Connect A → B3
         node(geo, "xform", "rotate_x", rx=30),
-        name_prefix="branch3_"
     )
 
     # Chain C: Merge both processing paths
     chain_C = chain(
         node(geo, "merge", "combine_branches", _input=[chain_B2, chain_B3]),
-        node(geo, "xform", "final_position", ty=2),
-        name_prefix="final_"
+        node(geo, "xform", "final_position", ty=2, _display=True, _render=True),  # Set display and render flags
     )
 
     return {
