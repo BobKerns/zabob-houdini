@@ -206,7 +206,7 @@ class NodeBase(ABC):
         pass
 
     @abstractmethod
-    def copy(self, /, **kwargs) -> 'NodeBase':
+    def copy(self, /, _inputs: Inputs=(), _chain: Chain | None=None) -> 'NodeBase':
         """Return a copy of this node/chain object. Copies are independent for creation.
 
         This is used by Chain.create() to avoid mutating original definitions when
@@ -235,7 +235,7 @@ class NodeInstance(NodeBase):
     node_type: str
     name: str | None = None
     attributes: HashableMapping = field(default_factory=HashableMapping)
-    _inputs: tuple["InputNode", ...] = field(default_factory=tuple)
+    _inputs: Inputs = field(default_factory=tuple)
     _node: "hou.Node | None" = field(default=None, hash=False)
     _display: bool = field(default=False, hash=False)
     _render: bool = field(default=False, hash=False)
@@ -606,7 +606,7 @@ class Chain(NodeBase):
 
         return tuple(created_node_instances)
 
-    def copy(self, /, _inputs: InputNodes=()) -> 'Chain':
+    def copy(self, /, _inputs: InputNodes=(), _chain: Chain | None=None) -> 'Chain':
         """Return a copy of this Chain (copies contained NodeInstances)."""
 
         inputs = _wrap_inputs(_inputs)
@@ -627,7 +627,7 @@ class Chain(NodeBase):
             *(n.copy() for n in islice(self.nodes, 1, None))
         )
 
-        # Create new chain - __post_init__ will set _chain references
+        # Create new chain - __init__ will copy and set _chain references
         new_chain = Chain(
             nodes=tuple(nodes),
         )

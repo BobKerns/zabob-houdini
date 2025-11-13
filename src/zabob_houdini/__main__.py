@@ -47,7 +47,8 @@ if IN_HOUDINI:
             result = func(*args)
             json.dump(result, sys.stdout)
             # Debugging feature: if the directory in TEST_HIP_DIR (default "hip")
-            # exists. This is a documented debugging feature, do not remove!
+            # exists, save a hip file into the directory, named after the test function.
+            # This is a documented debugging feature, do not remove!
             # See DEVELOPMENT.md for details.
             test_hip_dir = os.environ.get("TEST_HIP_DIR", "hip")
             if not test_hip_dir:
