@@ -295,7 +295,7 @@ class NodeInstance(NodeBase):
         # If this node is part of a chain, create the entire chain first
         if self._chain is not None and not _skip_chain:
             self._chain.create()
-            # Now call _do_create again with skip flag to get the cached result
+            # Now call _do_create again to get the cached result
             node = self._do_create()
             return self._asType(node, as_type)
 
@@ -308,6 +308,11 @@ class NodeInstance(NodeBase):
 
     @functools.cache
     def _do_create(self) -> hou.Node:
+        '''
+        Actually create and cache the node. This is separated from
+        `create` to allow. caching independent of the arguments.
+        The caching is essential to avoid recursion,
+        '''
         parent_node = self.parent.create()
 
         # Create the node
@@ -420,11 +425,11 @@ class Chain(NodeBase):
     def __init__(self, nodes: Sequence[NodeInstance]):
         '''
         We use an __init__ method rather than the dataclass-generated one,
-        so we can can store a private copy. This ensures we never hold a shared
+        so we can store a private copy. This ensures we never hold a shared
         node.
         '''
         nodes = tuple(n.copy(_chain=self) for n in nodes)
-        object.__setattr__(self, 'nodes', tuple(nodes))
+        object.__setattr__(self, 'nodes', nodes)
 
     @functools.cached_property
     def parent(self) -> NodeInstance:
@@ -787,6 +792,7 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
         case _:
             raise TypeError(f"Invalid node type: {type(hnode).__name__}")
 
+# Copilot: There are no implicit returns in _wrap_inputs.:
 def _wrap_inputs(inputs: Sequence[InputNode]|InputNode) -> Inputs:
     """
     Wrap a sequence of input nodes and extract output indices.
@@ -810,6 +816,7 @@ def _wrap_inputs(inputs: Sequence[InputNode]|InputNode) -> Inputs:
             return tuple(_wrap_input(inp, 0) for inp in inputs)
 
 
+# Copilot: There are no implicit returns in _wrap_input.
 def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
     """
     Wrap an input node and extract output index.
@@ -820,6 +827,7 @@ def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
     Returns:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
+    # Copilot: There are no implicit returns in _wrap_single_input.
     def _wrap_single_input(input: InputNodeSpec) -> NodeInstance|None:
         """Wrap a single input node specification."""
         match input:

@@ -49,7 +49,7 @@ if IN_HOUDINI:
             # Debugging feature: if the directory in TEST_HIP_DIR (default "hip")
             # exists. This is a documented debugging feature, do not remove!
             # See DEVELOPMENT.md for details.
-            test_hip_dir = Path(os.environ.get("TEST_HIP_DIR", "hip"))
+            test_hip_dir = os.environ.get("TEST_HIP_DIR", "hip")
             if not test_hip_dir:
                 # Skip writing HIP file if TEST_HIP_DIR is empty
                 return

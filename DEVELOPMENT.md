@@ -135,7 +135,7 @@ Because most of the tests do their work in a `hython` subprocess, it is challeng
 
 If you have a directory named `hip/` in your working directory, the tests will write out hip files when they finish. This allows you to inspect the Houdini environment with the Houdini editor, or explore the final state interactively with the Houdini python shell. The directory to use can be overridden with the `TEST_HIP_DIR` environment variable, or suppressed by setting it to the empty string or a directory which does not exist. The `hip` directory does not exist in CI so it is not written in that context.
 
-To debug in the debugger, first examine the test to find what function it runs in `hython` in []`houdini_test_functions.py`](src/zabob_houdini/houdini_test_functions.py).
+To debug in the debugger, first examine the test to find what function it runs in `hython` in [`houdini_test_functions.py`](src/zabob_houdini/houdini_test_functions.py).
 
 Then use a launch configuration like this:
 ```json
@@ -155,14 +155,12 @@ Then use a launch configuration like this:
                 "_exec", "houdini_test_functions", "test_chain_reference_vs_copy"
             ],
             "justMyCode": false,
-            "python": "/Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/bin//hython"
+            "python": "/Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/bin/hython"
 
         }
     ]
 }
 ```
-
-It is also possible to invoke the debugger directly on the hython layer of the tests with a suitable `launch.json` configuration. Examine the test to find what function it invokes
 
 **CI/CD:**
 
