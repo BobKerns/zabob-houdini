@@ -2,7 +2,6 @@
 Entry point for zabob-houdini CLI and hython dispatch.
 """
 
-from ctypes.util import test
 import click
 import json
 import sys

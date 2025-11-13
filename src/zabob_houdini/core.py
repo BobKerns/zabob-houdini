@@ -20,8 +20,8 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
 
-from hou import Node
-
+# This isn't functionally needed, but it avoids mpy SIGSEGVing from trying
+# to actually import the real module under some circumstances.
 if TYPE_CHECKING:
     import hou
 else:
@@ -418,6 +418,11 @@ class Chain(NodeBase):
     nodes: tuple[NodeInstance, ...]
 
     def __init__(self, nodes: Sequence[NodeInstance]):
+        '''
+        We use an __init__ method rather than the dataclass-generated one,
+        so we can can store a private copy. This ensures we never hold a shared
+        node.
+        '''
         nodes = tuple(n.copy(_chain=self) for n in nodes)
         object.__setattr__(self, 'nodes', tuple(nodes))
 
@@ -492,7 +497,7 @@ class Chain(NodeBase):
                 raise TypeError(f"Chain indices must be integers, slices, or strings, not {type(key).__name__}")
 
     def __len__(self) -> int:
-        """Return the number of nodes in the chain chain."""
+        """Return the number of nodes in the chain."""
         return len(self.nodes)
 
     def __iter__(self) -> "Iterator[NodeInstance]":
