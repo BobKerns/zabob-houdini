@@ -5,8 +5,6 @@ Entry point for zabob-houdini CLI and hython dispatch.
 import click
 import json
 import sys
-import os
-from pathlib import Path
 
 
 from zabob_houdini.cli import main as dev_main, diagnostics, info
@@ -47,6 +45,7 @@ if IN_HOUDINI:
             if not result["success"]:
                 sys.exit(1)
 
+
     @click.command(name='_batch_exec', hidden=True)
     def _batch_exec() -> None:
         """
@@ -57,8 +56,6 @@ if IN_HOUDINI:
 
         Outputs one JSON result per line to stdout.
         """
-        import hou  # Import here to ensure we're in Houdini
-
         for line in sys.stdin:
             line = line.strip()
             if not line:
@@ -78,7 +75,7 @@ if IN_HOUDINI:
             if 'module' not in request or 'function' not in request:
                 error_result = {
                     'success': False,
-                    'error': f'Invalid JSON in request: {request}'
+                    'error': f'Missing "module" or "function" field in JSON request: {request}'
                 }
                 json.dump(error_result, sys.stdout)
                 sys.stdout.write('\n')

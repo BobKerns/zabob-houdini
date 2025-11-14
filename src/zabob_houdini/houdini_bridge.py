@@ -161,6 +161,7 @@ def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
         msg = f"ERROR: hython -m zabob_houdini {func_name} {joined} failed: {e.returncode}"
         print(msg, file=sys.stderr)
 
+
 def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
     """
     Decorator to create a Houdini command that can be called from the command line.
@@ -193,7 +194,7 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
 
 
 @contextmanager
-def invoke_houdini_function(module_name: str, function_name: str, args: tuple[str, ...]) -> Generator[HoudiniResult]:
+def invoke_houdini_function(module_name: str, function_name: str, args: tuple[str, ...]) -> Generator[HoudiniResult, None, None]:
     """
     Helper function to invoke a Houdini function and return the result as a dictionary.
 
@@ -246,6 +247,13 @@ def invoke_houdini_function(module_name: str, function_name: str, args: tuple[st
                     'error': f"Unexpected return type: {type(result)}"
                 }
 
+    except ImportError as e:
+        error = f"Module 'zabob_houdini.{module_name}' not found: {e}"
+    except AttributeError as e:
+        error = f"Function '{function_name}' not found in {module_name}: {e}"
+    except Exception as e:
+        error = f"Error executing {module_name}.{function_name}: {e}"
+    finally:
         # Debugging feature: if the directory in TEST_HIP_DIR (default "hip")
         # exists, save a hip file into the directory, named after the test function.
         # To disable, set TEST_HIP_DIR to an empty string or a non-existent directory.
@@ -255,16 +263,10 @@ def invoke_houdini_function(module_name: str, function_name: str, args: tuple[st
         if test_hip_dir:
             test_hip_path = Path(test_hip_dir)
             if test_hip_path.exists():
+                import hou
                 hipfile = test_hip_path / f"{function_name}.hip"
                 hou.hipFile.save(str(hipfile))
                 print(f"Saved HIP file: {hipfile}", file=sys.stderr)
-
-    except ImportError as e:
-        error = f"Module 'zabob_houdini.{module_name}' not found: {e}"
-    except AttributeError as e:
-        error = f"Function '{function_name}' not found in {module_name}: {e}"
-    except Exception as e:
-        error = f"Error executing {module_name}.{function_name}: {e}"
     if error:
         yield  {
             'success': False,

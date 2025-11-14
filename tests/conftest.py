@@ -113,7 +113,7 @@ class HythonSession:
                 self.process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self.process.kill()
-                self.process.wait()
+                self.process.wait(timeout=2)
             except Exception:
                 pass  # Best effort cleanup
             self.process = None
