@@ -4,6 +4,7 @@ Safe pytest fixtures for Houdini testing.
 This version avoids importing anything that could trigger hou imports.
 """
 
+from collections.abc import Generator
 from typing import Protocol
 from threading import RLock
 import pytest
@@ -19,7 +20,7 @@ from zabob_houdini.utils import JsonValue, HoudiniResult
 class HythonSessionFn(Protocol):
     """A function that can be called to execute a function in the hython environment."""
     def __call__(self, test_func_name: str, *args: JsonValue,
-                 module: str = "houdini_test_functions" ) -> HoudiniResult: ...
+                 module: str = "houdini_test_functions") -> HoudiniResult: ...
 
 
 @pytest.fixture
@@ -34,7 +35,7 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
         """Run a test function in hython and validate the result."""
         try:
             result = hython_session.call_function(test_func_name, *args,
-                                                                module=module)
+                                            module=module)
         except RuntimeError as e:
             if "Could not start hython" in str(e):
                 pytest.skip("hython not found - Houdini not installed or not in PATH")
@@ -63,7 +64,7 @@ class HythonSession:
     def __init__(self):
         self.lock = RLock()
 
-    def _ensure_started(self):
+    def _ensure_started(self) -> bool:
         """Start the hython process if not already started."""
         with self.lock:
             if self._started:
@@ -96,7 +97,7 @@ class HythonSession:
                             self._started = True
                             return True
                 except Exception:
-                    pass
+                    pass # Ignore exceptions and retry
             return False
 
     def call_function(self, func_name: str, *args, module: str = "houdini_test_functions") -> HoudiniResult:
@@ -133,7 +134,7 @@ class HythonSession:
                 # Read response
                 if sys.platform == "win32":
                     # On windows, select does not work with pipes, so we just accept
-                    # the possibility of aa test hanging. If it becomes a problem,
+                    # the possibility of a test hanging. If it becomes a problem,
                     # test under WSL.
                     pass
                 else:
@@ -181,7 +182,7 @@ class HythonSession:
 
 
 @pytest.fixture(scope="session")
-def hython_session():
+def hython_session() -> Generator[HythonSession, None, None]:
     """Session-scoped fixture for persistent hython process."""
     session = HythonSession()
     yield session
@@ -189,7 +190,7 @@ def hython_session():
 
 
 @pytest.fixture
-def houdini_available():
+def houdini_available() -> bool:
     """Check if we're running in hython environment."""
     executable = Path(sys.executable).name.lower()
     return 'hython' in executable or 'houdini' in executable
