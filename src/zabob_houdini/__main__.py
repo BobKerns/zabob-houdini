@@ -66,7 +66,6 @@ if IN_HOUDINI:
             try:
                 request = json.loads(line)
             except json.JSONDecodeError as e:
-                import traceback
                 write_error_result(f'Invalid JSON in request: {e}')
                 continue
             if 'module' not in request or 'function' not in request:

@@ -265,7 +265,7 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
             case _:
                 yield {
                     'success': False,
-                    'error': f"Unexpected return type: {type(result)}"
+                    'error': f"Unexpected return type from {module_name}.{function_name}: {type(result)}"
                 }
 
     except ImportError as e:
@@ -291,4 +291,4 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
                     print(f"Saved HIP file: {hipfile}", file=sys.stderr)
                 except Exception as e:
                     print(f"Failed to save HIP file for {function_name}: {e}", file=sys.stderr)
-                    
+

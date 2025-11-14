@@ -5,7 +5,6 @@ This version avoids importing anything that could trigger hou imports.
 """
 
 from threading import RLock
-from typing import IO
 import pytest
 from pathlib import Path
 import sys
@@ -57,9 +56,12 @@ class HythonSession:
     def _ensure_started(self):
         """Start the hython process if not already started."""
         with self.lock:
-            if self._started and self.process and self.process.poll() is None:
-                return True
-
+            if self._started:
+                if self.process and self.process.poll() is None:
+                    return True
+                # Process died, reset state
+                self._started = False
+                self.process = None
             hython_path = shutil.which("hython")
             if not hython_path:
                 return False
