@@ -193,6 +193,14 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
     return wrapper
 
 
+def error_result(message: str) -> HoudiniResult:
+    """Helper to create an error result."""
+    return {
+        'success': False,
+        'error': message
+    }
+
+
 @contextmanager
 def invoke_houdini_function(module_name: str, function_name: str, args: tuple[str, ...]) -> Generator[HoudiniResult, None, None]:
     """
@@ -200,7 +208,6 @@ def invoke_houdini_function(module_name: str, function_name: str, args: tuple[st
 
     This is used by the _exec command to execute functions within the Houdini Python environment.
     """
-    error = ""
     try:
         import hou
         from zabob_houdini.core import _node_registry
@@ -248,11 +255,11 @@ def invoke_houdini_function(module_name: str, function_name: str, args: tuple[st
                 }
 
     except ImportError as e:
-        error = f"Module 'zabob_houdini.{module_name}' not found: {e}"
+        yield error_result(f"Module 'zabob_houdini.{module_name}' not found: {e}")
     except AttributeError as e:
-        error = f"Function '{function_name}' not found in {module_name}: {e}"
+        yield error_result(f"Function '{function_name}' not found in {module_name}: {e}")
     except Exception as e:
-        error = f"Error executing {module_name}.{function_name}: {e}"
+        yield error_result(f"Error executing {module_name}.{function_name}: {e}")
     finally:
         # Debugging feature: if the directory in TEST_HIP_DIR (default "hip")
         # exists, save a hip file into the directory, named after the test function.
@@ -267,10 +274,3 @@ def invoke_houdini_function(module_name: str, function_name: str, args: tuple[st
                 hipfile = test_hip_path / f"{function_name}.hip"
                 hou.hipFile.save(str(hipfile))
                 print(f"Saved HIP file: {hipfile}", file=sys.stderr)
-    if error:
-        yield  {
-            'success': False,
-            'error': error,
-            'traceback': traceback.format_exc()
-        }
-

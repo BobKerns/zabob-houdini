@@ -30,19 +30,15 @@ making it easy for external callers to understand what was tested and the outcom
 """
 
 from typing import Any
+from threading import Lock
+
 import hou
+
 from zabob_houdini.core import (
     ROOT, Inputs, NodeInstance, get_node_instance,
     hou_node, node, chain, wrap_node, _merge_inputs
 )
 from zabob_houdini.utils import JsonObject, JsonArray
-
-# Import pytest but make it optional for when running standalone
-try:
-    import pytest
-    PYTEST_AVAILABLE = True
-except ImportError:
-    PYTEST_AVAILABLE = False
 
 
 def test_basic_node_creation() -> JsonObject:
@@ -54,11 +50,6 @@ def test_basic_node_creation() -> JsonObject:
     # Create a box node
     box = geo.createNode("box", "test_box")
 
-    if PYTEST_AVAILABLE:
-        assert geo is not None, "Geometry node should be created"
-        assert box is not None, "Box node should be created"
-        assert geo.path().endswith("test_geo"), "Geo node should have correct name"
-        assert box.path().endswith("test_box"), "Box node should have correct name"
     return {
         'geo_path': geo.path(),
         'box_path': box.path(),
@@ -74,15 +65,6 @@ def test_zabob_node_creation() -> JsonObject:
     # Create a Zabob node and execute it
     box_node = node(geo.path(), "box", name="zabob_box", sizex=2.0, sizey=2.0, sizez=2.0)
     created_node = box_node.create(hou.OpNode)
-
-        # Use pytest assertions if available
-    if PYTEST_AVAILABLE:
-        assert created_node is not None, "Node creation should succeed"
-        assert created_node.path().endswith("zabob_box"), "Node should have correct name"
-        sizex_parm = created_node.parm('sizex')
-        assert sizex_parm is not None, "sizex parameter should exist"
-        assert abs(sizex_parm.eval() - 2.0) < 0.001, "sizex should be set to 2.0"
-
     sizex_parm = created_node.parm('sizex')
     return {
         'created_path': created_node.path(),
@@ -103,10 +85,6 @@ def test_zabob_chain_creation() -> JsonObject:
 
     processing_chain = chain(box_node, xform_node, subdivide_node)
     created_nodes = processing_chain.create()
-
-    if PYTEST_AVAILABLE:
-        assert len(created_nodes) == 3, "Chain should create 3 nodes"
-        assert all(node_inst is not None for node_inst in created_nodes), "All nodes should be created"
 
     # Get the paths from the created NodeInstance objects
     node_paths: JsonArray = [created_node.create().path() for created_node in created_nodes]
@@ -134,12 +112,6 @@ def test_node_with_inputs() -> JsonObject:
     # Check connection
     inputs_tuple = xform_created.inputs()
     input_node = inputs_tuple[0] if inputs_tuple else None
-
-    if PYTEST_AVAILABLE:
-        assert box_created is not None, "Box node should be created"
-        assert xform_created is not None, "Transform node should be created"
-        assert input_node is not None, "Transform node should have input connection"
-        assert input_node.path() == box_created.path(), "Input should be connected to box node"
 
     return {
         'box_path': box_created.path(),
@@ -231,6 +203,9 @@ def test_chain_create_returns_node_instances() -> JsonObject:
 
 
 def test_chain_convenience_methods() -> JsonObject:
+    '''
+    Test Chain convenience methods for accessing created hou.Node instances.
+    '''
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -262,6 +237,9 @@ def test_chain_convenience_methods() -> JsonObject:
 
 
 def test_chain_empty_methods() -> JsonObject:
+    '''
+    Test methods on an empty Chain.
+    '''
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -420,7 +398,6 @@ def test_chain_copy_deep_nodes() -> JsonObject:
 
 def test_chain_copy_nested() -> JsonObject:
     """Test Chain.copy() recursively copies nested chains."""
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -538,10 +515,6 @@ def test_hou_available() -> JsonObject:
     version = hou.applicationVersion()
     app_name = hou.applicationName()
 
-    if PYTEST_AVAILABLE:
-        assert version is not None, "Houdini version should be available"
-        assert app_name is not None, "Houdini application name should be available"
-
     return {
         'hou_version': list(version),
         'hou_app': app_name,
@@ -627,7 +600,6 @@ def test_merge_inputs_sparse_handling() -> JsonObject:
 
 def test_diamond_creation() -> JsonObject:
     """Test diamond pattern node creation without duplication."""
-
     # Create the container geometry node
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_diamond")
@@ -764,6 +736,9 @@ def test_geometry_node_creation(node_type: str) -> JsonObject:
 
 
 def test_node_parameters() -> JsonObject:
+    '''
+    Test setting and retrieving node parameters.
+    '''
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_params")
 
@@ -1133,6 +1108,9 @@ def test_valid_input_patterns() -> JsonObject:
 
 
 def test_node_input_validation() -> JsonObject:
+    '''
+    Test node input connections and validation.
+    '''
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_node_inputs")
 
