@@ -98,7 +98,10 @@ class HythonSession:
         if not response_line:
             raise RuntimeError("No response from hython process")
 
-        return json.loads(response_line)
+        try:
+            return json.loads(response_line)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Invalid JSON response from hython process: {response_line[:100]}") from e
 
     def close(self):
         """Close the hython process."""

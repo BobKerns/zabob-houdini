@@ -64,7 +64,26 @@ if IN_HOUDINI:
             if not line:
                 continue
 
-            request = json.loads(line)
+            try:
+                request = json.loads(line)
+            except json.JSONDecodeError as e:
+                error_result = {
+                    'success': False,
+                    'error': f'Invalid JSON in request: {e}'
+                }
+                json.dump(error_result, sys.stdout)
+                sys.stdout.write('\n')
+                sys.stdout.flush()
+                continue
+            if 'module' not in request or 'function' not in request:
+                error_result = {
+                    'success': False,
+                    'error': f'Invalid JSON in request: {request}'
+                }
+                json.dump(error_result, sys.stdout)
+                sys.stdout.write('\n')
+                sys.stdout.flush()
+                continue
             module_name = request['module']
             function_name = request['function']
             args = request.get('args', [])
