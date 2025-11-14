@@ -11,6 +11,8 @@ import sys
 import subprocess
 import json
 import shutil
+from select import select
+
 
 
 @pytest.fixture
@@ -47,11 +49,10 @@ class HythonSession:
     """Manages a persistent hython process for the test session."""
     process: subprocess.Popen | None = None
     _started: bool = False
-    lock: RLock = RLock()
+    lock: RLock
 
     def __init__(self):
-        self.process: subprocess.Popen | None = None
-        self._started = False
+        self.lock = RLock()
 
     def _ensure_started(self):
         """Start the hython process if not already started."""
@@ -102,8 +103,12 @@ class HythonSession:
                 self.process.stdin.flush()
 
                 # Read response
-                # TODO: Add timeout handling here to avoid hanging tests if hython process becomes unresponsive
-                # On timeout, kill the process and raise an error
+                # Set timeout (e.g., 30 seconds)
+                timeout = 30
+                ready, _, _ = select([self.process.stdout], [], [], timeout)
+                if not ready:
+                    self.close()
+                    raise RuntimeError("Timeout waiting for response from hython process")
                 response_line = self.process.stdout.readline().strip()
                 if not response_line:
                     raise RuntimeError("No response from hython process")
@@ -127,7 +132,10 @@ class HythonSession:
                     self.process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     self.process.kill()
-                    self.process.wait(timeout=2)
+                    try:
+                        self.process.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        pass  # Process did not terminate, but we tried our best
                 except Exception:
                     pass  # Best effort cleanup
                 finally:
