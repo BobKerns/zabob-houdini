@@ -23,7 +23,7 @@ class HythonSessionFn(Protocol):
 
 
 @pytest.fixture
-def hython_test(hython_session: HythonSession) -> HythonSessionFn:
+def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
     """
     Fixture that provides a function to run test functions in hython.
 
