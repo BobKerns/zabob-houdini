@@ -5,6 +5,7 @@ This version avoids importing anything that could trigger hou imports.
 """
 
 from threading import RLock
+from typing import IO
 import pytest
 from pathlib import Path
 import sys
@@ -92,22 +93,26 @@ class HythonSession:
                 "args": [str(arg) for arg in args]
             }
 
-            # Send request
-            request_line = json.dumps(request) + "\n"
-            self.process.stdin.write(request_line)
-            self.process.stdin.flush()
-
-            # Read response
-            # TODO: Add timeout handling here to avoid hanging tests if hython process becomes unresponsive
-            # On timeout, kill the process and raise an error
-            response_line = self.process.stdout.readline().strip()
-            if not response_line:
-                raise RuntimeError("No response from hython process")
-
             try:
-                return json.loads(response_line)
-            except json.JSONDecodeError as e:
-                raise RuntimeError(f"Invalid JSON response from hython process: {response_line[:100]}") from e
+                # Send request
+                request_line = json.dumps(request) + "\n"
+                self.process.stdin.write(request_line)
+                self.process.stdin.flush()
+
+                # Read response
+                # TODO: Add timeout handling here to avoid hanging tests if hython process becomes unresponsive
+                # On timeout, kill the process and raise an error
+                response_line = self.process.stdout.readline().strip()
+                if not response_line:
+                    raise RuntimeError("No response from hython process")
+
+                try:
+                    return json.loads(response_line)
+                except json.JSONDecodeError as e:
+                    raise RuntimeError(f"Invalid JSON response from hython process: {response_line[:100]}") from e
+            except IOError as e:
+                self.close()  # Ensure we clean up the process on error so we start fresh next time
+                raise RuntimeError(f"Error communicating with hython process: {e}") from e
 
     def close(self):
         """Close the hython process."""
@@ -123,8 +128,9 @@ class HythonSession:
                     self.process.wait(timeout=2)
                 except Exception:
                     pass  # Best effort cleanup
-                self.process = None
-            self._started = False
+                finally:
+                    self.process = None
+                    self._started = False
 
 
 @pytest.fixture(scope="session")

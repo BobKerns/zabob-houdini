@@ -30,7 +30,6 @@ making it easy for external callers to understand what was tested and the outcom
 """
 
 from typing import Any
-from threading import Lock
 
 import hou
 

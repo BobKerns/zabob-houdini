@@ -42,8 +42,7 @@ import subprocess
 import shutil
 import sys
 from pathlib import Path
-import traceback
-from typing import Any, ParamSpec, TypedDict, NotRequired, cast
+from typing import Any, ParamSpec, Sequence, TypedDict, NotRequired, cast
 
 import click
 
@@ -55,6 +54,29 @@ class HoudiniResult(TypedDict):
     result: NotRequired[JsonObject]
     error: NotRequired[str]
     traceback: NotRequired[str]
+
+
+def error_result(message: str) -> HoudiniResult:
+    """Helper to create an error result."""
+    return {
+        'success': False,
+        'error': message
+    }
+
+
+def write_response(result: HoudiniResult) -> None:
+    """Helper to write a HoudiniResult to stdout as JSON."""
+    json.dump(result, sys.stdout)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
+
+
+def write_error_result(message: str) -> None:
+    """Helper to write an error result to stdout."""
+    error_response = error_result(message)
+    json.dump(error_response, sys.stdout)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
 def _is_houdini_result(result: Any) -> bool:
@@ -193,16 +215,8 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
     return wrapper
 
 
-def error_result(message: str) -> HoudiniResult:
-    """Helper to create an error result."""
-    return {
-        'success': False,
-        'error': message
-    }
-
-
 @contextmanager
-def invoke_houdini_function(module_name: str, function_name: str, args: tuple[str, ...]) -> Generator[HoudiniResult, None, None]:
+def invoke_houdini_function(module_name: str, function_name: str, args: Sequence[str]) -> Generator[HoudiniResult, None, None]:
     """
     Helper function to invoke a Houdini function and return the result as a dictionary.
 
@@ -270,7 +284,11 @@ def invoke_houdini_function(module_name: str, function_name: str, args: tuple[st
         if test_hip_dir:
             test_hip_path = Path(test_hip_dir)
             if test_hip_path.exists():
-                import hou
-                hipfile = test_hip_path / f"{function_name}.hip"
-                hou.hipFile.save(str(hipfile))
-                print(f"Saved HIP file: {hipfile}", file=sys.stderr)
+                try:
+                    import hou
+                    hipfile = test_hip_path / f"{function_name}.hip"
+                    hou.hipFile.save(str(hipfile))
+                    print(f"Saved HIP file: {hipfile}", file=sys.stderr)
+                except Exception as e:
+                    print(f"Failed to save HIP file for {function_name}: {e}", file=sys.stderr)
+                    

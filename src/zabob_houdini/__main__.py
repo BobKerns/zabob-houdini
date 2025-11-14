@@ -9,7 +9,9 @@ import sys
 
 from zabob_houdini.cli import main as dev_main, diagnostics, info
 from zabob_houdini.__version__ import __version__, __distribution__
-from zabob_houdini.houdini_bridge import invoke_houdini_function
+from zabob_houdini.houdini_bridge import(
+    invoke_houdini_function, write_error_result, write_response,
+)
 
 IN_HOUDINI: bool = 'hou' in sys.modules
 
@@ -64,33 +66,21 @@ if IN_HOUDINI:
             try:
                 request = json.loads(line)
             except json.JSONDecodeError as e:
-                error_result = {
-                    'success': False,
-                    'error': f'Invalid JSON in request: {e}'
-                }
-                json.dump(error_result, sys.stdout)
-                sys.stdout.write('\n')
-                sys.stdout.flush()
+                import traceback
+                write_error_result(f'Invalid JSON in request: {e}')
                 continue
             if 'module' not in request or 'function' not in request:
-                error_result = {
-                    'success': False,
-                    'error': f'Missing "module" or "function" field in JSON request: {request}'
-                }
-                json.dump(error_result, sys.stdout)
-                sys.stdout.write('\n')
-                sys.stdout.flush()
+                write_error_result(f'Missing "module" or "function" field in JSON request: {request}')
                 continue
             module_name = request['module']
             function_name = request['function']
             args = request.get('args', [])
+            if not isinstance(args, list):
+                write_error_result(f'"args" field must be a list, got {type(args).__name__}')
+                continue
 
             with invoke_houdini_function(module_name, function_name, args) as result:
-                json.dump(result, sys.stdout)
-                sys.stdout.write('\n')
-                sys.stdout.flush()
-                if not result["success"]:
-                    continue  # Don't exit on individual function failure
+                write_response(result)
 
     # Add the hidden commands to the existing CLI when module is imported
     main.add_command(_exec)
