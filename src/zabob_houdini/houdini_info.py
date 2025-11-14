@@ -12,7 +12,7 @@ from weakref import WeakKeyDictionary
 import click
 import hou
 
-from zabob_houdini.houdini_bridge import JsonValue
+from zabob_houdini.utils import JsonValue
 
 JsonData: TypeAlias = JsonValue
 '''

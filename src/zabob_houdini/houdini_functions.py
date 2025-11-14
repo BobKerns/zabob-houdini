@@ -39,10 +39,9 @@ import sys
 from pathlib import Path
 import hou
 from zabob_houdini.core import node, chain, hou_node
-from zabob_houdini.houdini_bridge import houdini_message, houdini_result, JsonObject
+from zabob_houdini.houdini_bridge import JsonObject
 
 
-@houdini_message
 def simple_houdini_test() -> str:
     """Simple test that creates a box node."""
     # Get or create geometry node
@@ -55,7 +54,6 @@ def simple_houdini_test() -> str:
     return f"Created box at: {box.path()}"
 
 
-@houdini_result
 def chain_creation_test() -> JsonObject:
     """Test creating a chain using Zabob API in hython."""
     # Get or create geometry node
@@ -79,7 +77,6 @@ def chain_creation_test() -> JsonObject:
     }
 
 
-@houdini_message
 def create_test_chain() -> str:
     """Create a test processing chain for CLI testing."""
     # Ensure we have a geometry node
@@ -99,7 +96,6 @@ def create_test_chain() -> str:
     return f"Chain created successfully: {len(result)} nodes"
 
 
-@houdini_result
 def get_houdini_info() -> JsonObject:
     """Get Houdini environment information."""
     try:

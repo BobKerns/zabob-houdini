@@ -87,17 +87,6 @@ def test_node_input_connections(hython_test):
     assert result_data["connection_exists"] is True
     assert result_data["connected_to"] == result_data["box_path"]
 
-
-@pytest.mark.skip(reason="Example of environment-specific test")
-@pytest.mark.integration
-def test_direct_houdini_check(houdini_available):
-    """Example test that checks if running directly in Houdini."""
-    if not houdini_available:
-        pytest.skip("Not running in Houdini environment")
-
-    # This would only run if we're actually in hython
-    assert houdini_available is True
-
 @pytest.mark.integration
 def test_node_parentage(hython_test):
     """Test that created nodes have correct parentage."""

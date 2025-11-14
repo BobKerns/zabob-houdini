@@ -3,6 +3,7 @@ Test for the Houdini bridge functionality.
 """
 
 import json
+from sys import stderr
 import pytest
 import subprocess
 from unittest.mock import patch, Mock
@@ -42,7 +43,7 @@ def test_call_houdini_function_subprocess_logic():
         assert result['result']['message'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'houdini_functions', 'test_function', 'arg1', 'arg2'
-        ], check=True, capture_output=True, text=True)
+        ], check=True, capture_output=True, text=True, stderr=None)
 
 
 @pytest.mark.unit
@@ -86,7 +87,7 @@ def test_call_houdini_function_module_parameter():
         assert result['result']['message'] == "test result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'custom_module', 'test_func', 'arg1'
-        ], check=True, capture_output=True, text=True)
+        ], check=True, capture_output=True, text=True, stderr=None)
 
 import pytest
 import subprocess
@@ -153,7 +154,7 @@ def test_call_houdini_function_subprocess():
         assert result['result']['message'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'houdini_functions', 'test_function', 'arg1', 'arg2'
-        ], check=True, capture_output=True, text=True)
+        ], check=True, capture_output=True, text=True, stderr=None)
 
 
 @pytest.mark.unit

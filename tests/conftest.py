@@ -10,7 +10,6 @@ import sys
 import subprocess
 import json
 import shutil
-from typing import Optional
 
 
 @pytest.fixture
@@ -47,12 +46,12 @@ class HythonSession:
     """Manages a persistent hython process for the test session."""
 
     def __init__(self):
-        self.process: Optional[subprocess.Popen] = None
+        self.process: subprocess.Popen | None = None
         self._started = False
 
     def _ensure_started(self):
         """Start the hython process if not already started."""
-        if self._started and self.process:
+        if self._started and self.process and self.process.poll() is None:
             return True
 
         hython_path = shutil.which("hython")
@@ -93,6 +92,8 @@ class HythonSession:
         self.process.stdin.flush()
 
         # Read response
+        # TODO: Add timeout handling here to avoid hanging tests if hython process becomes unresponsive
+        # On timeout, kill the process and raise an error
         response_line = self.process.stdout.readline().strip()
         if not response_line:
             raise RuntimeError("No response from hython process")
