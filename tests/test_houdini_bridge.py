@@ -3,6 +3,7 @@ Test for the Houdini bridge functionality.
 """
 
 import json
+
 import pytest
 import subprocess
 from unittest.mock import patch, Mock
@@ -12,7 +13,7 @@ def message(msg: str) -> str:
     """Helper function to create a message dict."""
     return json.dumps({"success": True, "result": {"message": msg}})
 
-@pytest.mark.unit
+
 @pytest.mark.unit
 def test_is_in_houdini_detection_when_available():
     """Test detection when hou module is available."""
@@ -87,11 +88,6 @@ def test_call_houdini_function_module_parameter():
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'custom_module', 'test_func', 'arg1'
         ], check=True, capture_output=True, text=True)
-
-import pytest
-import subprocess
-from unittest.mock import patch, Mock
-from zabob_houdini.houdini_bridge import call_houdini_function, _is_in_houdini
 
 
 @pytest.mark.unit

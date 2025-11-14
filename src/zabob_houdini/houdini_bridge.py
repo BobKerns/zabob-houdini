@@ -33,87 +33,26 @@ This approach provides:
 4. **JSON Compatibility**: All data is JSON-serializable for subprocess calls
 """
 
-from collections.abc import Callable
-from curses import raw
+from collections.abc import Callable, Generator, Sequence
+from contextlib import contextmanager
 import functools
 import json
-from pydoc import cli
+import os
 import subprocess
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, ParamSpec, TypeAlias, TypedDict, NotRequired, cast
+from typing import Any, ParamSpec, cast
 
 import click
 
-from zabob_houdini.utils import JsonObject, JsonValue
+from zabob_houdini.utils import (
+    JsonValue, HoudiniResult, error_result, _is_houdini_result
+)
 
-class HoudiniResult(TypedDict):
-    """Result structure from Houdini function calls."""
-    success: bool
-    result: NotRequired[JsonObject]
-    error: NotRequired[str]
-    traceback: NotRequired[str]
 
 P = ParamSpec('P')
 
-def houdini_result(func: Callable[P, dict[str, JsonValue]]) -> Callable[P, HoudiniResult]:
-    """
-    Decorator that converts function return values to JSON result values.
-
-    The decorated function will return a JSON string representation of the
-    original return value, while preserving the exact parameter types and names
-    of the original function.
-
-    Args:
-        func: Function to decorate
-
-    Returns:
-        Decorated function that returns JSON strings with preserved parameter types
-
-    Example:
-        @json_result
-        def get_node_info(node: hou.Node, include_parms: bool = False) -> str:
-            return {"name": node.name(), "type": node.type().name()}
-
-        # Type checker knows the parameters: get_node_info(node: hou.Node, include_parms: bool = False) -> str
-        # Returns: '{"name": "geo1", "type": "geo"}'
-    """
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> HoudiniResult:
-        try:
-            result = func(*args, **kwargs)
-            return {
-                'success': True,
-                'result': result
-                }
-        except Exception as e:
-            import traceback
-            return {
-                'success': False,
-                'error': str(e),
-                'traceback': traceback.format_exc()
-            }
-
-    return wrapper
-
-def houdini_message(func: Callable[P, str]) -> Callable[P, HoudiniResult]:
-    """
-    Decorator that converts a function returning a string message to a HoudiniResult.
-
-    The decorated function will return a HoudiniResult with the message in the 'result' field.
-
-    Args:
-        func: Function to decorate
-
-    Returns:
-        Decorated function that returns a HoudiniResult with the message
-    """
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> dict[str, JsonValue]:
-        message = func(*args, **kwargs)
-        return {'message': message}
-    return houdini_result(wrapper)
 
 def _is_in_houdini() -> bool:
     """Check if we're currently running in Houdini Python environment."""
@@ -204,6 +143,7 @@ def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
         msg = f"ERROR: hython -m zabob_houdini {func_name} {joined} failed: {e.returncode}"
         print(msg, file=sys.stderr)
 
+
 def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
     """
     Decorator to create a Houdini command that can be called from the command line.
@@ -233,3 +173,113 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
             _run_command_via_subprocess(name, cmd_args)
 
     return wrapper
+
+
+@contextmanager
+def invoke_houdini_function(module_name: str, function_name: str, args: Sequence[JsonValue]) -> Generator[HoudiniResult, None, None]:
+    """
+    Helper function to invoke a Houdini function and return the result as a dictionary.
+
+    This is used by the _exec and _batch_exec commands to execute functions within
+    the Houdini Python environment.
+
+    Use this as a context manager with the following pattern:
+
+        with invoke_houdini_function(module_name, function_name, args) as result:
+            # result is a HoudiniResult dictionary
+            if result['success']:
+                # Process result['result']
+            else:
+                # Handle error in result['error']
+
+    Args:
+        module_name: Name of the module within zabob_houdini package
+        function_name: Name of the function to call
+        args: Sequence of JSON (usually string) arguments to pass to the function
+
+    Yields:
+        HoudiniResult: Dictionary with 'success', 'result'/'error', and optional 'traceback'
+
+    Side Effects:
+        - Clears the node registry before execution
+        - Clears the hip file before execution
+        - Optionally saves hip file to `TEST_HIP_DIR` if directory exists
+          - Set `TEST_HIP_DIR` to empty string or non-existent directory to disable this feature
+          - See `DEVELOPMENT.md` for details on this debugging feature
+
+    Notes:
+        - The `TEST_HIP_DIR` debugging feature is documented in the finally block.
+        - All data is JSON-serializable for subprocess calls.
+    """
+    try:
+        import hou
+        from zabob_houdini.core import _node_registry
+        _node_registry.clear()  # Clear the node registry to avoid stale references between tests
+        hou.hipFile.clear()  # Clear the current hip file to avoid stale state between tests
+        # Import the specified module and call the requested function
+        houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
+        func = getattr(houdini_module, function_name)
+
+        # Call function with arguments and capture result
+        result = func(*args)
+        match result:
+            case str():
+                yield {
+                    'success': True,
+                    'result': {
+                        'message': result
+                    }
+                }
+            case int()|float()|bool()|list():
+                yield {
+                    'success': True,
+                    'result': {
+                        'value': result
+                    }
+                }
+            case tuple():
+                yield {
+                    'success': True,
+                    'result': {
+                        'value': list(result)
+                    }
+                }
+            case Path():
+                yield {
+                    'success': True,
+                    'result': {
+                        'path': str(result)
+                    }
+                }
+            case dict() if _is_houdini_result(result):
+                yield cast(HoudiniResult, result)
+            case dict():
+                yield {
+                    'success': True,
+                    'result': result
+                }
+            case _:
+                yield {
+                    'success': False,
+                    'error': f"Unexpected return type from {module_name}.{function_name}: {type(result)}"
+                }
+
+    except ImportError as e:
+        yield error_result(f"Module 'zabob_houdini.{module_name}' not found: {e}")
+    except AttributeError as e:
+        yield error_result(f"Function '{function_name}' not found in {module_name}: {e}")
+    except Exception as e:
+        yield error_result(f"Error executing {module_name}.{function_name}: {e}")
+    finally:
+        test_hip_dir = os.environ.get("TEST_HIP_DIR", "hip")
+        if test_hip_dir:
+            test_hip_path = Path(test_hip_dir)
+            if test_hip_path.exists():
+                try:
+                    import hou
+                    hipfile = test_hip_path / f"{function_name}.hip"
+                    hou.hipFile.save(str(hipfile))
+                    print(f"Saved HIP file: {hipfile}", file=sys.stderr)
+                except Exception as e:
+                    print(f"Failed to save HIP file for {function_name}: {e}", file=sys.stderr)
+

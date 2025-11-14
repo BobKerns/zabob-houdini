@@ -30,25 +30,18 @@ making it easy for external callers to understand what was tested and the outcom
 """
 
 from typing import Any
+
 import hou
-from zabob_houdini.core import ROOT, Inputs, NodeInstance, get_node_instance, hou_node, node, chain, wrap_node
-from zabob_houdini.houdini_bridge import houdini_result
+
+from zabob_houdini.core import (
+    ROOT, Inputs, NodeInstance, get_node_instance,
+    hou_node, node, chain, wrap_node, _merge_inputs
+)
 from zabob_houdini.utils import JsonObject, JsonArray
 
-# Import pytest but make it optional for when running standalone
-try:
-    import pytest
-    PYTEST_AVAILABLE = True
-except ImportError:
-    PYTEST_AVAILABLE = False
 
-
-@houdini_result
 def test_basic_node_creation() -> JsonObject:
     """Test basic node creation in Houdini."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create a geometry object
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -56,24 +49,14 @@ def test_basic_node_creation() -> JsonObject:
     # Create a box node
     box = geo.createNode("box", "test_box")
 
-    if PYTEST_AVAILABLE:
-        assert geo is not None, "Geometry node should be created"
-        assert box is not None, "Box node should be created"
-        assert geo.path().endswith("test_geo"), "Geo node should have correct name"
-        assert box.path().endswith("test_box"), "Box node should have correct name"
     return {
         'geo_path': geo.path(),
         'box_path': box.path(),
     }
 
 
-
-@houdini_result
 def test_zabob_node_creation() -> JsonObject:
     """Test Zabob NodeInstance creation in Houdini."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create a geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -81,15 +64,6 @@ def test_zabob_node_creation() -> JsonObject:
     # Create a Zabob node and execute it
     box_node = node(geo.path(), "box", name="zabob_box", sizex=2.0, sizey=2.0, sizez=2.0)
     created_node = box_node.create(hou.OpNode)
-
-        # Use pytest assertions if available
-    if PYTEST_AVAILABLE:
-        assert created_node is not None, "Node creation should succeed"
-        assert created_node.path().endswith("zabob_box"), "Node should have correct name"
-        sizex_parm = created_node.parm('sizex')
-        assert sizex_parm is not None, "sizex parameter should exist"
-        assert abs(sizex_parm.eval() - 2.0) < 0.001, "sizex should be set to 2.0"
-
     sizex_parm = created_node.parm('sizex')
     return {
         'created_path': created_node.path(),
@@ -97,12 +71,8 @@ def test_zabob_node_creation() -> JsonObject:
     }
 
 
-@houdini_result
 def test_zabob_chain_creation() -> JsonObject:
     """Test Zabob Chain creation in Houdini."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create a geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -115,10 +85,6 @@ def test_zabob_chain_creation() -> JsonObject:
     processing_chain = chain(box_node, xform_node, subdivide_node)
     created_nodes = processing_chain.create()
 
-    if PYTEST_AVAILABLE:
-        assert len(created_nodes) == 3, "Chain should create 3 nodes"
-        assert all(node_inst is not None for node_inst in created_nodes), "All nodes should be created"
-
     # Get the paths from the created NodeInstance objects
     node_paths: JsonArray = [created_node.create().path() for created_node in created_nodes]
 
@@ -128,12 +94,8 @@ def test_zabob_chain_creation() -> JsonObject:
     }
 
 
-@houdini_result
 def test_node_with_inputs() -> JsonObject:
     """Test node creation with input connections."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create a geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -150,12 +112,6 @@ def test_node_with_inputs() -> JsonObject:
     inputs_tuple = xform_created.inputs()
     input_node = inputs_tuple[0] if inputs_tuple else None
 
-    if PYTEST_AVAILABLE:
-        assert box_created is not None, "Box node should be created"
-        assert xform_created is not None, "Transform node should be created"
-        assert input_node is not None, "Transform node should have input connection"
-        assert input_node.path() == box_created.path(), "Input should be connected to box node"
-
     return {
         'box_path': box_created.path(),
         'xform_path': xform_created.path(),
@@ -164,12 +120,8 @@ def test_node_with_inputs() -> JsonObject:
     }
 
 
-@houdini_result
 def test_caching_node_instance_create() -> JsonObject:
     """Test NodeInstance.create() caching behavior."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -192,12 +144,8 @@ def test_caching_node_instance_create() -> JsonObject:
     }
 
 
-@houdini_result
 def test_different_instances_different_nodes() -> JsonObject:
     """Test different NodeInstance objects create different nodes."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -220,12 +168,8 @@ def test_different_instances_different_nodes() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_create_returns_node_instances() -> JsonObject:
     """Test Chain.create() returns tuple of NodeInstance copies."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -257,12 +201,10 @@ def test_chain_create_returns_node_instances() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_convenience_methods() -> JsonObject:
-    """Test Chain convenience methods."""
-    # Clear the scene
-    hou.hipFile.clear()
-
+    '''
+    Test Chain convenience methods for accessing created hou.Node instances.
+    '''
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -293,12 +235,10 @@ def test_chain_convenience_methods() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_empty_methods() -> JsonObject:
-    """Test Chain convenience methods on empty chain."""
-    # Clear the scene
-    hou.hipFile.clear()
-
+    '''
+    Test methods on an empty Chain.
+    '''
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -333,12 +273,8 @@ def test_chain_empty_methods() -> JsonObject:
     }
 
 
-@houdini_result
 def test_node_instance_copy() -> JsonObject:
     """Test NodeInstance.copy() creates independent copies."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -369,12 +305,8 @@ def test_node_instance_copy() -> JsonObject:
     }
 
 
-@houdini_result
 def test_node_instance_copy_with_inputs() -> JsonObject:
     """Test NodeInstance.copy() with various input types."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -404,12 +336,8 @@ def test_node_instance_copy_with_inputs() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_copy() -> JsonObject:
     """Test Chain.copy() creates independent copy."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -436,12 +364,9 @@ def test_chain_copy() -> JsonObject:
         'nodes_not_equal': nodes_not_equal,
     }
 
-@houdini_result
+
 def test_chain_copy_deep_nodes() -> JsonObject:
     """Test Chain.copy() deep copies NodeInstances."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -470,12 +395,8 @@ def test_chain_copy_deep_nodes() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_copy_nested() -> JsonObject:
     """Test Chain.copy() recursively copies nested chains."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -506,12 +427,8 @@ def test_chain_copy_nested() -> JsonObject:
     }
 
 
-@houdini_result
 def test_empty_chain_create() -> JsonObject:
     """Test Chain.create() with empty chain returns empty tuple."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -528,12 +445,9 @@ def test_empty_chain_create() -> JsonObject:
         'tuple_length': tuple_length,
     }
 
-@houdini_result
+
 def test_node_copy_non_chain_inputs() -> JsonObject:
     """Test NodeInstance.copy() preserves non-Chain inputs as-is."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -559,12 +473,8 @@ def test_node_copy_non_chain_inputs() -> JsonObject:
     }
 
 
-@houdini_result
 def test_node_registry() -> JsonObject:
     """Test NodeInstance registry functionality."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -599,27 +509,19 @@ def test_node_registry() -> JsonObject:
     }
 
 
-@houdini_result
 def test_hou_available() -> JsonObject:
     """Simple test to verify hou module is available."""
     version = hou.applicationVersion()
     app_name = hou.applicationName()
-
-    if PYTEST_AVAILABLE:
-        assert version is not None, "Houdini version should be available"
-        assert app_name is not None, "Houdini application name should be available"
 
     return {
         'hou_version': list(version),
         'hou_app': app_name,
     }
 
-@houdini_result
+
 def test_node_parentage() -> JsonObject:
     """Test that parentage is correctly handled in NodeInstance."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create geometry object for testing
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -634,14 +536,8 @@ def test_node_parentage() -> JsonObject:
     }
 
 
-@houdini_result
 def test_merge_inputs_sparse_handling() -> JsonObject:
     """Test _merge_inputs function with sparse (None) inputs."""
-    from zabob_houdini.core import _merge_inputs, node
-
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create test nodes to use as inputs
     obj = hou_node("/obj")
     geo = obj.createNode("geo", "test_geo")
@@ -701,12 +597,8 @@ def test_merge_inputs_sparse_handling() -> JsonObject:
 
 # New test functions for integration tests
 
-@houdini_result
 def test_diamond_creation() -> JsonObject:
     """Test diamond pattern node creation without duplication."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     # Create the container geometry node
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_diamond")
@@ -762,12 +654,8 @@ def test_diamond_creation() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_connections() -> JsonObject:
     """Test that chain input connections work correctly."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_connections")
 
@@ -801,12 +689,8 @@ def test_chain_connections() -> JsonObject:
     }
 
 
-@houdini_result
 def test_merge_connections() -> JsonObject:
     """Test merge node with multiple inputs."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_merge")
 
@@ -835,12 +719,8 @@ def test_merge_connections() -> JsonObject:
     }
 
 
-@houdini_result
 def test_geometry_node_creation(node_type: str) -> JsonObject:
     """Test creation of various geometry node types."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", f"test_{node_type}")
 
@@ -854,12 +734,10 @@ def test_geometry_node_creation(node_type: str) -> JsonObject:
     }
 
 
-@houdini_result
 def test_node_parameters() -> JsonObject:
-    """Test that node parameters are set correctly."""
-    # Clear the scene
-    hou.hipFile.clear()
-
+    '''
+    Test setting and retrieving node parameters.
+    '''
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_params")
 
@@ -892,12 +770,8 @@ def test_node_parameters() -> JsonObject:
 
 # Additional test functions for the new unit tests
 
-@houdini_result
 def test_basic_input_connections() -> JsonObject:
     """Test that input connections are set up correctly on nodes."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_connections")
 
@@ -952,12 +826,8 @@ def test_basic_input_connections() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_input_delegation() -> JsonObject:
     """Test that Chain.inputs properly delegates to first node."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_delegation")
 
@@ -987,12 +857,8 @@ def test_chain_input_delegation() -> JsonObject:
     }
 
 
-@houdini_result
 def test_multiple_inputs_basic() -> JsonObject:
     """Test that nodes can accept multiple inputs correctly."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_multi")
 
@@ -1023,12 +889,8 @@ def test_multiple_inputs_basic() -> JsonObject:
 # - test_node_parameters (for parameter setting)
 
 
-@houdini_result
 def test_diamond_no_duplication() -> JsonObject:
     """Test that diamond pattern doesn't create duplicate nodes - this should expose the bug!"""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_diamond_duplication")
 
@@ -1092,12 +954,8 @@ def test_diamond_no_duplication() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_reference_vs_copy() -> JsonObject:
     """Test that chains are referenced, not copied when used as inputs."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_reference_vs_copy")
 
@@ -1133,12 +991,8 @@ def test_chain_reference_vs_copy() -> JsonObject:
     }
 
 
-@houdini_result
 def test_parameter_validation() -> JsonObject:
     """Test parameter validation in Houdini environment."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_validation")
 
@@ -1179,12 +1033,8 @@ def test_parameter_validation() -> JsonObject:
     }
 
 
-@houdini_result
 def test_chain_rejects_input_parameter() -> JsonObject:
     """Test that chain() properly rejects the deprecated _input parameter."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_rejection")
 
@@ -1225,12 +1075,8 @@ def test_chain_rejects_input_parameter() -> JsonObject:
     }
 
 
-@houdini_result
 def test_valid_input_patterns() -> JsonObject:
     """Test that valid input patterns work correctly."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_valid")
 
@@ -1260,12 +1106,10 @@ def test_valid_input_patterns() -> JsonObject:
     }
 
 
-@houdini_result
 def test_node_input_validation() -> JsonObject:
-    """Test that individual node input validation works."""
-    # Clear the scene
-    hou.hipFile.clear()
-
+    '''
+    Test node input connections and validation.
+    '''
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_node_inputs")
 
@@ -1301,12 +1145,8 @@ def test_node_input_validation() -> JsonObject:
     }
 
 
-@houdini_result
 def test_invalid_input_types(input_type: str) -> JsonObject:
     """Test that invalid input types are handled appropriately."""
-    # Clear the scene
-    hou.hipFile.clear()
-
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_invalid")
 

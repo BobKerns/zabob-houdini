@@ -9,6 +9,7 @@ bgeo
 bgeoc
 blosc
 colorspace
+conftest
 dataclasses
 debugpy
 diffable

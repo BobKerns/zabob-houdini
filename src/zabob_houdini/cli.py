@@ -20,7 +20,8 @@ import click
 import os
 import sys
 
-from zabob_houdini.houdini_bridge import JsonValue, call_houdini_function, houdini_command
+from zabob_houdini.houdini_bridge import call_houdini_function, houdini_command
+from zabob_houdini.utils import JsonValue
 from zabob_houdini.__version__ import __version__, __distribution__
 
 def get_environment_info() -> dict[str, JsonValue]:
