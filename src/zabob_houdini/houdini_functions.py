@@ -39,7 +39,7 @@ import sys
 from pathlib import Path
 import hou
 from zabob_houdini.core import node, chain, hou_node
-from zabob_houdini.houdini_bridge import JsonObject
+from zabob_houdini.utils import JsonObject
 
 
 def simple_houdini_test() -> str:

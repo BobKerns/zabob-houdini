@@ -33,7 +33,7 @@ This approach provides:
 4. **JSON Compatibility**: All data is JSON-serializable for subprocess calls
 """
 
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 import functools
 import json
@@ -42,54 +42,14 @@ import subprocess
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, ParamSpec, Sequence, TypedDict, NotRequired, cast
+from typing import Any, ParamSpec, cast
 
 import click
 
-from zabob_houdini.utils import JsonObject
+from zabob_houdini.utils import (
+    JsonValue, HoudiniResult, error_result, _is_houdini_result
+)
 
-class HoudiniResult(TypedDict):
-    """Result structure from Houdini function calls."""
-    success: bool
-    result: NotRequired[JsonObject]
-    error: NotRequired[str]
-    traceback: NotRequired[str]
-
-
-def error_result(message: str) -> HoudiniResult:
-    """Helper to create an error result."""
-    return {
-        'success': False,
-        'error': message
-    }
-
-
-def write_response(result: HoudiniResult) -> None:
-    """Helper to write a HoudiniResult to stdout as JSON."""
-    json.dump(result, sys.stdout)
-    sys.stdout.write('\n')
-    sys.stdout.flush()
-
-
-def write_error_result(message: str) -> None:
-    """Helper to write an error result to stdout."""
-    error_response = error_result(message)
-    json.dump(error_response, sys.stdout)
-    sys.stdout.write('\n')
-    sys.stdout.flush()
-
-
-def _is_houdini_result(result: Any) -> bool:
-    """Check if the result is a valid HoudiniResult."""
-    if not isinstance(result, dict):
-        return False
-    if 'success' not in result or not isinstance(result['success'], bool):
-        return False
-    if result['success'] and "result" in result:
-        return True
-    if not result['success'] and "error" in result:
-        return True
-    return False
 
 P = ParamSpec('P')
 
@@ -152,7 +112,7 @@ def _run_function_via_subprocess(func_name: str, args: tuple,
 
     cmd = [str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, stderr=None)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
         cmdline_args = ' '.join(str_args)
@@ -216,11 +176,40 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
 
 
 @contextmanager
-def invoke_houdini_function(module_name: str, function_name: str, args: Sequence[str]) -> Generator[HoudiniResult, None, None]:
+def invoke_houdini_function(module_name: str, function_name: str, args: Sequence[JsonValue]) -> Generator[HoudiniResult, None, None]:
     """
     Helper function to invoke a Houdini function and return the result as a dictionary.
 
-    This is used by the _exec command to execute functions within the Houdini Python environment.
+    This is used by the _exec and _batch_exec commands to execute functions within
+    the Houdini Python environment.
+
+    Use this as a context manager with the following pattern:
+
+        with invoke_houdini_function(module_name, function_name, args) as result:
+            # result is a HoudiniResult dictionary
+            if result['success']:
+                # Process result['result']
+            else:
+                # Handle error in result['error']
+
+    Args:
+        module_name: Name of the module within zabob_houdini package
+        function_name: Name of the function to call
+        args: Sequence of JSON (usually string) arguments to pass to the function
+
+    Yields:
+        HoudiniResult: Dictionary with 'success', 'result'/'error', and optional 'traceback'
+
+    Side Effects:
+        - Clears the node registry before execution
+        - Clears the hip file before execution
+        - Optionally saves hip file to `TEST_HIP_DIR` if directory exists
+          - Set `TEST_HIP_DIR` to empty string or non-existent directory to disable this feature
+          - See `DEVELOPMENT.md` for details on this debugging feature
+
+    Notes:
+        - The `TEST_HIP_DIR` debugging feature is documented in the finally block.
+        - All data is JSON-serializable for subprocess calls.
     """
     try:
         import hou
@@ -246,6 +235,13 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
                     'success': True,
                     'result': {
                         'value': result
+                    }
+                }
+            case tuple():
+                yield {
+                    'success': True,
+                    'result': {
+                        'value': list(result)
                     }
                 }
             case Path():
@@ -275,11 +271,6 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
     except Exception as e:
         yield error_result(f"Error executing {module_name}.{function_name}: {e}")
     finally:
-        # Debugging feature: if the directory in TEST_HIP_DIR (default "hip")
-        # exists, save a hip file into the directory, named after the test function.
-        # To disable, set TEST_HIP_DIR to an empty string or a non-existent directory.
-        # This is a documented debugging feature, do not remove!
-        # See DEVELOPMENT.md for details.
         test_hip_dir = os.environ.get("TEST_HIP_DIR", "hip")
         if test_hip_dir:
             test_hip_path = Path(test_hip_dir)

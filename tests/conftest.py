@@ -4,6 +4,7 @@ Safe pytest fixtures for Houdini testing.
 This version avoids importing anything that could trigger hou imports.
 """
 
+from typing import Protocol
 from threading import RLock
 import pytest
 from pathlib import Path
@@ -11,21 +12,29 @@ import sys
 import subprocess
 import json
 import shutil
-from select import select
 
+from zabob_houdini.utils import JsonValue, HoudiniResult
+
+
+class HythonSessionFn(Protocol):
+    """A function that can be called to execute a function in the hython environment."""
+    def __call__(self, test_func_name: str, *args: JsonValue,
+                 module: str = "houdini_test_functions" ) -> HoudiniResult: ...
 
 
 @pytest.fixture
-def hython_test(hython_session):
+def hython_test(hython_session: HythonSession) -> HythonSessionFn:
     """
     Fixture that provides a function to run test functions in hython.
 
     Uses persistent hython session that starts on first use.
     """
-    def run_houdini_test(test_func_name: str, *args):
+    def run_houdini_test(test_func_name: str, *args: JsonValue,
+                         module: str = "houdini_test_functions") -> HoudiniResult:
         """Run a test function in hython and validate the result."""
         try:
-            result = hython_session.call_function(test_func_name, *args)
+            result = hython_session.call_function(test_func_name, *args,
+                                                                module=module)
         except RuntimeError as e:
             if "Could not start hython" in str(e):
                 pytest.skip("hython not found - Houdini not installed or not in PATH")
@@ -66,23 +75,42 @@ class HythonSession:
             hython_path = shutil.which("hython")
             if not hython_path:
                 return False
+            retries = 3
+            for _ in range(retries):
+                try:
+                    self.process = subprocess.Popen(
+                        [hython_path, "-m", "zabob_houdini", "_batch_exec"],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        # Pass stderr through for transparency in case of errors
+                        stderr=None,
+                        text=True,
+                        bufsize=1  # Line buffered
+                    )
+                    if (self.process.poll() is None
+                        and self.process.stdout
+                        and self.process.stdin
+                        and not self.process.stdout.closed
+                        and not self.process.stdin.closed
+                        ):
+                            self._started = True
+                            return True
+                except Exception:
+                    pass
+            return False
 
-            try:
-                self.process = subprocess.Popen(
-                    [hython_path, "-m", "zabob_houdini", "_batch_exec"],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=None,
-                    text=True,
-                    bufsize=1  # Line buffered
-                )
-                self._started = True
-                return True
-            except Exception:
-                return False
+    def call_function(self, func_name: str, *args, module: str = "houdini_test_functions") -> HoudiniResult:
+        """
+        Call a function in the persistent hython process.
 
-    def call_function(self, func_name: str, *args, module: str = "houdini_test_functions"):
-        """Call a function in the persistent hython process."""
+        Args:
+            func_name: Name of the function to call in the specified module.
+            args: Arguments to pass to the function.
+            module: Module name where the function is defined (default "houdini_test_functions").
+
+        Returns:
+            A dictionary with the result of the function call, including success status and any returned data.
+        """
         with self.lock:
             if not self._ensure_started():
                 raise RuntimeError("Could not start hython process")
@@ -103,19 +131,28 @@ class HythonSession:
                 self.process.stdin.flush()
 
                 # Read response
-                # Set timeout (e.g., 30 seconds)
-                timeout = 30
-                ready, _, _ = select([self.process.stdout], [], [], timeout)
-                if not ready:
-                    self.close()
-                    raise RuntimeError("Timeout waiting for response from hython process")
+                if sys.platform == "win32":
+                    # On windows, select does not work with pipes, so we just accept
+                    # the possibility of aa test hanging. If it becomes a problem,
+                    # test under WSL.
+                    pass
+                else:
+                    # Set timeout (e.g., 30 seconds)
+                    timeout = 30
+                    from select import select
+                    ready, _, _ = select([self.process.stdout], [], [], timeout)
+                    if not ready:
+                        self.close()
+                        raise RuntimeError("Timeout waiting for response from hython process")
                 response_line = self.process.stdout.readline().strip()
                 if not response_line:
+                    self.close()
                     raise RuntimeError("No response from hython process")
 
                 try:
                     return json.loads(response_line)
                 except json.JSONDecodeError as e:
+                    self.close()
                     raise RuntimeError(f"Invalid JSON response from hython process: {response_line[:100]}") from e
             except IOError as e:
                 self.close()  # Ensure we clean up the process on error so we start fresh next time

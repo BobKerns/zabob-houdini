@@ -9,9 +9,8 @@ import sys
 
 from zabob_houdini.cli import main as dev_main, diagnostics, info
 from zabob_houdini.__version__ import __version__, __distribution__
-from zabob_houdini.houdini_bridge import(
-    invoke_houdini_function, write_error_result, write_response,
-)
+from zabob_houdini.houdini_bridge import invoke_houdini_function
+from zabob_houdini.utils import write_error_result, write_response
 
 IN_HOUDINI: bool = 'hou' in sys.modules
 
