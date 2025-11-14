@@ -3,7 +3,7 @@ Test for the Houdini bridge functionality.
 """
 
 import json
-from sys import stderr
+
 import pytest
 import subprocess
 from unittest.mock import patch, Mock
