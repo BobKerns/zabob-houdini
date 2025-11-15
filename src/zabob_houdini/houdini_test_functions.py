@@ -1186,3 +1186,101 @@ def test_invalid_input_types(input_type: str) -> JsonObject:
 
     else:
         return {'handled_appropriately': False, 'unknown_input_type': input_type}
+
+
+def test_enhanced_copy_functionality():
+    """Collect data about enhanced copy functionality for test validation."""
+    # Create a geometry container
+    geo = node("/obj", "geo", name="test_geo")
+
+    # Create a base node
+    box = node(geo, "box", name="original_box", sizex=2, sizey=3, _display=False)
+
+    # Test 1: Copy with new attributes
+    box_with_attrs = box.copy(attributes={"sizez": 4, "sizex": 5})  # sizex should override
+
+    # Test 2: Copy with new name
+    renamed_box = box.copy(name="renamed_box")
+
+    # Test 3: Copy with display/render flags
+    display_box = box.copy(_display=True, _render=True)
+
+    # Test 4: Copy with all parameters
+    sphere = node(geo, "sphere", name="input_sphere")
+    complex_copy = box.copy(
+        _inputs=[sphere],
+        name="complex_box",
+        attributes={"divisions": 10},
+        _display=True,
+        _render=False
+    )
+
+    # Test 5: None parameters preserve originals
+    preserved = box.copy(
+        name=None,
+        attributes=None,
+        _display=None,
+        _render=None
+    )
+
+    # Collect all data for assertions in the test case
+    return {
+        "original": {
+            "name": box.name,
+            "attributes": dict(box.attributes),
+            "display": box._display,
+            "render": box._render
+        },
+        "attributes_copy": {
+            "name": box_with_attrs.name,
+            "attributes": dict(box_with_attrs.attributes)
+        },
+        "renamed_copy": {
+            "name": renamed_box.name
+        },
+        "display_copy": {
+            "display": display_box._display,
+            "render": display_box._render
+        },
+        "complex_copy": {
+            "name": complex_copy.name,
+            "attributes": dict(complex_copy.attributes),
+            "has_inputs": len(complex_copy.inputs) > 0,
+            "display": complex_copy._display,
+            "render": complex_copy._render
+        },
+        "preserved_copy": {
+            "name": preserved.name,
+            "attributes": dict(preserved.attributes),
+            "display": preserved._display,
+            "render": preserved._render
+        }
+    }
+
+
+def test_copy_signature_validation():
+    """Collect copy method signature information for validation."""
+    import inspect
+
+    # Create a simple node to test the signature
+    geo = node("/obj", "geo")
+    box = node(geo, "box")
+
+    # Check the copy method signature
+    sig = inspect.signature(box.copy)
+    params = sig.parameters
+
+    # Collect signature information
+    param_names = list(params.keys())
+    keyword_only = [p.name for p in params.values() if p.kind == p.KEYWORD_ONLY]
+
+    return {
+        "all_parameters": param_names,
+        "keyword_only_parameters": keyword_only,
+        "has_inputs": "_inputs" in params,
+        "has_chain": "_chain" in params,
+        "has_name": "name" in params,
+        "has_attributes": "attributes" in params,
+        "has_display": "_display" in params,
+        "has_render": "_render" in params
+    }

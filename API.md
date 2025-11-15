@@ -189,16 +189,42 @@ def create(self, as_type: type[T] = hou.Node, _skip_chain: bool = False) -> T
         obj_node.children()  # ObjNode-specific methods available
     """
 
-def copy(self, _inputs: InputNodes = (), _chain: 'Chain | None' = None) -> 'NodeInstance'
+def copy(self,
+         _inputs: InputNodes = (),
+         _chain: 'Chain | None' = None,
+         *,
+         name: str | None = None,
+         attributes: dict[str, Any] | None = None,
+         _display: bool | None = None,
+         _render: bool | None = None) -> 'NodeInstance'
     """
-    Create a copy of this NodeInstance with optional input modifications.
+    Create a copy with optional modifications to inputs, attributes, and properties.
 
     Args:
-        _inputs: New input connections for the copy
+        _inputs: New input connections (merged with existing inputs)
         _chain: Chain reference for the copied node
+        name: New name for the node (preserves original if None)
+        attributes: Additional/override attributes (merged with existing)
+        _display: Override display flag (preserves original if None)
+        _render: Override render flag (preserves original if None)
 
     Returns:
-        New NodeInstance with copied attributes and specified inputs
+        New NodeInstance with merged properties and modifications applied
+
+    Examples:
+        # Copy with additional attributes
+        modified = box.copy(attributes={"divisions": 4, "sizex": 3})
+
+        # Copy with new name and display flags
+        renamed = box.copy(name="new_box", _display=True, _render=True)
+
+        # Copy with new inputs and comprehensive changes
+        complex = box.copy(
+            _inputs=[sphere],
+            name="complex_box",
+            attributes={"detail": 2},
+            _display=True
+        )
     """
 ```
 
@@ -332,6 +358,48 @@ final_node = node(geo, "xform", _input=processing_chain)
 
 ## Advanced Patterns
 
+### Enhanced Copy Operations
+
+The `.copy()` method supports comprehensive modifications for creating variations of nodes:
+
+```python
+# Base node with some properties
+base_box = node(geo, "box", name="base", sizex=1, sizey=1, _display=False)
+
+# Copy with attribute modifications (merged with existing)
+larger_box = base_box.copy(
+    attributes={"sizex": 2, "sizez": 3},  # sizex overridden, sizez added, sizey preserved
+    name="larger_box"
+)
+
+# Copy with display flags
+display_box = base_box.copy(
+    _display=True,
+    _render=True,
+    name="display_version"
+)
+
+# Copy with new inputs and comprehensive changes
+source = node(geo, "sphere", name="input_source")
+complex_box = base_box.copy(
+    _inputs=[source],
+    name="connected_box",
+    attributes={"divisions": 4, "sizey": 2},  # Added + modified attributes
+    _display=True,
+    _render=False
+)
+
+# Attribute merging behavior
+original_attrs = dict(base_box.attributes)        # {"sizex": 1, "sizey": 1}
+modified_attrs = dict(larger_box.attributes)      # {"sizex": 2, "sizey": 1, "sizez": 3}
+```
+
+**Key Benefits:**
+- **Attribute Merging**: New attributes are added, existing ones can be overridden
+- **Selective Updates**: Only specify parameters you want to change (`None` preserves originals)
+- **Immutability**: Original nodes remain unchanged, copies are independent
+- **Type Safety**: All copy operations maintain proper typing and validation
+
 ### Diamond Pattern
 Create nodes that share a common source:
 
@@ -398,7 +466,7 @@ def wrap_node(hnode: hou.Node | NodeInstance | str) -> NodeInstance
 
     Args:
         hnode: Node to wrap
-        
+
     Returns:
         NodeInstance wrapper
     """
