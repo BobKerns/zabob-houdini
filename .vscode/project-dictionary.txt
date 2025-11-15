@@ -2,6 +2,7 @@ addopts
 agentic
 Agentic
 argparse
+attribwrangle
 autofit
 bakpac
 bclip
@@ -18,6 +19,7 @@ dotenv
 ehthumbs
 fillvalue
 fromlist
+getitem
 hconfig
 hdanc
 heightfield
@@ -56,6 +58,7 @@ preexec
 prefs
 pycache
 pylint
+pylsp
 pypa
 PyPI
 pyproject

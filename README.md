@@ -12,112 +12,58 @@ Zabob-Houdini provides a clean, Pythonic interface for building Houdini node net
 
 **Key Features:**
 - **Declarative API**: Describe what you want, not how to build it
+- **Immutable Objects**: Node and chain definitions are immutable for safety and caching
 - **Automatic Connections**: Wire nodes together with simple syntax
 - **Chain Support**: Create linear processing pipelines easily
 - **Type Safety**: Full type hints for modern Python development
 - **Flexible**: Works in Houdini scripts, shelf tools, and HDAs
 
-## Core Concepts
+📚 **[Complete API Documentation](API.md)** - Comprehensive reference for all functions, classes, and methods
 
-### The `node()` Function
+## Quick Start
 
-Create individual nodes with the `node()` function:
+Zabob-Houdini provides two main functions:
 
-```python
-node(parent, node_type, name=None, **attributes)
-```
+- **`node()`** - Create individual nodes with automatic connections
+- **`chain()`** - Create linear sequences of connected nodes
 
-- **parent**: Where to create the node (`"/obj"`, `"/obj/geo1"`, or actual node object)
-- **node_type**: Houdini node type (e.g., `"box"`, `"merge"`, `"xform"`)
-- **name**: Optional name for the node
-- **attributes**: Node parameters as keyword arguments
-- **_input**: Special parameter to connect input nodes. For multi-output nodes, use `(node, output_index)` tuples
+Both return **immutable objects** that use `.create()` to instantiate the actual Houdini nodes.
 
-`node()` returns a `NodeInstance` object. To get the underlying `hou.Node`, call the `.create()` method. You can call it multiple times; it will always return the same `hou.Node` instance created on the first call.
+### Why Immutability?
 
-#### Type Narrowing with `as_type`
+**Safety**: Once defined, node configurations can't be accidentally modified, preventing bugs from unexpected changes.
 
-The `.create()` method accepts an optional `as_type` parameter to narrow the return type to a specific Houdini node subclass:
+**Caching**: Immutable objects can be safely cached and reused, improving performance when creating complex node networks.
 
-```python
-# Get a specifically-typed node for better IntelliSense and type safety
-sop_node = node("/obj/geo1", "box").create(as_type=hou.SopNode)  # Returns hou.SopNode
-obj_node = node("/obj", "geo").create(as_type=hou.ObjNode)       # Returns hou.ObjNode
+**Predictability**: The same node definition always creates the same result, making code easier to reason about and debug.
 
-# Default behavior returns hou.Node
-generic_node = node("/obj", "geo").create()  # Returns hou.Node
-```
+**Templates**: Node definitions serve as reusable templates for creating networks, allowing the same pattern to be instantiated multiple times.
 
-### The `chain()` Function
-
-Create linear sequences of connected nodes:
-
-```python
-chain(parent, *nodes, **kwargs)
-```
-
-Chains automatically connect nodes in sequence and can be nested or spliced together.
-
-### Chain Indexing
-
-Access nodes in chains with familiar Python syntax:
-
-- **By integer**: `chain[0]` → first node
-- **By slice**: `chain[1:3]` → subset as new chain
-- **By name**: `chain["nodename"]` → named node
-
-### Creation Pattern
-
-Both `NodeInstance` and `Chain` objects use `.create()` to instantiate in Houdini. Both can be called multiple times; the underlying `hou.Node` instances are created on the first call.
-
-```python
-geo_node = node("/obj", "geo", name="mygeometry")
-actual_node = geo_node.create()  # Creates the actual Houdini node
-
-# For type-safe access to specific node types
-sop_node = node("/obj/geo1", "box").create(as_type=hou.SopNode)
-```
+**Circular References**: Immutable definitions enable circular node graphs by allowing nodes to reference each other before instantiation *(feature planned for future release)*.
 
 ## Example Usage
 
 ```python
 from zabob_houdini import node, chain
 
-# Create a geometry container in /obj
+# Create immutable node definitions
 geo_node = node("/obj", "geo", name="mygeometry")
-
-# Create individual SOP nodes
 box_node = node(geo_node, "box", name="mybox")
 transform_node = node(geo_node, "xform", name="mytransform", _input=box_node)
 
-# For nodes with multiple outputs, specify which output to connect to
-multi_output_node = node(geo_node, "partition", name="parts")
-part1_node = node(geo_node, "xform", name="part1", _input=(multi_output_node, 0))  # First output
-part2_node = node(geo_node, "xform", name="part2", _input=(multi_output_node, 1))  # Second output
+# Or create a processing chain (also immutable)
+processing_chain = chain(
+    node(geo_node, "box"),
+    node(geo_node, "xform"),
+    node(geo_node, "subdivide")
+)
 
-# Or create a chain of nodes for linear processing
-box_node2 = node(geo_node, "box", name="source")
-xform_node = node(geo_node, "xform", name="transform")
-subdivide_node = node(geo_node, "subdivide", name="refine")
-processing_chain = chain(geo_node, box_node2, xform_node, subdivide_node)
-
-# Chains can also include other chains (spliced in)
-detail_chain = chain(geo_node,
-                    node(geo_node, "normal"),
-                    processing_chain,  # This chain is spliced in
-                    node(geo_node, "output"))
-
-# Access nodes in the chain
-first_node = processing_chain[0]              # First node (source box)
-subset_chain = processing_chain[1:3]          # New Chain with subset (transform, refine)
-named_node = processing_chain["transform"]    # Node by name
-
-# Create the nodes in Houdini
-geo_instance = geo_node.create(as_type=hou.ObjNode)         # Get as ObjNode for type safety
-box_instance = box_node.create(as_type=hou.SopNode)         # Get as SopNode
-transform_instance = transform_node.create(as_type=hou.SopNode)
-chain_instance = processing_chain.create()                  # Returns tuple of NodeInstance objects
+# These definitions are cached and can be reused safely
+same_geo = geo_node.create()  # Returns the same hou.Node instance
+another_chain = processing_chain.create()  # Reuses cached nodes
 ```
+
+For complete examples including multi-output connections, chain indexing, type narrowing, and advanced patterns, see the **[API Documentation](API.md)**.
 
 ### Installation from PyPI
 
@@ -161,6 +107,7 @@ from zabob_houdini import node, chain
 
 ## Documentation
 
-- **[Command Line Interface](COMMAND.md)**: Complete CLI reference and usage guide
-- **[Development Guide](DEVELOPMENT.md)**: Detailed setup, testing, and contribution guidelines
+- **[API Documentation](API.md)**: Complete reference for all functions, classes, and methods
+- **[Command Line Interface](COMMAND.md)**: CLI reference and usage guide
+- **[Development Guide](DEVELOPMENT.md)**: Setup, testing, and contribution guidelines
 - **[PyPI Setup](docs/PYPI_SETUP.md)**: Publishing and release information

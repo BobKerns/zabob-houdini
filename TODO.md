@@ -27,3 +27,25 @@
 - [ ] Create our own placement algorithm to replace moveToGoodPosition()
   - Current usage of moveToGoodPosition() is really ugly
   - Should implement intelligent node positioning based on connection topology
+
+### Context Objects and Scoping
+- [ ] Implement Context objects for shared parent and scoping control
+  - Context objects hold a shared parent node reference
+  - Provide `.node()` and `.chain()` methods that call top-level functions with context
+  - Control scoping for layout algorithms and name lookup resolution
+  - Enable hierarchical organization of node creation
+  - Subclasses provide type safety for what kinds of nodes can be contained within other nodes
+    - Example: `SopContext` ensures only SOP nodes can be created within geometry containers
+    - Example: `ObjContext` manages object-level node creation with appropriate constraints
+
+### Enhanced Copy Operations
+- [ ] Extend `copy()` methods to support comprehensive modifications
+  - Allow different inputs when copying NodeInstance or Chain objects
+  - Support alterations to the sequence of nodes within chains during copy
+  - Enable modification of node attributes during the copy process
+  - Provide fluent API for chaining copy modifications
+  - Examples:
+    - `node.copy(_inputs=[new_input], attributes={'tx': 5})`
+    - `chain.copy("name2", 1, node(geo, "attribwrangle"), 3, _inputs=[alt_input])`
+
+    The arguments can refer to nodes by name, index, or supply a new NodeInstance.
