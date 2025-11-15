@@ -19,7 +19,7 @@ echo -e "${BLUE}Zabob-Houdini Release Manager${NC}"
 echo "==============================="
 
 get_current_version() {
-    grep '^version = ' "$PYPROJECT_FILE" | sed 's/version = "\(.*\)"/\1/'
+    grep '^version = ' "$PYPROJECT_FILE" | head -1 | sed 's/version = "\(.*\)"/\1/'
 }
 
 bump_version() {
@@ -117,7 +117,7 @@ case "${1:-help}" in
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then exit 0; fi
 
         # Update pyproject.toml
-        sed -i.bak "s/version = \"$current_version\"/version = \"$new_version\"/" "$PYPROJECT_FILE"
+        sed -i.bak "s/^version = \"$current_version\"/version = \"$new_version\"/" "$PYPROJECT_FILE"
         rm "$PYPROJECT_FILE.bak"
 
         echo -e "${GREEN}Version updated to $new_version${NC}"
