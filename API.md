@@ -392,14 +392,13 @@ final_node = network.last.create()
 ### Node Wrapping
 
 ```python
-def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool | None = None) -> NodeInstance
+def wrap_node(hnode: hou.Node | NodeInstance | str) -> NodeInstance
     """
     Wrap various node types into NodeInstance.
 
     Args:
         hnode: Node to wrap
-        first: For Chain objects, whether to return first (True) or last (False) node
-
+        
     Returns:
         NodeInstance wrapper
     """

@@ -763,7 +763,7 @@ def get_node_instance(hnode: hou.Node) -> 'NodeInstance | None':
     return _node_registry.get(hnode.path())
 
 
-def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=None) -> 'NodeInstance':
+def wrap_node(hnode: hou.Node | NodeInstance | str) -> 'NodeInstance':
     """
     Wrap a hou.Node in a NodeInstance, preferring the original if available.
 
@@ -787,10 +787,6 @@ def wrap_node(hnode: hou.Node | NodeInstance | Chain | str, first: bool|None=Non
         case NodeInstance():
             # If it's already a NodeInstance, just return it
             return hnode
-        case Chain() if first is True:
-            return hnode.first
-        case Chain() if first is False:
-            return hnode.last
         case _:
             raise TypeError(f"Invalid node type: {type(hnode).__name__}")
 
