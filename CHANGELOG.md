@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1] - 2025-11-09
+### Added
+- Comprehensive API documentation (API.md) with 500+ lines covering all public interfaces
+- Type safety documentation with `as_type` parameter usage and benefits
+- Display and render flag support for node creation (`_display`, `_render` parameters)
+- Enhanced immutability explanations in README.md highlighting safety, caching, and template benefits
+- Future enhancement planning for context objects and enhanced copy operations
+
+### Changed
+- README.md restructured to be high-level focused with clear link to comprehensive API docs
+- Improved code organization with `wrap_node` functionality cleanup
+- Enhanced TODO.md with detailed roadmap for context objects and copy operation extensions
+
+### Documentation
+- Complete function signatures and parameter documentation for `node()` and `chain()`
+- Detailed class documentation for `NodeInstance` and `Chain` with all methods and properties
+- Comprehensive usage examples including multi-output connections, chain indexing, and type narrowing
+- Registry system documentation for node-to-instance mapping
+- Best practices and patterns for immutable node graph creation
+
+## [0.1.1] - 2025-11-14
 
 ### Added
 - Automated changelog management with keepachangelog library integration
@@ -51,5 +70,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Development environment setup
 
 [Unreleased]: https://github.com/BobKerns/zabob-houdini/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/BobKerns/zabob-houdini/compare/v0.1.0...v0.1.1
+[0.1.1]: https://github.com/BobKerns/zabob-houdini/compare/v0.1.1...v0.1.1
 [0.1.0]: https://github.com/BobKerns/zabob-houdini/releases/tag/v0.1.0
