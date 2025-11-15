@@ -50,9 +50,16 @@ except PackageNotFoundError:
 # Lazy imports to avoid importing hou when not needed
 def __getattr__(name: str):
     """Lazy import core API components only when accessed."""
+    import sys
     global _imports_loaded
 
     if name in lazy_imports:
+        if "hou" not in sys.modules:
+            raise ImportError(
+                f"Cannot import '{name}' in regular Python environment. "
+                f"Core API components (node, chain, NodeInstance, etc.) require Houdini's 'hou' module. "
+                f"Use 'hython' instead of 'python', or run integration tests with the hython_test fixture."
+            )
         if not _imports_loaded:
             import zabob_houdini.core as core
             globals().update({
