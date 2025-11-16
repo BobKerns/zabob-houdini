@@ -763,12 +763,6 @@ class NodeContext:
     def get_sink_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
         """Get nodes that have no dependents (sink nodes) within this context.
         If nodes is None, examines all nodes in this context."""
-
-    def get_leaf_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
-        """Alias for get_sink_nodes - nodes with no dependents."""
-
-    def get_root_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
-        """Alias for get_source_nodes - nodes with no inputs."""
 ```
 
 **Important**: Dependency tracking only works for nodes created through the context. Nodes created with the global `node()` function or passed in from other contexts will not have their dependencies tracked.

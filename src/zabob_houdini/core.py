@@ -758,28 +758,6 @@ class NodeContext:
             nodes = list(self._nodes.values())
         return [node for node in nodes if not self.get_dependents(node)]
 
-    def get_leaf_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
-        """Alias for get_sink_nodes - nodes with no dependents (leaf nodes in the graph).
-        
-        Args:
-            nodes: List of nodes to examine. If None, examines all nodes in this context.
-            
-        Returns:
-            List of nodes that no other nodes depend on
-        """
-        return self.get_sink_nodes(nodes)
-
-    def get_root_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
-        """Alias for get_source_nodes - nodes with no inputs (root nodes in the graph).
-        
-        Args:
-            nodes: List of nodes to examine. If None, examines all nodes in this context.
-        
-        Returns:
-            List of nodes that have no input connections
-        """
-        return self.get_source_nodes(nodes)
-
 
 @dataclass(frozen=True, eq=False)
 class Chain(NodeBase):

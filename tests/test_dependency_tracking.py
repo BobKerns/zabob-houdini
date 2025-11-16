@@ -35,7 +35,5 @@ class TestDependencyTracking:
         assert result['sink_count'] == 2, "Should have exactly 2 sink nodes"
         assert result['sources_are_correct'], "Sources should be the input nodes"
         assert result['sinks_are_correct'], "Sinks should be the output nodes"
-        assert result['roots_match_sources'], "Root nodes should match source nodes"
-        assert result['leaves_match_sinks'], "Leaf nodes should match sink nodes"
         assert result['merge_not_source'], "Merge node should not be a source"
         assert result['merge_not_sink'], "Merge node should not be a sink"

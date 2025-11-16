@@ -1884,8 +1884,6 @@ def test_dependency_tracking() -> JsonObject:
         # Use context methods for analysis
         sources = ctx.get_source_nodes()
         sinks = ctx.get_sink_nodes()
-        roots = ctx.get_root_nodes()  # Should be same as sources
-        leaves = ctx.get_leaf_nodes()  # Should be same as sinks
         
         return {
             'success': True,
@@ -1903,8 +1901,6 @@ def test_dependency_tracking() -> JsonObject:
             'sink_count': len(sinks),
             'sources_are_correct': source1 in sources and source2 in sources,
             'sinks_are_correct': sink1 in sinks and sink2 in sinks,
-            'roots_match_sources': set(roots) == set(sources),
-            'leaves_match_sinks': set(leaves) == set(sinks),
             'merge_not_source': merge_node not in sources,
             'merge_not_sink': merge_node not in sinks
         }
