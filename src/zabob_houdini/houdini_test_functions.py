@@ -605,7 +605,7 @@ def test_diamond_creation() -> JsonObject:
 
     # Chain A: Create base geometry (should be created once)
     chain_A = chain(
-        node(geo_node, "box", "source_box"),
+        node(geo_node, "box", name="source_box"),
         node(geo_node, "xform", "center"),
     )
 
@@ -1197,7 +1197,7 @@ def test_enhanced_copy_functionality():
     box = node(geo, "box", name="original_box", sizex=2, sizey=3, _display=False)
 
     # Test 1: Copy with new attributes
-    box_with_attrs = box.copy(attributes={"sizez": 4, "sizex": 5})  # sizex should override
+    box_with_attrs = box.copy(sizex=5, sizey=3)  # sizex should override
 
     # Test 2: Copy with new name
     renamed_box = box.copy(name="renamed_box")
@@ -1210,15 +1210,16 @@ def test_enhanced_copy_functionality():
     complex_copy = box.copy(
         _inputs=[sphere],
         name="complex_box",
-        attributes={"divisions": 10},
         _display=True,
-        _render=False
+        _render=False,
+        sizex=4,
+        sizey=5,
+        divisions=10,
     )
 
     # Test 5: None parameters preserve originals
     preserved = box.copy(
         name=None,
-        attributes=None,
         _display=None,
         _render=None
     )

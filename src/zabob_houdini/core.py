@@ -403,12 +403,14 @@ class NodeInstance(NodeBase):
         else:
            return f'{self.parent.path}/{self.name or self.node_type}'
 
-    def copy(self, /,
-             _inputs: InputNodes = (),
+    def copy(self,
+             /,
              name: str | None = None,
-             attributes: dict[str, Any] | None = None,
+             *,
+             _inputs: InputNodes = (),
              _display: bool | None = None,
              _render: bool | None = None,
+            **attributes: Any,
             ) -> 'NodeInstance':
         """Return a copy with optional modifications.
 
@@ -422,22 +424,24 @@ class NodeInstance(NodeBase):
         Returns:
             New NodeInstance with merged properties
         """
-        return self._copy(_inputs=_inputs,
+        return self._copy(
                           name=name,
-                          attributes=attributes,
                           _display=_display,
                           _render=_render,
+                          _inputs=_inputs,
+                          **attributes
         )
 
 
-    def _copy(self, /,
-             _inputs: InputNodes = (),
-             *,
+    def _copy(self,
+             /,
              name: str | None = None,
-             attributes: dict[str, Any] | None = None,
+             *,
+             _inputs: InputNodes = (),
              _display: bool | None = None,
              _render: bool | None = None,
              _chain: 'Chain | None' = None,
+             **attributes: Any,
             ) -> 'NodeInstance':
         """Return a copy with optional modifications.
 
@@ -468,12 +472,12 @@ class NodeInstance(NodeBase):
             _parent=self._parent,
             node_type=self.node_type,
             name=name if name is not None else self.name,
-            attributes=final_attributes,
             _inputs=tuple(merged_inputs),
             _node=None,  # Copy should not preserve the created node reference
             _display=_display if _display is not None else self._display,
             _render=_render if _render is not None else self._render,
             _chain=_chain,
+            attributes=final_attributes,
         )
 
 
@@ -736,7 +740,9 @@ class Chain(NodeBase):
 def node(
     parent: NodeParent,
     node_type: NodeType,
+    /,
     name: str | None = None,
+    *,
     _input: 'InputNode | Sequence[InputNode] | None' = None,
     _node: 'hou.Node | None' = None,
     _display: bool = False,
@@ -830,6 +836,49 @@ def chain(
 
     return Chain(
         nodes=flattened_nodes,  # Only NodeInstance objects now
+    )
+
+
+def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
+    """
+    Create a merge node with multiple inputs.
+
+    Args:
+        *inputs: NodeInstance objects to merge (must have same parent)
+        **attributes: Additional merge node parameters
+
+    Returns:
+        NodeInstance for the merge node
+
+    Raises:
+        ValueError: If no inputs provided or inputs have different parents
+
+    Examples:
+        # Merge two geometry nodes
+        box = node(geo, "box")
+        sphere = node(geo, "sphere")
+        merged = merge(box, sphere)
+
+        # Merge with parameters
+        merged = merge(box, sphere, tol=0.01)
+    """
+    if not inputs:
+        raise ValueError("merge() requires at least one input")
+
+    # Get parent from first input and verify all have same parent
+    first_parent = inputs[0].parent
+    for i, inp in enumerate(inputs[1:], 1):
+        if inp.parent != first_parent:
+            raise ValueError(
+                f"All merge inputs must have same parent. "
+                f"Input 0 has parent {first_parent}, input {i} has parent {inp.parent}"
+            )
+
+    return node(
+        first_parent,
+        "merge",
+        _input=inputs,
+        **attributes
     )
 
 
