@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Enhanced `NodeInstance.copy()` with comprehensive parameter support
   - `name` parameter for renaming copied nodes
-  - `attributes` parameter for attribute merging (existing + new/override)
   - `_display` and `_render` parameters for display/render flag control
   - Smart attribute preservation: only creates new dict when modifications provided
 - Enhanced `Chain.copy()` with flexible reordering and insertion capabilities
