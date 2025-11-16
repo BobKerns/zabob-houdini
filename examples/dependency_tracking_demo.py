@@ -6,7 +6,7 @@ This example shows how to track which nodes depend on other nodes,
 useful for understanding node graph structure and managing changes.
 """
 
-from zabob_houdini import node, chain, get_dependents, context
+from zabob_houdini import node, chain, context
 
 def main():
     """Demonstrate dependency tracking functionality."""
@@ -36,41 +36,39 @@ def main():
         print("Dependency Analysis:")
         print("==================")
 
-        # Check what depends on each node
-        box_deps = get_dependents(box)
+        # Check what depends on each node using context methods
+        box_deps = ctx.get_dependents(box)
         print(f"Box dependencies: {[n.name for n in box_deps]}")
-
-        sphere_deps = get_dependents(sphere)
+        
+        sphere_deps = ctx.get_dependents(sphere)
         print(f"Sphere dependencies: {[n.name for n in sphere_deps]}")
-
-        xform1_deps = get_dependents(xform1)
+        
+        xform1_deps = ctx.get_dependents(xform1)
         print(f"Transform1 dependencies: {[n.name for n in xform1_deps]}")
-
-        xform2_deps = get_dependents(xform2)
+        
+        xform2_deps = ctx.get_dependents(xform2)
         print(f"Transform2 dependencies: {[n.name for n in xform2_deps]}")
-
-        merge_deps = get_dependents(merge)
+        
+        merge_deps = ctx.get_dependents(merge)
         print(f"Merge dependencies: {[n.name for n in merge_deps]}")
-
-        output_deps = get_dependents(output)
-        print(f"Output dependencies: {[n.name for n in output_deps]}")
-
-        # Also demonstrate with a chain
+        
+        output_deps = ctx.get_dependents(output)
+        print(f"Output dependencies: {[n.name for n in output_deps]}")        # Also demonstrate with a chain
         print("\nChain Dependencies:")
         print("==================")
 
-        # Create a processing chain
+        # Create a processing chain through context for dependency tracking
         processing_chain = ctx.chain(
             ctx.node("box", "chain_source"),
-            ctx.node("noise", "add_noise"),
+            ctx.node("noise", "add_noise"),  
             ctx.node("smooth", "smooth_out"),
             ctx.node("xform", "final_transform")
         )
         processing_chain.create()
 
-        # Check dependencies in the chain
+        # Check dependencies in the chain using context
         for i, node_in_chain in enumerate(processing_chain):
-            deps = get_dependents(node_in_chain)
+            deps = ctx.get_dependents(node_in_chain)
             print(f"Chain node {i} ({node_in_chain.name}): {[n.name for n in deps]}")
 
         # Network topology analysis

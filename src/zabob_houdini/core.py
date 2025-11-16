@@ -36,10 +36,7 @@ else:
 # to key by path instead of object identity.
 _node_registry: weakref.WeakValueDictionary[str, 'NodeInstance'] = weakref.WeakValueDictionary()
 
-# Global dependency registry: maps NodeInstance to list of NodeInstances that depend on it
-# Key: NodeInstance that is used as input
-# Value: list of NodeInstances that have the key as an input
-_dependency_registry: weakref.WeakKeyDictionary['NodeInstance', list['NodeInstance']] = weakref.WeakKeyDictionary()
+
 
 
 def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
@@ -78,27 +75,7 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
 
 _generated_names: dict[str, int] = defaultdict(lambda: 1)
 
-def _add_dependency(input_node: 'NodeInstance', dependent_node: 'NodeInstance') -> None:
-    """Add a dependency relationship: dependent_node depends on input_node."""
-    if input_node not in _dependency_registry:
-        _dependency_registry[input_node] = []
-    if dependent_node not in _dependency_registry[input_node]:
-        _dependency_registry[input_node].append(dependent_node)
 
-def _remove_dependency(input_node: 'NodeInstance', dependent_node: 'NodeInstance') -> None:
-    """Remove a dependency relationship."""
-    if input_node in _dependency_registry:
-        try:
-            _dependency_registry[input_node].remove(dependent_node)
-            # Clean up empty lists
-            if not _dependency_registry[input_node]:
-                del _dependency_registry[input_node]
-        except ValueError:
-            pass  # Dependency wasn't there
-
-def get_dependents(node: 'NodeInstance') -> list['NodeInstance']:
-    """Get list of nodes that depend on the given node."""
-    return list(_dependency_registry.get(node, []))
 
 def _generate_name(parent: str, type: str) -> str:
     """Generate a unique name with the given prefix."""
@@ -381,8 +358,6 @@ class NodeInstance(NodeBase):
                         case NodeInstance() as node_instance:
                             # Input is a NodeInstance - create it first
                             input_hou_node = node_instance.create()
-                            # Track dependency: this node depends on input_node
-                            _add_dependency(node_instance, self)
                         case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
@@ -523,6 +498,7 @@ class NodeContext:
     """
     parent: NodeInstance
     _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
+    _dependency_registry: weakref.WeakKeyDictionary[NodeInstance, list[NodeInstance]] = field(default_factory=weakref.WeakKeyDictionary, init=False)
 
     def __enter__(self) -> 'NodeContext':
         """Enter the context manager."""
@@ -573,6 +549,23 @@ class NodeContext:
         # Register named nodes for lookup
         if name is not None:
             self._nodes[name] = node_instance
+
+        # Track dependencies for inputs
+        if _input is not None:
+            from .core import Chain  # Local import to avoid circular imports
+            inputs = _input if isinstance(_input, (list, tuple)) else [_input]
+            for input_spec in inputs:
+                if input_spec is not None:
+                    # Resolve the input to a NodeInstance
+                    if isinstance(input_spec, NodeInstance):
+                        input_node = input_spec
+                    elif isinstance(input_spec, Chain):
+                        input_node = input_spec.last
+                    else:
+                        continue  # Skip other types (hou.Node, str, tuples)
+                    
+                    # Track the dependency
+                    self._add_dependency(input_node, node_instance)
 
         return node_instance
 
@@ -633,6 +626,12 @@ class NodeContext:
             if (node_instance.name is not None and
                 node_instance.name not in self._nodes):
                 self._nodes[node_instance.name] = node_instance
+
+        # Track chain dependencies (each node depends on the previous one)
+        for i in range(1, len(created_chain.nodes)):
+            prev_node = created_chain.nodes[i-1]
+            current_node = created_chain.nodes[i]
+            self._add_dependency(prev_node, current_node)
 
         return created_chain
 
@@ -705,11 +704,33 @@ class NodeContext:
             created_merge.name not in self._nodes):
             self._nodes[created_merge.name] = created_merge
 
+        # Track dependencies: merge node depends on all its inputs
+        for resolved_input in resolved_inputs:
+            self._add_dependency(resolved_input, created_merge)
+
         return created_merge
+
+    def _add_dependency(self, input_node: NodeInstance, dependent_node: NodeInstance) -> None:
+        """Add a dependency relationship: dependent_node depends on input_node."""
+        if input_node not in self._dependency_registry:
+            self._dependency_registry[input_node] = []
+        if dependent_node not in self._dependency_registry[input_node]:
+            self._dependency_registry[input_node].append(dependent_node)
+
+    def _remove_dependency(self, input_node: NodeInstance, dependent_node: NodeInstance) -> None:
+        """Remove a dependency relationship."""
+        if input_node in self._dependency_registry:
+            try:
+                self._dependency_registry[input_node].remove(dependent_node)
+                # Clean up empty lists
+                if not self._dependency_registry[input_node]:
+                    del self._dependency_registry[input_node]
+            except ValueError:
+                pass  # Dependency wasn't there
 
     def get_dependents(self, node: NodeInstance) -> list[NodeInstance]:
         """Get list of nodes that depend on the given node."""
-        return get_dependents(node)
+        return list(self._dependency_registry.get(node, []))
 
     def get_source_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
         """Get nodes that have no inputs (source nodes).
@@ -735,7 +756,7 @@ class NodeContext:
         """
         if nodes is None:
             nodes = list(self._nodes.values())
-        return [node for node in nodes if not get_dependents(node)]
+        return [node for node in nodes if not self.get_dependents(node)]
 
     def get_leaf_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
         """Alias for get_sink_nodes - nodes with no dependents (leaf nodes in the graph).
@@ -945,9 +966,6 @@ class Chain(NodeBase):
             if i > 0 and previous_node is not None:
                 try:
                     created_hou_node.setInput(0, previous_node)
-                    # Track dependency: current node depends on previous node
-                    previous_node_instance = nodes[i-1]
-                    _add_dependency(previous_node_instance, node_instance)
                 except Exception as e:
                     print(f"Warning: Failed to connect chain nodes: {e}")
 

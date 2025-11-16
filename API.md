@@ -749,19 +749,19 @@ def hou_node(path: str) -> hou.Node
 
 ### Dependency Analysis
 
-The `NodeContext` class provides methods for analyzing node dependencies and network topology:
+The `NodeContext` class provides methods for analyzing node dependencies and network topology. **Dependency tracking is scoped to each context** - only nodes created through the context's methods (`node()`, `chain()`, `merge()`) have their dependencies tracked.
 
 ```python
 class NodeContext:
     def get_dependents(self, node: NodeInstance) -> list[NodeInstance]
-        """Get list of nodes that depend on the given node."""
+        """Get list of nodes that depend on the given node within this context."""
 
     def get_source_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
         """Get nodes that have no inputs (source nodes).
         If nodes is None, examines all nodes in this context."""
 
     def get_sink_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
-        """Get nodes that have no dependents (sink nodes).
+        """Get nodes that have no dependents (sink nodes) within this context.
         If nodes is None, examines all nodes in this context."""
 
     def get_leaf_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
@@ -770,6 +770,8 @@ class NodeContext:
     def get_root_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
         """Alias for get_source_nodes - nodes with no inputs."""
 ```
+
+**Important**: Dependency tracking only works for nodes created through the context. Nodes created with the global `node()` function or passed in from other contexts will not have their dependencies tracked.
 
 **Usage Example:**
 ```python

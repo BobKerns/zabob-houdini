@@ -1825,7 +1825,7 @@ def test_node_context_parent_validation() -> JsonObject:
 def test_dependency_tracking() -> JsonObject:
     """Test that node dependencies are tracked correctly."""
     try:
-        from zabob_houdini.core import node, chain, get_dependents, context
+        from zabob_houdini.core import node, chain, context
 
         # Create some nodes with dependencies
         geo = node("/obj", "geo", "test_geo")
@@ -1836,14 +1836,24 @@ def test_dependency_tracking() -> JsonObject:
         box.create()
         xform.create()
 
+        # Create a context to test dependency tracking
+        test_ctx = context(geo)
+        
+        # Re-create nodes through context for dependency tracking
+        ctx_box = test_ctx.node("box", "ctx_box")
+        ctx_xform = test_ctx.node("xform", "ctx_transform", _input=ctx_box)
+        
+        # Create nodes
+        ctx_xform.create()
+        
         # Test basic dependency tracking
-        box_dependents = get_dependents(box)
+        box_dependents = test_ctx.get_dependents(ctx_box)
 
-        # Create a chain to test chain dependency tracking
-        chain_nodes = chain(
-            node(geo, "sphere", "sphere1"),
-            node(geo, "merge", "merge1"),
-            node(geo, "xform", "final_xform")
+        # Create a chain to test chain dependency tracking through context
+        chain_nodes = test_ctx.chain(
+            test_ctx.node("sphere", "sphere1"),
+            test_ctx.node("merge", "merge1"),
+            test_ctx.node("xform", "final_xform")
         )
         chain_nodes.create()
 
@@ -1851,8 +1861,8 @@ def test_dependency_tracking() -> JsonObject:
         merge1 = chain_nodes[1]
         final_xform = chain_nodes[2]
 
-        sphere1_dependents = get_dependents(sphere1)
-        merge1_dependents = get_dependents(merge1)
+        sphere1_dependents = test_ctx.get_dependents(sphere1)
+        merge1_dependents = test_ctx.get_dependents(merge1)
 
         # Test source/sink analysis using context methods
         # Build a network for analysis
@@ -1880,7 +1890,7 @@ def test_dependency_tracking() -> JsonObject:
         return {
             'success': True,
             'box_has_dependent': len(box_dependents) > 0,
-            'xform_is_dependent': xform in box_dependents,
+            'xform_is_dependent': ctx_xform in box_dependents,
             'sphere1_has_dependent': len(sphere1_dependents) > 0,
             'merge1_depends_on_sphere1': merge1 in sphere1_dependents,
             'merge1_has_dependent': len(merge1_dependents) > 0,
