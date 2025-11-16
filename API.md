@@ -747,6 +747,49 @@ def hou_node(path: str) -> hou.Node
     """Get a Houdini node by path, raising exception if not found."""
 ```
 
+### Dependency Analysis
+
+```python
+def get_dependents(node: NodeInstance) -> list[NodeInstance]
+    """Get list of nodes that depend on the given node."""
+
+def get_source_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
+    """Get nodes that have no inputs (source nodes)."""
+
+def get_sink_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
+    """Get nodes that have no dependents (sink nodes)."""
+
+def get_leaf_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
+    """Alias for get_sink_nodes - nodes with no dependents."""
+
+def get_root_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
+    """Alias for get_source_nodes - nodes with no inputs."""
+```
+
+**Usage Example:**
+```python
+# Build a node network
+with context(node("/obj", "geo")) as ctx:
+    box = ctx.node("box", "source1")
+    sphere = ctx.node("sphere", "source2") 
+    xform1 = ctx.node("xform", "process1", _input=box)
+    xform2 = ctx.node("xform", "process2", _input=sphere)
+    merge = ctx.node("merge", "combine", _input=[xform1, xform2])
+    output = ctx.node("null", "output", _input=merge)
+    
+    # Create all nodes
+    output.create()
+    
+    # Analyze the network structure
+    all_nodes = [box, sphere, xform1, xform2, merge, output]
+    
+    sources = get_source_nodes(all_nodes)  # [box, sphere]
+    sinks = get_sink_nodes(all_nodes)      # [output]
+    
+    # Check what depends on a specific node
+    box_deps = get_dependents(box)         # [xform1]
+```
+
 ## Caching and Performance
 
 ### Automatic Caching

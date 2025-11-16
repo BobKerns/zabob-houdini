@@ -36,6 +36,11 @@ else:
 # to key by path instead of object identity.
 _node_registry: weakref.WeakValueDictionary[str, 'NodeInstance'] = weakref.WeakValueDictionary()
 
+# Global dependency registry: maps NodeInstance to list of NodeInstances that depend on it
+# Key: NodeInstance that is used as input
+# Value: list of NodeInstances that have the key as an input
+_dependency_registry: weakref.WeakKeyDictionary['NodeInstance', list['NodeInstance']] = weakref.WeakKeyDictionary()
+
 
 def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
     """
@@ -72,6 +77,73 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
     return wrapped
 
 _generated_names: dict[str, int] = defaultdict(lambda: 1)
+
+def _add_dependency(input_node: 'NodeInstance', dependent_node: 'NodeInstance') -> None:
+    """Add a dependency relationship: dependent_node depends on input_node."""
+    if input_node not in _dependency_registry:
+        _dependency_registry[input_node] = []
+    if dependent_node not in _dependency_registry[input_node]:
+        _dependency_registry[input_node].append(dependent_node)
+
+def _remove_dependency(input_node: 'NodeInstance', dependent_node: 'NodeInstance') -> None:
+    """Remove a dependency relationship."""
+    if input_node in _dependency_registry:
+        try:
+            _dependency_registry[input_node].remove(dependent_node)
+            # Clean up empty lists
+            if not _dependency_registry[input_node]:
+                del _dependency_registry[input_node]
+        except ValueError:
+            pass  # Dependency wasn't there
+
+def get_dependents(node: 'NodeInstance') -> list['NodeInstance']:
+    """Get list of nodes that depend on the given node."""
+    return list(_dependency_registry.get(node, []))
+
+def get_source_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
+    """Get nodes that have no inputs (source nodes).
+    
+    Args:
+        nodes: List of nodes to examine
+        
+    Returns:
+        List of nodes that have no input connections
+    """
+    return [node for node in nodes if not node.inputs or all(inp is None for inp in node.inputs)]
+
+def get_sink_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
+    """Get nodes that have no dependents (sink nodes).
+    
+    Args:
+        nodes: List of nodes to examine
+        
+    Returns:
+        List of nodes that no other nodes depend on
+    """
+    return [node for node in nodes if not get_dependents(node)]
+
+def get_leaf_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
+    """Alias for get_sink_nodes - nodes with no dependents (leaf nodes in the graph).
+    
+    Args:
+        nodes: List of nodes to examine
+        
+    Returns:
+        List of nodes that no other nodes depend on
+    """
+    return get_sink_nodes(nodes)
+
+def get_root_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
+    """Alias for get_source_nodes - nodes with no inputs (root nodes in the graph).
+    
+    Args:
+        nodes: List of nodes to examine
+        
+    Returns:
+        List of nodes that have no input connections
+    """
+    return get_source_nodes(nodes)
+
 def _generate_name(parent: str, type: str) -> str:
     """Generate a unique name with the given prefix."""
     while True:
@@ -353,6 +425,8 @@ class NodeInstance(NodeBase):
                         case NodeInstance() as node_instance:
                             # Input is a NodeInstance - create it first
                             input_hou_node = node_instance.create()
+                            # Track dependency: this node depends on input_node
+                            _add_dependency(node_instance, self)
                         case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
@@ -863,6 +937,9 @@ class Chain(NodeBase):
             if i > 0 and previous_node is not None:
                 try:
                     created_hou_node.setInput(0, previous_node)
+                    # Track dependency: current node depends on previous node
+                    previous_node_instance = nodes[i-1]
+                    _add_dependency(previous_node_instance, node_instance)
                 except Exception as e:
                     print(f"Warning: Failed to connect chain nodes: {e}")
 

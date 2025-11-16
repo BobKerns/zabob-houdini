@@ -37,7 +37,8 @@ lazy_imports = (
     "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent",
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode",
     "InputNodes", "Inputs", "ChainCopyParam",
-    "get_node_instance", "wrap_node", "hou_node", 'ROOT',
+    "get_node_instance", "wrap_node", "hou_node", "get_dependents", 
+    "get_source_nodes", "get_sink_nodes", "get_leaf_nodes", "get_root_nodes", 'ROOT',
 )
 _imports_loaded = False
 
@@ -77,7 +78,8 @@ __all__ = ['__version__',
     "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent", # type: ignore
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
     "InputNodes", "Inputs", "ChainCopyParam", # type: ignore
-    "get_node_instance", "wrap_node", "hou_node", "ROOT", # type: ignore
+    "get_node_instance", "wrap_node", "hou_node", "get_dependents", # type: ignore
+    "get_source_nodes", "get_sink_nodes", "get_leaf_nodes", "get_root_nodes", "ROOT", # type: ignore
     ]
 
 # Validate __all__ consistency at import time
