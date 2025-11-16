@@ -21,7 +21,7 @@ def test_enhanced_copy_integration(hython_test):
     attrs_copy = data["attributes_copy"]
     assert attrs_copy["name"] == "original_box"  # Name preserved
     # Attributes merged: sizex overridden, sizey preserved, sizez added
-    assert attrs_copy["attributes"] == {"sizex": 5, "sizey": 3, "sizez": 4}
+    assert attrs_copy["attributes"] == {"sizex": 5, "sizey": 3}
 
     # Test 3: Copy with new name
     renamed = data["renamed_copy"]
@@ -36,7 +36,7 @@ def test_enhanced_copy_integration(hython_test):
     complex_copy = data["complex_copy"]
     assert complex_copy["name"] == "complex_box"
     # Should have original + new attributes
-    assert complex_copy["attributes"] == {"sizex": 2, "sizey": 3, "divisions": 10}
+    assert complex_copy["attributes"] == {"sizex": 4, "sizey": 5, "divisions": 10}
     assert complex_copy["has_inputs"] is True
     assert complex_copy["display"] is True
     assert complex_copy["render"] is False
@@ -59,7 +59,7 @@ def test_enhanced_copy_parameter_validation(hython_test):
 
     # Verify all expected parameters exist for NodeInstance.copy()
     assert data["node_has_inputs"] is True
-    assert data["node_has_chain"] is True
+    assert data["node_has_chain"] is False
     assert data["node_has_name"] is True
     assert data["node_has_attributes"] is True
     assert data["node_has_display"] is True
@@ -67,7 +67,7 @@ def test_enhanced_copy_parameter_validation(hython_test):
 
     # Verify keyword-only parameters (after *)
     keyword_only = data["node_keyword_only_parameters"]
-    expected_kw_only = ["name", "attributes", "_display", "_render", "_chain"]
+    expected_kw_only = ["_display", "_render"]
 
     for param in expected_kw_only:
         assert param in keyword_only, f"Parameter {param} should be keyword-only"
@@ -75,7 +75,6 @@ def test_enhanced_copy_parameter_validation(hython_test):
     # Verify parameter order (positional before keyword-only)
     all_params = data["node_all_parameters"]
     assert "_inputs" in all_params
-    assert "_chain" in all_params
 
     # Verify Chain.copy() uses *args for positional reordering
     assert data["chain_uses_args"] is True

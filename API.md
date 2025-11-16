@@ -247,7 +247,7 @@ def copy(self,
 
     Examples:
         # Copy with additional attributes
-        modified = box.copy(attributes={"divisions": 4, "sizex": 3})
+        modified = box.copy(divisions=4, sizex=3)
 
         # Copy with new name and display flags
         renamed = box.copy(name="new_box", _display=True, _render=True)
@@ -256,7 +256,7 @@ def copy(self,
         complex = box.copy(
             _inputs=[sphere],
             name="complex_box",
-            attributes={"detail": 2},
+            detail=2,
             _display=True
         )
     """
@@ -437,7 +437,7 @@ base_box = node(geo, "box", name="base", sizex=1, sizey=1, _display=False)
 
 # Copy with attribute modifications (merged with existing)
 larger_box = base_box.copy(
-    attributes={"sizex": 2, "sizez": 3},  # sizex overridden, sizez added, sizey preserved
+    sizex=2, sizez=3, # sizex overridden, sizez added, sizey preserved
     name="larger_box"
 )
 
@@ -453,7 +453,8 @@ source = node(geo, "sphere", name="input_source")
 complex_box = base_box.copy(
     _inputs=[source],
     name="connected_box",
-    attributes={"divisions": 4, "sizey": 2},  # Added + modified attributes
+    divisions=4, # Added attribute
+    sizey=3, # Modified attribute
     _display=True,
     _render=False
 )
