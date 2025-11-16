@@ -647,7 +647,7 @@ class Chain(NodeBase):
             chain.copy(0, new_node, 1)  # Insert new_node between positions 0 and 1
         """
         # Build new node list using self[param] for uniform access
-        new_nodes = (
+        new_nodes: Sequence[NodeInstance] = (
             self.nodes if not copy_params
             else [
                 param if isinstance(param, NodeInstance) else self[param]
