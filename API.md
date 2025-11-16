@@ -98,6 +98,41 @@ chain_with_input = chain(
 )
 ```
 
+### `merge()`
+
+Creates a merge node with multiple inputs. All inputs must have the same parent.
+
+```python
+def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance
+```
+
+**Parameters:**
+- `*inputs`: NodeInstance objects to merge (must have same parent)
+- `**attributes`: Additional merge node parameters
+
+**Returns:** `NodeInstance` for the merge node
+
+**Raises:** `ValueError` if no inputs provided or inputs have different parents
+
+**Examples:**
+```python
+# Merge two geometry nodes
+box = node(geo, "box")
+sphere = node(geo, "sphere")
+merged = merge(box, sphere)
+
+# Merge with parameters
+merged = merge(box, sphere, tol=0.01)
+
+# Merge multiple inputs
+inputs = [
+    node(geo, "box"),
+    node(geo, "sphere"),
+    node(geo, "tube")
+]
+combined = merge(*inputs)
+```
+
 ## Type Safety
 
 Zabob-Houdini provides full type safety through the `as_type` parameter in `NodeInstance.create()` methods:

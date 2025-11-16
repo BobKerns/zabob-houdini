@@ -6,6 +6,7 @@ This module tests the positional reordering capabilities of Chain.copy() method.
 
 import pytest
 
+
 class TestChainCopyPositional:
     """Test Chain.copy() with positional reordering parameters."""
 
