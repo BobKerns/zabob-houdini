@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Name access: `chain.copy("cleanup", "input")` for name-based selection
   - NodeInstance insertion: `chain.copy(0, new_node, 1)` for adding new nodes
   - Mixed access: `chain.copy(0, "transform", new_node)` combining all types
+- New `merge()` function for creating merge nodes with multiple inputs
+  - Convenient shortcut: `merge(box, sphere, tube)` instead of `node(parent, "merge", _input=[...])`
+  - Automatic parent validation ensures all inputs have same parent
+  - Supports merge node parameters: `merge(box, sphere, tol=0.01)`
 - Comprehensive Chain reordering and insertion documentation in API.md
 - Test coverage for enhanced copy functionality including name-based and insertion patterns
 

@@ -704,7 +704,7 @@ def node(
     parent: NodeParent,
     node_type: NodeType,
     name: str | None = None,
-    _input: 'InputNode | list[InputNode] | None' = None,
+    _input: 'InputNode | Sequence[InputNode] | None' = None,
     _node: 'hou.Node | None' = None,
     _display: bool = False,
     _render: bool = False,
@@ -726,13 +726,7 @@ def node(
     Returns:
         NodeInstance that can be created with .create()
     """
-    inputs = []
-    if _input is not None:
-        match _input:
-            case list() as input_list:
-                inputs.extend(input_list)  # List can contain None values for sparse inputs
-            case _ as single_input:
-                inputs.append(single_input)
+    inputs = _wrap_inputs(_input)
 
     if name is None:
         match parent:
@@ -803,6 +797,49 @@ def chain(
 
     return Chain(
         nodes=flattened_nodes,  # Only NodeInstance objects now
+    )
+
+
+def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
+    """
+    Create a merge node with multiple inputs.
+
+    Args:
+        *inputs: NodeInstance objects to merge (must have same parent)
+        **attributes: Additional merge node parameters
+
+    Returns:
+        NodeInstance for the merge node
+
+    Raises:
+        ValueError: If no inputs provided or inputs have different parents
+
+    Examples:
+        # Merge two geometry nodes
+        box = node(geo, "box")
+        sphere = node(geo, "sphere")
+        merged = merge(box, sphere)
+
+        # Merge with parameters
+        merged = merge(box, sphere, tol=0.01)
+    """
+    if not inputs:
+        raise ValueError("merge() requires at least one input")
+
+    # Get parent from first input and verify all have same parent
+    first_parent = inputs[0].parent
+    for i, inp in enumerate(inputs[1:], 1):
+        if inp.parent != first_parent:
+            raise ValueError(
+                f"All merge inputs must have same parent. "
+                f"Input 0 has parent {first_parent}, input {i} has parent {inp.parent}"
+            )
+
+    return node(
+        first_parent,
+        "merge",
+        _input=inputs,
+        **attributes
     )
 
 

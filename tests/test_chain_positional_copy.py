@@ -5,7 +5,6 @@ This module tests the positional reordering capabilities of Chain.copy() method.
 """
 
 import pytest
-from zabob_houdini.core import Chain, NodeInstance
 
 
 class TestChainCopyPositional:
