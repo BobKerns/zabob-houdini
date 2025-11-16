@@ -263,15 +263,41 @@ def create(self) -> tuple[NodeInstance, ...]
         Tuple of NodeInstance objects representing the created nodes
     """
 
-def copy(self, _inputs: InputNodes = ()) -> 'Chain'
+def copy(self, *copy_params: ChainCopyParam, _inputs: InputNodes = ()) -> 'Chain'
     """
-    Create a deep copy of this chain.
+    Create a copy of this chain with optional node reordering and insertion.
 
     Args:
-        _inputs: New input connections for the first node
+        *copy_params: Parameters specifying nodes to copy:
+                     - int: Index of existing node to copy
+                     - str: Name of existing node to copy
+                     - NodeInstance: New node to insert at this position
+                     If empty, copies all nodes in original order.
+        _inputs: New input connections for the first node in the copied chain
 
     Returns:
-        New Chain with copied NodeInstances
+        New Chain with copied NodeInstances in the specified order
+
+    Examples:
+        # Copy entire chain (same as original order)
+        copy1 = chain.copy()
+
+        # Reverse the chain order
+        reversed_chain = chain.copy(3, 2, 1, 0)  # For 4-node chain
+
+        # Copy by index or name
+        partial = chain.copy(0, "transform")     # Mix index and name
+        by_name = chain.copy("box", "sphere")    # Copy by name only
+
+        # Insert new nodes
+        new_node = node(geo, "noise")
+        enhanced = chain.copy(0, new_node, 1)    # Insert noise between nodes 0 and 1
+
+        # Duplicate and reorder
+        reordered = chain.copy(2, 0, 2, 1)       # [third, first, third, second]
+
+        # Copy with new inputs
+        with_inputs = chain.copy(1, 0, _inputs=[input_node])
     """
 
 def __len__(self) -> int
@@ -316,6 +342,15 @@ InputNode = tuple[InputNodeSpec, int] | InputNodeSpec | None
 
 InputNodes = Sequence[InputNode]
 """Multiple input connections."""
+
+ChainCopyParam = int | str | NodeInstance
+"""
+A parameter for Chain.copy() reordering.
+
+- int: Index of existing node to copy
+- str: Name of existing node to copy
+- NodeInstance: New node to insert at this position
+"""
 ```
 
 ### Input Connection Patterns
@@ -399,6 +434,53 @@ modified_attrs = dict(larger_box.attributes)      # {"sizex": 2, "sizey": 1, "si
 - **Selective Updates**: Only specify parameters you want to change (`None` preserves originals)
 - **Immutability**: Original nodes remain unchanged, copies are independent
 - **Type Safety**: All copy operations maintain proper typing and validation
+
+### Chain Reordering and Insertion
+
+Chain `.copy()` supports flexible node sequence manipulation with indices, names, and insertions:
+
+```python
+# Original processing chain
+original = chain(
+    node(geo, "box", name="input"),
+    node(geo, "subdivide", name="detail"),
+    node(geo, "noise", name="distort"),
+    node(geo, "smooth", name="cleanup")
+)
+
+# Reverse the entire processing order
+reversed_chain = original.copy(3, 2, 1, 0)
+# Result: [cleanup, distort, detail, input]
+
+# Copy by name instead of index
+by_name = original.copy("cleanup", "input", "detail")
+# Result: [cleanup, input, detail]
+
+# Mix indices and names
+mixed = original.copy(0, "distort", 3)
+# Result: [input, distort, cleanup]
+
+# Insert new processing steps
+blur = node(geo, "blur", name="blur")
+enhanced = original.copy("input", "detail", blur, "cleanup")
+# Result: [input, detail, blur, cleanup] - blur inserted before cleanup
+
+# Duplicate steps for variations
+double_detail = original.copy(0, "detail", 2, "detail", 3)
+# Result: [input, detail, distort, detail, cleanup] - double detail
+
+# Complex reordering with inputs
+source = node(geo, "sphere", name="source")
+reordered = original.copy("distort", blur, "cleanup", _inputs=[source])
+# Result: [distort, blur, cleanup] with sphere input
+```
+
+**Enhanced Patterns:**
+- **Index Access**: `chain.copy(3, 2, 1, 0)` - numeric indices
+- **Name Access**: `chain.copy("cleanup", "input")` - node names
+- **Mixed Access**: `chain.copy(0, "distort", 3)` - combine both
+- **Node Insertion**: `chain.copy(0, new_node, 1)` - insert NodeInstances
+- **Duplication**: `chain.copy("detail", "detail")` - repeat by name or index
 
 ### Diamond Pattern
 Create nodes that share a common source:

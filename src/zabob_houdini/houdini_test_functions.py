@@ -1274,13 +1274,56 @@ def test_copy_signature_validation():
     param_names = list(params.keys())
     keyword_only = [p.name for p in params.values() if p.kind == p.KEYWORD_ONLY]
 
+    # Also test Chain signature
+    chain_obj = chain(box)
+    chain_sig = inspect.signature(chain_obj.copy)
+    chain_params = chain_sig.parameters
+    chain_param_names = list(chain_params.keys())
+
     return {
-        "all_parameters": param_names,
-        "keyword_only_parameters": keyword_only,
-        "has_inputs": "_inputs" in params,
-        "has_chain": "_chain" in params,
-        "has_name": "name" in params,
-        "has_attributes": "attributes" in params,
-        "has_display": "_display" in params,
-        "has_render": "_render" in params
+        "node_all_parameters": param_names,
+        "node_keyword_only_parameters": keyword_only,
+        "node_has_inputs": "_inputs" in params,
+        "node_has_chain": "_chain" in params,
+        "node_has_name": "name" in params,
+        "node_has_attributes": "attributes" in params,
+        "node_has_display": "_display" in params,
+        "node_has_render": "_render" in params,
+        "chain_all_parameters": chain_param_names,
+        "chain_uses_args": any(p.kind == p.VAR_POSITIONAL for p in chain_params.values()),
+    }
+
+
+def test_chain_positional_reordering():
+    """Test Chain.copy() positional reordering functionality."""
+    # Create chain with named nodes
+    n1 = node("/obj/geo", "box", name="first")
+    n2 = node("/obj/geo", "sphere", name="second")
+    n3 = node("/obj/geo", "merge", name="third")
+
+    original_chain = chain(n1, n2, n3)
+
+    # Test various reordering patterns
+    reversed_chain = original_chain.copy(2, 1, 0)
+    partial_chain = original_chain.copy(0, 2)
+    duplicate_chain = original_chain.copy(1, 1, 0)
+    default_copy = original_chain.copy()
+
+    # Test name-based access
+    by_name_chain = original_chain.copy("third", "first")
+    mixed_chain = original_chain.copy(0, "third")
+
+    # Test node insertion
+    new_node = node("/obj/geo", "xform", name="inserted")
+    inserted_chain = original_chain.copy(0, new_node, 2)
+
+    return {
+        'original_names': [n.name for n in original_chain],
+        'reversed_names': [n.name for n in reversed_chain],
+        'partial_names': [n.name for n in partial_chain],
+        'duplicate_names': [n.name for n in duplicate_chain],
+        'default_names': [n.name for n in default_copy],
+        'by_name_names': [n.name for n in by_name_chain],
+        'mixed_names': [n.name for n in mixed_chain],
+        'inserted_names': [n.name for n in inserted_chain],
     }

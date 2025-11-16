@@ -15,7 +15,7 @@ from typing import Any, TypeVar, cast, TypeAlias, overload, TYPE_CHECKING
 from types import MappingProxyType
 import weakref
 from itertools import zip_longest, islice
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import functools
@@ -158,6 +158,9 @@ ResolvedConnection: TypeAlias = 'tuple[NodeInstance, int]'
 
 Inputs: TypeAlias = 'tuple[ResolvedConnection | None, ...]'
 """The inputs for a node or chain, as a tuple of ResolvedConnection objects or None for sparse connections."""
+
+ChainCopyParam: TypeAlias = 'int | str | NodeInstance'
+"""A parameter for Chain.copy() reordering: index, name, or NodeInstance to insert."""
 
 
 def _merge_inputs(in1: Inputs, in2: Inputs) -> Inputs:
@@ -422,15 +425,19 @@ class NodeInstance(NodeBase):
         merged_inputs = _merge_inputs(inputs, self.inputs)
 
         # Merge attributes: existing + new/override
-        merged_attributes = dict(self.attributes)
         if attributes:
+            merged_attributes = dict(self.attributes)
             merged_attributes.update(attributes)
+            final_attributes = HashableMapping(merged_attributes)
+        else:
+            # Preserve original attributes object when no modifications
+            final_attributes = self.attributes
 
         return NodeInstance(
             _parent=self._parent,
             node_type=self.node_type,
             name=name if name is not None else self.name,
-            attributes=HashableMapping(merged_attributes),
+            attributes=final_attributes,
             _inputs=tuple(merged_inputs),
             _node=None,  # Copy should not preserve the created node reference
             _display=_display if _display is not None else self._display,
@@ -632,30 +639,63 @@ class Chain(NodeBase):
 
         return tuple(created_node_instances)
 
-    def copy(self, /, _inputs: InputNodes=(), _chain: Chain | None=None) -> 'Chain':
-        """Return a copy of this Chain (copies contained NodeInstances)."""
+    def copy(self, *copy_params: ChainCopyParam, _inputs: InputNodes=(), _chain: Chain | None=None) -> 'Chain':  # type: ignore[override]
+        """
+        Return a copy of this Chain with nodes reordered, dropped, or inserted.
 
+        Args:
+            *copy_params: Parameters specifying nodes to copy:
+                - int: Index of existing node to copy (can reorder/duplicate)
+                - str: Name of existing node to copy
+                - NodeInstance: New node to insert at this position
+                If no arguments given, copies all nodes in original order
+            _inputs: Input nodes for the first node in the new chain
+            _chain: Parent chain reference
+
+        Returns:
+            New Chain with specified nodes in specified order
+
+        Examples:
+            chain.copy(3, 2, 1, 0)      # Reverse 4-element chain
+            chain.copy(0, 2)            # Copy only nodes 0 and 2
+            chain.copy("box", "sphere") # Copy by name
+            chain.copy(0, new_node, 1)  # Insert new_node between positions 0 and 1
+        """
+        # Build new node list using self[param] for uniform access
+        new_nodes = (
+            self.nodes if not copy_params
+            else [
+                param if isinstance(param, NodeInstance) else self[param]
+                for param in copy_params
+                ]
+        )
+
+        if not new_nodes:
+            raise ValueError("Chain copy must result in at least one node")
+
+        # Handle inputs for first node
         inputs = _wrap_inputs(_inputs)
         self_inputs: Inputs = ()
-        if self.nodes:
-            first_node = self.nodes[0]
-            self_inputs = first_node.inputs
+        if self.nodes and new_nodes and copy_params:
+            # Get inputs from the original first node being copied
+            first_param = copy_params[0]
+            if not isinstance(first_param, NodeInstance):
+                # It's an int or str - get the original node's inputs
+                original_first = self[first_param]
+                self_inputs = original_first.inputs
+            # If first item is inserted NodeInstance, it keeps its own inputs
 
         merged_inputs = _merge_inputs(inputs, self_inputs)
 
         # Copy first node with merged inputs
-        first = self.first.copy(_inputs=merged_inputs)
+        first_node = new_nodes[0].copy(_inputs=merged_inputs)
 
-        # Chain.copy() MUST copy all NodeInstances - chains can't share nodes
-        # This is the ONLY place that should copy NodeInstances
-        nodes = (
-            first,
-            *(n.copy() for n in islice(self.nodes, 1, None))
-        )
+        # Copy remaining nodes
+        remaining_nodes = [n.copy() for n in new_nodes[1:]]
 
         # Create new chain - __init__ will copy and set _chain references
         new_chain = Chain(
-            nodes=tuple(nodes),
+            nodes=(first_node, *remaining_nodes),
         )
         return new_chain
 

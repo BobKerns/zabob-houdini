@@ -57,22 +57,27 @@ def test_enhanced_copy_parameter_validation(hython_test):
 
     data = result['result']
 
-    # Verify all expected parameters exist
-    assert data["has_inputs"] is True
-    assert data["has_chain"] is True
-    assert data["has_name"] is True
-    assert data["has_attributes"] is True
-    assert data["has_display"] is True
-    assert data["has_render"] is True
+    # Verify all expected parameters exist for NodeInstance.copy()
+    assert data["node_has_inputs"] is True
+    assert data["node_has_chain"] is True
+    assert data["node_has_name"] is True
+    assert data["node_has_attributes"] is True
+    assert data["node_has_display"] is True
+    assert data["node_has_render"] is True
 
     # Verify keyword-only parameters (after *)
-    keyword_only = data["keyword_only_parameters"]
+    keyword_only = data["node_keyword_only_parameters"]
     expected_kw_only = ["name", "attributes", "_display", "_render"]
 
     for param in expected_kw_only:
         assert param in keyword_only, f"Parameter {param} should be keyword-only"
 
     # Verify parameter order (positional before keyword-only)
-    all_params = data["all_parameters"]
+    all_params = data["node_all_parameters"]
     assert "_inputs" in all_params
     assert "_chain" in all_params
+
+    # Verify Chain.copy() uses *args for positional reordering
+    assert data["chain_uses_args"] is True
+    assert "_inputs" in data["chain_all_parameters"]
+    assert "_chain" in data["chain_all_parameters"]
