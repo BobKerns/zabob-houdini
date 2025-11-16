@@ -8,14 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Enhanced `NodeInstance.copy()` with comprehensive parameter support
+  - `name` parameter for renaming copied nodes
+  - `attributes` parameter for attribute merging (existing + new/override)
+  - `_display` and `_render` parameters for display/render flag control
+  - Smart attribute preservation: only creates new dict when modifications provided
 - Enhanced `Chain.copy()` with flexible reordering and insertion capabilities
   - New `ChainCopyParam` type supporting `int`, `str`, and `NodeInstance` parameters
   - Index access: `chain.copy(3, 2, 1, 0)` for positional reordering
   - Name access: `chain.copy("cleanup", "input")` for name-based selection
   - NodeInstance insertion: `chain.copy(0, new_node, 1)` for adding new nodes
   - Mixed access: `chain.copy(0, "transform", new_node)` combining all types
-- Comprehensive Chain reordering and insertion documentation in API.md
-- Test coverage for enhanced copy functionality including name-based and insertion patterns
+- Comprehensive copy operation documentation in API.md with Advanced Patterns section
+- Test coverage for enhanced copy functionality including attribute merging and flag control
 
 ### Changed
 - `Chain.copy()` method signature enhanced with `*copy_params: ChainCopyParam` parameter
