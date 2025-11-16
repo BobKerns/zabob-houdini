@@ -8,23 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Comprehensive API documentation (API.md) with 500+ lines covering all public interfaces
-- Type safety documentation with `as_type` parameter usage and benefits
-- Display and render flag support for node creation (`_display`, `_render` parameters)
-- Enhanced immutability explanations in README.md highlighting safety, caching, and template benefits
-- Future enhancement planning for context objects and enhanced copy operations
+- Enhanced `NodeInstance.copy()` with comprehensive parameter support
+  - `name` parameter for renaming copied nodes
+  - `attributes` parameter for attribute merging (existing + new/override)
+  - `_display` and `_render` parameters for display/render flag control
+  - Smart attribute preservation: only creates new dict when modifications provided
+- Enhanced `Chain.copy()` with flexible reordering and insertion capabilities
+  - New `ChainCopyParam` type supporting `int`, `str`, and `NodeInstance` parameters
+  - Index access: `chain.copy(3, 2, 1, 0)` for positional reordering
+  - Name access: `chain.copy("cleanup", "input")` for name-based selection
+  - NodeInstance insertion: `chain.copy(0, new_node, 1)` for adding new nodes
+  - Mixed access: `chain.copy(0, "transform", new_node)` combining all types
+- Comprehensive copy operation documentation in API.md with Advanced Patterns section
+- Test coverage for enhanced copy functionality including attribute merging and flag control
 
 ### Changed
-- README.md restructured to be high-level focused with clear link to comprehensive API docs
-- Improved code organization with `wrap_node` functionality cleanup
-- Enhanced TODO.md with detailed roadmap for context objects and copy operation extensions
+- `Chain.copy()` method signature enhanced with `*copy_params: ChainCopyParam` parameter
+- Simplified implementation using `self[param]` for uniform int/str handling
+- Updated API.md with comprehensive examples for all copy parameter types
+- Enhanced test coverage for name-based access and NodeInstance insertion
 
 ### Documentation
-- Complete function signatures and parameter documentation for `node()` and `chain()`
-- Detailed class documentation for `NodeInstance` and `Chain` with all methods and properties
-- Comprehensive usage examples including multi-output connections, chain indexing, and type narrowing
-- Registry system documentation for node-to-instance mapping
-- Best practices and patterns for immutable node graph creation
+- Chain reordering patterns section with practical examples
+- Detailed `Chain.copy()` parameter documentation and signature
+- Advanced patterns covering reverse processing, partial extraction, and node duplication
 
 ## [0.1.1] - 2025-11-14
 

@@ -6,30 +6,24 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
 import functools
 from abc import ABC, abstractmethod
-import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, TypeVar, cast, TypeAlias, overload, TYPE_CHECKING
 from types import MappingProxyType
 import weakref
-from itertools import zip_longest, islice
+from itertools import zip_longest
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
-import functools
 
-# This isn't functionally needed, but it avoids mpy SIGSEGVing from trying
-# to actually import the real module under some circumstances.
-if TYPE_CHECKING:
-    import hou
-else:
-    try:
-        import hou
-    except ImportError:
-        # hou module not available - this will be handled at runtime
-        hou = None  # type: ignore
+if "hou" not in sys.modules:
+    # Avoids SIGSEGV when importing hou in non-Houdini environments
+    raise ImportError(
+        "The 'hou' module is not available. This module requires Houdini's 'hou' module to run."
+    )
+
+import hou
 
 if TYPE_CHECKING:
     T = TypeVar('T', bound=hou.Node)
@@ -159,6 +153,9 @@ ResolvedConnection: TypeAlias = 'tuple[NodeInstance, int]'
 Inputs: TypeAlias = 'tuple[ResolvedConnection | None, ...]'
 """The inputs for a node or chain, as a tuple of ResolvedConnection objects or None for sparse connections."""
 
+ChainCopyParam: TypeAlias = 'int | str | NodeInstance'
+"""A parameter for Chain.copy() reordering: index, name, or NodeInstance to insert."""
+
 
 def _merge_inputs(in1: Inputs, in2: Inputs) -> Inputs:
     """Merge two input lists, preferring non-None values from the first list."""
@@ -173,7 +170,7 @@ def _merge_inputs(in1: Inputs, in2: Inputs) -> Inputs:
     ]
     return tuple(merged)
 
-@dataclasses.dataclass(frozen=True)
+@dataclass(frozen=True)
 class NodeBase(ABC):
     """
     Base class for Houdini node representations.
@@ -205,15 +202,6 @@ class NodeBase(ABC):
         """Return the last node for this node/chain."""
         pass
 
-    @abstractmethod
-    def copy(self, /, _inputs: InputNodes=(), _chain: Chain | None=None) -> 'NodeBase':
-        """Return a copy of this node/chain object. Copies are independent for creation.
-
-        This is used by Chain.create() to avoid mutating original definitions when
-        creating Houdini nodes.
-        """
-        pass
-
     def __hash__(self) -> int:
         """Hash based on object identity - these represent specific node instances."""
         return id(self)
@@ -222,7 +210,7 @@ class NodeBase(ABC):
         """Equality based on object identity - these represent specific node instances."""
         return self is other
 
-@dataclasses.dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class NodeInstance(NodeBase):
     """
     Represents a single Houdini node with parameters and inputs.
@@ -274,7 +262,7 @@ class NodeInstance(NodeBase):
         """
         return tuple((_wrap_input(inp, 0) for inp in self._inputs))
 
-    def create(self, as_type: type[T]=hou.Node, _skip_chain: bool = False) -> T:
+    def create(self, as_type: type[T] | None = None) -> T:
         """
         Create the actual Houdini node.
 
@@ -291,16 +279,36 @@ class NodeInstance(NodeBase):
             TypeError: If the created node cannot be cast to the specified type,
                       or if an existing node is not of the expected type.
         """
+        return self._create(as_type)
+
+    def _create(self, as_type: type[T] | None = None, /, _skip_chain: bool = False) -> T:
+        """
+        Create the actual Houdini node.
+
+        Args:
+            as_type: Expected node type to narrow the return type to (e.g., hou.SopNode).
+                    Defaults to hou.Node for maximum compatibility.
+
+        Returns:
+            The created Houdini node object, cast to the specified type.
+            Result is cached via @functools.cache.
+
+        Raises:
+            TypeError: If the created node cannot be cast to the specified type,
+                      or if an existing node is not of the expected type.
+        """
+        # Default as_type to hou.Node if not specified
+        actual_type: type[T] = as_type if as_type is not None else hou.Node  # type: ignore
 
         # If this node is part of a chain, create the entire chain first
         if self._chain is not None and not _skip_chain:
             self._chain.create()
             # Now call _do_create again to get the cached result
             node = self._do_create()
-            return self._asType(node, as_type)
+            return self._asType(node, actual_type)
 
         node = self._do_create()
-        return self._asType(node, as_type)
+        return self._asType(node, actual_type)
 
     @functools.cache
     def _do_create(self) -> hou.Node:
@@ -395,22 +403,76 @@ class NodeInstance(NodeBase):
         else:
            return f'{self.parent.path}/{self.name or self.node_type}'
 
-    def copy(self, /, _inputs: InputNodes=(), _chain: 'Chain | None' = None) -> 'NodeInstance':
-        """Return a shallow copy suitable for creation.
+    def copy(self, /,
+             _inputs: InputNodes = (),
+             name: str | None = None,
+             attributes: dict[str, Any] | None = None,
+             _display: bool | None = None,
+             _render: bool | None = None,
+            ) -> 'NodeInstance':
+        """Return a copy with optional modifications.
 
-        Attributes are shared (safe due to immutability) and inputs are merged.
+        Args:
+            _inputs: New input connections (merged with existing)
+            name: New name for the node (if provided)
+            attributes: Additional/override attributes (merged with existing)
+            _display: Override display flag
+            _render: Override render flag
+
+        Returns:
+            New NodeInstance with merged properties
+        """
+        return self._copy(_inputs=_inputs,
+                          name=name,
+                          attributes=attributes,
+                          _display=_display,
+                          _render=_render,
+        )
+
+
+    def _copy(self, /,
+             _inputs: InputNodes = (),
+             *,
+             name: str | None = None,
+             attributes: dict[str, Any] | None = None,
+             _display: bool | None = None,
+             _render: bool | None = None,
+             _chain: 'Chain | None' = None,
+            ) -> 'NodeInstance':
+        """Return a copy with optional modifications.
+
+        Args:
+            _inputs: New input connections (merged with existing)
+            _chain: Chain this node belongs to
+            name: New name for the node (if provided)
+            attributes: Additional/override attributes (merged with existing)
+            _display: Override display flag
+            _render: Override render flag
+
+        Returns:
+            New NodeInstance with merged properties
         """
         inputs = _wrap_inputs(_inputs)
         merged_inputs = _merge_inputs(inputs, self.inputs)
+
+        # Merge attributes: existing + new/override
+        if attributes:
+            merged_attributes = dict(self.attributes)
+            merged_attributes.update(attributes)
+            final_attributes = HashableMapping(merged_attributes)
+        else:
+            # Preserve original attributes object when no modifications
+            final_attributes = self.attributes
+
         return NodeInstance(
             _parent=self._parent,
             node_type=self.node_type,
-            name=self.name,
-            attributes=self.attributes,
+            name=name if name is not None else self.name,
+            attributes=final_attributes,
             _inputs=tuple(merged_inputs),
             _node=None,  # Copy should not preserve the created node reference
-            _display=self._display,
-            _render=self._render,
+            _display=_display if _display is not None else self._display,
+            _render=_render if _render is not None else self._render,
             _chain=_chain,
         )
 
@@ -430,7 +492,7 @@ class Chain(NodeBase):
         so we can store a private copy. This ensures we never hold a shared
         node.
         '''
-        nodes = tuple(n.copy(_chain=self) for n in nodes)
+        nodes = tuple(n._copy(_chain=self) for n in nodes)
         object.__setattr__(self, 'nodes', nodes)
 
     @functools.cached_property
@@ -593,7 +655,7 @@ class Chain(NodeBase):
         # Use _skip_chain=True to avoid recursion since we're already creating the chain
         for i, node_instance in enumerate(nodes):
             # Create the node in Houdini (NodeInstance.create caches result)
-            created_hou_node = node_instance.create(_skip_chain=True)
+            created_hou_node = node_instance._create(_skip_chain=True)
             created_node_instances.append(node_instance)
 
             # Connect this node to the previous one if needed
@@ -608,30 +670,65 @@ class Chain(NodeBase):
 
         return tuple(created_node_instances)
 
-    def copy(self, /, _inputs: InputNodes=(), _chain: Chain | None=None) -> 'Chain':
-        """Return a copy of this Chain (copies contained NodeInstances)."""
+    def copy(self, *copy_params: ChainCopyParam, _inputs: InputNodes=()) -> 'Chain':  # type: ignore[override]
+        """
+        Return a copy of this Chain with nodes reordered, dropped, or inserted.
 
+        Args:
+            *copy_params: Parameters specifying nodes to copy:
+                - int: Index of existing node to copy (can reorder/duplicate)
+                - str: Name of existing node to copy
+                - NodeInstance: New node to insert at this position
+                If no arguments given, copies all nodes in original order
+            _inputs: Input nodes for the first node in the new chain
+
+        Returns:
+            New Chain with specified nodes in specified order
+
+        Examples:
+            chain.copy(3, 2, 1, 0)      # Reverse 4-element chain
+            chain.copy(0, 2)            # Copy only nodes 0 and 2
+            chain.copy("box", "sphere") # Copy by name
+            chain.copy(0, new_node, 1)  # Insert new_node between positions 0 and 1
+        """
+        # Build new node list using self[param] for uniform access
+        new_nodes: Sequence[NodeInstance] = (
+            self.nodes if not copy_params
+            else [
+                param if isinstance(param, NodeInstance) else self[param]
+                for param in copy_params
+                ]
+        )
+
+        if not new_nodes:
+            raise ValueError("Chain copy must result in at least one node")
+
+        # Handle inputs for first node
         inputs = _wrap_inputs(_inputs)
         self_inputs: Inputs = ()
-        if self.nodes:
-            first_node = self.nodes[0]
-            self_inputs = first_node.inputs
+        if self.nodes and new_nodes:
+            if copy_params:
+                # Get inputs from the original first node being copied
+                first_param = copy_params[0]
+                if not isinstance(first_param, NodeInstance):
+                    # It's an int or str - get the original node's inputs
+                    original_first = self[first_param]
+                    self_inputs = original_first.inputs
+            else:
+                # Default copy: preserve first node's inputs
+                self_inputs = self.nodes[0].inputs
 
         merged_inputs = _merge_inputs(inputs, self_inputs)
 
         # Copy first node with merged inputs
-        first = self.first.copy(_inputs=merged_inputs)
+        first_node = new_nodes[0].copy(_inputs=merged_inputs)
 
-        # Chain.copy() MUST copy all NodeInstances - chains can't share nodes
-        # This is the ONLY place that should copy NodeInstances
-        nodes = (
-            first,
-            *(n.copy() for n in islice(self.nodes, 1, None))
-        )
+        # Copy remaining nodes
+        remaining_nodes = [n.copy() for n in new_nodes[1:]]
 
         # Create new chain - __init__ will copy and set _chain references
         new_chain = Chain(
-            nodes=tuple(nodes),
+            nodes=(first_node, *remaining_nodes),
         )
         return new_chain
 
@@ -640,7 +737,7 @@ def node(
     parent: NodeParent,
     node_type: NodeType,
     name: str | None = None,
-    _input: 'InputNode | list[InputNode] | None' = None,
+    _input: 'InputNode | Sequence[InputNode] | None' = None,
     _node: 'hou.Node | None' = None,
     _display: bool = False,
     _render: bool = False,
@@ -662,13 +759,7 @@ def node(
     Returns:
         NodeInstance that can be created with .create()
     """
-    inputs = []
-    if _input is not None:
-        match _input:
-            case list() as input_list:
-                inputs.extend(input_list)  # List can contain None values for sparse inputs
-            case _ as single_input:
-                inputs.append(single_input)
+    inputs = _wrap_inputs(_input)
 
     if name is None:
         match parent:
@@ -875,18 +966,14 @@ if TYPE_CHECKING:
     '''
 else:
     # Runtime initialization - only when hou is available
-    if hou is not None:
-        _ROOT = hou_node('/')
-        ROOT = NodeInstance(
-            _parent=cast(NodeInstance, None),
-            node_type='root',
-            name='/',
-            attributes=HashableMapping({}),
-            _inputs=(),
-            _node=_ROOT
-        )
-        # Register it
-        _node_registry['/'] = ROOT
-    else:
-        # Placeholder when hou is not available
-        ROOT = None  # type: ignore
+    _ROOT = hou_node('/')
+    ROOT = NodeInstance(
+        _parent=cast(NodeInstance, None),
+        node_type='root',
+        name='/',
+        attributes=HashableMapping({}),
+        _inputs=(),
+        _node=_ROOT
+    )
+    # Register it
+    _node_registry['/'] = ROOT

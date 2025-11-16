@@ -36,8 +36,8 @@ from importlib.metadata import version, PackageNotFoundError
 lazy_imports = (
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent",
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode",
-    "InputNodes", "Inputs",
-    "get_node_instance", "wrap_node", "hou_node", "wrap_node", 'ROOT',
+    "InputNodes", "Inputs", "ChainCopyParam",
+    "get_node_instance", "wrap_node", "hou_node", 'ROOT',
 )
 _imports_loaded = False
 
@@ -50,9 +50,16 @@ except PackageNotFoundError:
 # Lazy imports to avoid importing hou when not needed
 def __getattr__(name: str):
     """Lazy import core API components only when accessed."""
+    import sys
     global _imports_loaded
 
     if name in lazy_imports:
+        if "hou" not in sys.modules:
+            raise ImportError(
+                f"Cannot import '{name}' in regular Python environment. "
+                f"Core API components (node, chain, NodeInstance, etc.) require Houdini's 'hou' module. "
+                f"Use 'hython' instead of 'python', or run integration tests with the hython_test fixture."
+            )
         if not _imports_loaded:
             import zabob_houdini.core as core
             globals().update({
@@ -69,8 +76,8 @@ def __getattr__(name: str):
 __all__ = ['__version__',
     "node", "chain", "NodeInstance", "Chain", "NodeType", "NodeParent", # type: ignore
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
-    "InputNodes", "Inputs", # type: ignore
-    "get_node_instance", "wrap_node", "hou_node", "wrap_node", "ROOT", # type: ignore
+    "InputNodes", "Inputs", "ChainCopyParam", # type: ignore
+    "get_node_instance", "wrap_node", "hou_node", "ROOT", # type: ignore
     ]
 
 # Validate __all__ consistency at import time

@@ -75,6 +75,7 @@ sdist
 SIDEFX
 signum
 SIGPIPE
+SIGSEGV
 SIGSEGVing
 simdata
 sizex

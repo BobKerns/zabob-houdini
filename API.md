@@ -158,7 +158,7 @@ def last(self) -> NodeInstance
 #### Methods
 
 ```python
-def create(self, as_type: type[T] = hou.Node, _skip_chain: bool = False) -> T
+def create(self, as_type: type[T] = hou.Node) -> T
     """
     Create the actual Houdini node with optional type narrowing for type safety.
 
@@ -171,7 +171,6 @@ def create(self, as_type: type[T] = hou.Node, _skip_chain: bool = False) -> T
                 - hou.ObjNode: Object nodes
                 - hou.ChopNode: Channel operator nodes
                 - hou.RopNode: Render operator nodes
-        _skip_chain: Internal flag to avoid recursion during chain creation
 
     Returns:
         The created Houdini node, cached for subsequent calls. Type matches as_type.
@@ -189,16 +188,42 @@ def create(self, as_type: type[T] = hou.Node, _skip_chain: bool = False) -> T
         obj_node.children()  # ObjNode-specific methods available
     """
 
-def copy(self, _inputs: InputNodes = (), _chain: 'Chain | None' = None) -> 'NodeInstance'
+def copy(self,
+         _inputs: InputNodes = (),
+         _chain: 'Chain | None' = None,
+         *,
+         name: str | None = None,
+         attributes: dict[str, Any] | None = None,
+         _display: bool | None = None,
+         _render: bool | None = None) -> 'NodeInstance'
     """
-    Create a copy of this NodeInstance with optional input modifications.
+    Create a copy with optional modifications to inputs, attributes, and properties.
 
     Args:
-        _inputs: New input connections for the copy
+        _inputs: New input connections (merged with existing inputs)
         _chain: Chain reference for the copied node
+        name: New name for the node (preserves original if None)
+        attributes: Additional/override attributes (merged with existing)
+        _display: Override display flag (preserves original if None)
+        _render: Override render flag (preserves original if None)
 
     Returns:
-        New NodeInstance with copied attributes and specified inputs
+        New NodeInstance with merged properties and modifications applied
+
+    Examples:
+        # Copy with additional attributes
+        modified = box.copy(attributes={"divisions": 4, "sizex": 3})
+
+        # Copy with new name and display flags
+        renamed = box.copy(name="new_box", _display=True, _render=True)
+
+        # Copy with new inputs and comprehensive changes
+        complex = box.copy(
+            _inputs=[sphere],
+            name="complex_box",
+            attributes={"detail": 2},
+            _display=True
+        )
     """
 ```
 
@@ -237,15 +262,41 @@ def create(self) -> tuple[NodeInstance, ...]
         Tuple of NodeInstance objects representing the created nodes
     """
 
-def copy(self, _inputs: InputNodes = ()) -> 'Chain'
+def copy(self, *copy_params: ChainCopyParam, _inputs: InputNodes = ()) -> 'Chain'
     """
-    Create a deep copy of this chain.
+    Create a copy of this chain with optional node reordering and insertion.
 
     Args:
-        _inputs: New input connections for the first node
+        *copy_params: Parameters specifying nodes to copy:
+                     - int: Index of existing node to copy
+                     - str: Name of existing node to copy
+                     - NodeInstance: New node to insert at this position
+                     If empty, copies all nodes in original order.
+        _inputs: New input connections for the first node in the copied chain
 
     Returns:
-        New Chain with copied NodeInstances
+        New Chain with copied NodeInstances in the specified order
+
+    Examples:
+        # Copy entire chain (same as original order)
+        copy1 = chain.copy()
+
+        # Reverse the chain order
+        reversed_chain = chain.copy(3, 2, 1, 0)  # For 4-node chain
+
+        # Copy by index or name
+        partial = chain.copy(0, "transform")     # Mix index and name
+        by_name = chain.copy("box", "sphere")    # Copy by name only
+
+        # Insert new nodes
+        new_node = node(geo, "noise")
+        enhanced = chain.copy(0, new_node, 1)    # Insert noise between nodes 0 and 1
+
+        # Duplicate and reorder
+        reordered = chain.copy(2, 0, 2, 1)       # [third, first, third, second]
+
+        # Copy with new inputs
+        with_inputs = chain.copy(1, 0, _inputs=[input_node])
     """
 
 def __len__(self) -> int
@@ -290,6 +341,15 @@ InputNode = tuple[InputNodeSpec, int] | InputNodeSpec | None
 
 InputNodes = Sequence[InputNode]
 """Multiple input connections."""
+
+ChainCopyParam = int | str | NodeInstance
+"""
+A parameter for Chain.copy() reordering.
+
+- int: Index of existing node to copy
+- str: Name of existing node to copy
+- NodeInstance: New node to insert at this position
+"""
 ```
 
 ### Input Connection Patterns
@@ -331,6 +391,95 @@ final_node = node(geo, "xform", _input=processing_chain)
 ```
 
 ## Advanced Patterns
+
+### Enhanced Copy Operations
+
+The `.copy()` method supports comprehensive modifications for creating variations of nodes:
+
+```python
+# Base node with some properties
+base_box = node(geo, "box", name="base", sizex=1, sizey=1, _display=False)
+
+# Copy with attribute modifications (merged with existing)
+larger_box = base_box.copy(
+    attributes={"sizex": 2, "sizez": 3},  # sizex overridden, sizez added, sizey preserved
+    name="larger_box"
+)
+
+# Copy with display flags
+display_box = base_box.copy(
+    _display=True,
+    _render=True,
+    name="display_version"
+)
+
+# Copy with new inputs and comprehensive changes
+source = node(geo, "sphere", name="input_source")
+complex_box = base_box.copy(
+    _inputs=[source],
+    name="connected_box",
+    attributes={"divisions": 4, "sizey": 2},  # Added + modified attributes
+    _display=True,
+    _render=False
+)
+
+# Attribute merging behavior
+original_attrs = dict(base_box.attributes)        # {"sizex": 1, "sizey": 1}
+modified_attrs = dict(larger_box.attributes)      # {"sizex": 2, "sizey": 1, "sizez": 3}
+```
+
+**Key Benefits:**
+- **Attribute Merging**: New attributes are added, existing ones can be overridden
+- **Selective Updates**: Only specify parameters you want to change (`None` preserves originals)
+- **Immutability**: Original nodes remain unchanged, copies are independent
+- **Type Safety**: All copy operations maintain proper typing and validation
+
+### Chain Reordering and Insertion
+
+Chain `.copy()` supports flexible node sequence manipulation with indices, names, and insertions:
+
+```python
+# Original processing chain
+original = chain(
+    node(geo, "box", name="input"),
+    node(geo, "subdivide", name="detail"),
+    node(geo, "noise", name="distort"),
+    node(geo, "smooth", name="cleanup")
+)
+
+# Reverse the entire processing order
+reversed_chain = original.copy(3, 2, 1, 0)
+# Result: [cleanup, distort, detail, input]
+
+# Copy by name instead of index
+by_name = original.copy("cleanup", "input", "detail")
+# Result: [cleanup, input, detail]
+
+# Mix indices and names
+mixed = original.copy(0, "distort", 3)
+# Result: [input, distort, cleanup]
+
+# Insert new processing steps
+blur = node(geo, "blur", name="blur")
+enhanced = original.copy("input", "detail", blur, "cleanup")
+# Result: [input, detail, blur, cleanup] - blur inserted before cleanup
+
+# Duplicate steps for variations
+double_detail = original.copy(0, "detail", 2, "detail", 3)
+# Result: [input, detail, distort, detail, cleanup] - double detail
+
+# Complex reordering with inputs
+source = node(geo, "sphere", name="source")
+reordered = original.copy("distort", blur, "cleanup", _inputs=[source])
+# Result: [distort, blur, cleanup] with sphere input
+```
+
+**Enhanced Patterns:**
+- **Index Access**: `chain.copy(3, 2, 1, 0)` - numeric indices
+- **Name Access**: `chain.copy("cleanup", "input")` - node names
+- **Mixed Access**: `chain.copy(0, "distort", 3)` - combine both
+- **Node Insertion**: `chain.copy(0, new_node, 1)` - insert NodeInstances
+- **Duplication**: `chain.copy("detail", "detail")` - repeat by name or index
 
 ### Diamond Pattern
 Create nodes that share a common source:
@@ -398,7 +547,7 @@ def wrap_node(hnode: hou.Node | NodeInstance | str) -> NodeInstance
 
     Args:
         hnode: Node to wrap
-        
+
     Returns:
         NodeInstance wrapper
     """
