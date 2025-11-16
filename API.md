@@ -756,13 +756,11 @@ class NodeContext:
     def get_dependents(self, node: NodeInstance) -> list[NodeInstance]
         """Get list of nodes that depend on the given node within this context."""
 
-    def get_source_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
-        """Get nodes that have no inputs (source nodes).
-        If nodes is None, examines all nodes in this context."""
+    def get_source_nodes(self) -> list[NodeInstance]
+        """Get nodes in this context that have no inputs (source nodes)."""
 
-    def get_sink_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
-        """Get nodes that have no dependents (sink nodes) within this context.
-        If nodes is None, examines all nodes in this context."""
+    def get_sink_nodes(self) -> list[NodeInstance]
+        """Get nodes in this context that have no dependents (sink nodes)."""
 ```
 
 **Important**: Dependency tracking only works for nodes created through the context. Nodes created with the global `node()` function or passed in from other contexts will not have their dependencies tracked.
@@ -772,25 +770,21 @@ class NodeContext:
 # Build a node network
 with context(node("/obj", "geo")) as ctx:
     box = ctx.node("box", "source1")
-    sphere = ctx.node("sphere", "source2") 
+    sphere = ctx.node("sphere", "source2")
     xform1 = ctx.node("xform", "process1", _input=box)
     xform2 = ctx.node("xform", "process2", _input=sphere)
     merge = ctx.node("merge", "combine", _input=[xform1, xform2])
     output = ctx.node("null", "output", _input=merge)
-    
+
     # Create all nodes
     output.create()
-    
+
     # Analyze the network structure using context methods
     sources = ctx.get_source_nodes()      # [box, sphere] - automatically uses context nodes
     sinks = ctx.get_sink_nodes()          # [output] - automatically uses context nodes
-    
+
     # Check what depends on a specific node
     box_deps = ctx.get_dependents(box)    # [xform1]
-    
-    # Can also analyze specific node lists
-    specific_nodes = [box, xform1, merge]
-    sources_subset = ctx.get_source_nodes(specific_nodes)  # [box]
 ```## Caching and Performance
 
 ### Automatic Caching

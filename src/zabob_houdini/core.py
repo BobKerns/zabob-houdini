@@ -552,7 +552,6 @@ class NodeContext:
 
         # Track dependencies for inputs
         if _input is not None:
-            from .core import Chain  # Local import to avoid circular imports
             inputs = _input if isinstance(_input, (list, tuple)) else [_input]
             for input_spec in inputs:
                 if input_spec is not None:
@@ -563,7 +562,7 @@ class NodeContext:
                         input_node = input_spec.last
                     else:
                         continue  # Skip other types (hou.Node, str, tuples)
-                    
+
                     # Track the dependency
                     self._add_dependency(input_node, node_instance)
 
@@ -732,30 +731,22 @@ class NodeContext:
         """Get list of nodes that depend on the given node."""
         return list(self._dependency_registry.get(node, []))
 
-    def get_source_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
-        """Get nodes that have no inputs (source nodes).
-        
-        Args:
-            nodes: List of nodes to examine. If None, examines all nodes in this context.
-            
+    def get_source_nodes(self) -> list[NodeInstance]:
+        """Get nodes in this context that have no inputs (source nodes).
+
         Returns:
-            List of nodes that have no input connections
+            List of context nodes that have no input connections
         """
-        if nodes is None:
-            nodes = list(self._nodes.values())
+        nodes = list(self._nodes.values())
         return [node for node in nodes if not node.inputs or all(inp is None for inp in node.inputs)]
 
-    def get_sink_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
-        """Get nodes that have no dependents (sink nodes).
-        
-        Args:
-            nodes: List of nodes to examine. If None, examines all nodes in this context.
-            
+    def get_sink_nodes(self) -> list[NodeInstance]:
+        """Get nodes in this context that have no dependents (sink nodes).
+
         Returns:
-            List of nodes that no other nodes depend on
+            List of context nodes that no other nodes depend on
         """
-        if nodes is None:
-            nodes = list(self._nodes.values())
+        nodes = list(self._nodes.values())
         return [node for node in nodes if not self.get_dependents(node)]
 
 
