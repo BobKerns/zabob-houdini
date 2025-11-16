@@ -102,10 +102,10 @@ def get_dependents(node: 'NodeInstance') -> list['NodeInstance']:
 
 def get_source_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
     """Get nodes that have no inputs (source nodes).
-    
+
     Args:
         nodes: List of nodes to examine
-        
+
     Returns:
         List of nodes that have no input connections
     """
@@ -113,10 +113,10 @@ def get_source_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
 
 def get_sink_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
     """Get nodes that have no dependents (sink nodes).
-    
+
     Args:
         nodes: List of nodes to examine
-        
+
     Returns:
         List of nodes that no other nodes depend on
     """
@@ -124,10 +124,10 @@ def get_sink_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
 
 def get_leaf_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
     """Alias for get_sink_nodes - nodes with no dependents (leaf nodes in the graph).
-    
+
     Args:
         nodes: List of nodes to examine
-        
+
     Returns:
         List of nodes that no other nodes depend on
     """
@@ -135,10 +135,10 @@ def get_leaf_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
 
 def get_root_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
     """Alias for get_source_nodes - nodes with no inputs (root nodes in the graph).
-    
+
     Args:
         nodes: List of nodes to examine
-        
+
     Returns:
         List of nodes that have no input connections
     """

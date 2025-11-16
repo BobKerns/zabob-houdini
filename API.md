@@ -771,21 +771,21 @@ def get_root_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
 # Build a node network
 with context(node("/obj", "geo")) as ctx:
     box = ctx.node("box", "source1")
-    sphere = ctx.node("sphere", "source2") 
+    sphere = ctx.node("sphere", "source2")
     xform1 = ctx.node("xform", "process1", _input=box)
     xform2 = ctx.node("xform", "process2", _input=sphere)
     merge = ctx.node("merge", "combine", _input=[xform1, xform2])
     output = ctx.node("null", "output", _input=merge)
-    
+
     # Create all nodes
     output.create()
-    
+
     # Analyze the network structure
     all_nodes = [box, sphere, xform1, xform2, merge, output]
-    
+
     sources = get_source_nodes(all_nodes)  # [box, sphere]
     sinks = get_sink_nodes(all_nodes)      # [output]
-    
+
     # Check what depends on a specific node
     box_deps = get_dependents(box)         # [xform1]
 ```

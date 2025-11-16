@@ -37,7 +37,7 @@ lazy_imports = (
     "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent",
     "NodeBase", "CreatableNode", "ChainableNode", "InputNode",
     "InputNodes", "Inputs", "ChainCopyParam",
-    "get_node_instance", "wrap_node", "hou_node", "get_dependents", 
+    "get_node_instance", "wrap_node", "hou_node", "get_dependents",
     "get_source_nodes", "get_sink_nodes", "get_leaf_nodes", "get_root_nodes", 'ROOT',
 )
 _imports_loaded = False
