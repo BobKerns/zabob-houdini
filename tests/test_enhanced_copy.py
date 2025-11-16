@@ -67,7 +67,7 @@ def test_enhanced_copy_parameter_validation(hython_test):
 
     # Verify keyword-only parameters (after *)
     keyword_only = data["node_keyword_only_parameters"]
-    expected_kw_only = ["name", "attributes", "_display", "_render"]
+    expected_kw_only = ["name", "attributes", "_display", "_render", "_chain"]
 
     for param in expected_kw_only:
         assert param in keyword_only, f"Parameter {param} should be keyword-only"
@@ -80,4 +80,3 @@ def test_enhanced_copy_parameter_validation(hython_test):
     # Verify Chain.copy() uses *args for positional reordering
     assert data["chain_uses_args"] is True
     assert "_inputs" in data["chain_all_parameters"]
-    assert "_chain" in data["chain_all_parameters"]

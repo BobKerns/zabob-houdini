@@ -54,4 +54,3 @@ class TestChainCopyPositional:
 
         # Base parameters should still be present
         assert '_inputs' in data['chain_all_parameters']
-        assert '_chain' in data['chain_all_parameters']
