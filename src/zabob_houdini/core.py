@@ -18,7 +18,7 @@ import weakref
 from itertools import zip_longest
 from collections.abc import Iterator, Sequence
 
-if not "hou" in sys.modules:
+if "hou" not in sys.modules:
     # Avoids SIGSEGV when importing hou in non-Houdini environments
     raise ImportError(
         "The 'hou' module is not available. This module requires Houdini's 'hou' module to run."
