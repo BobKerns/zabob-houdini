@@ -44,23 +44,19 @@ Both return **immutable objects** that use `.create()` to instantiate the actual
 ## Example Usage
 
 ```python
-from zabob_houdini import node, chain
+from zabob_houdini import node, chain, context
 
-# Create immutable node definitions
-geo_node = node("/obj", "geo", name="mygeometry")
-box_node = node(geo_node, "box", name="mybox")
-transform_node = node(geo_node, "xform", name="mytransform", _input=box_node)
+# Create a geometry container and organize nodes with context
+with context(node("/obj", "geo", "mygeometry")) as ctx:
+    # Create nodes within the context
+    box_node = ctx.node("box", "mybox")
+    transform_node = ctx.node("xform", "mytransform", _input=box_node)
 
-# Or create a processing chain (also immutable)
-processing_chain = chain(
-    node(geo_node, "box"),
-    node(geo_node, "xform"),
-    node(geo_node, "subdivide")
-)
+    # Or create a processing chain using context nodes
+    processing_chain = ctx.chain("mybox", "mytransform", ctx.node("subdivide"))
 
 # These definitions are cached and can be reused safely
-same_geo = geo_node.create()  # Returns the same hou.Node instance
-another_chain = processing_chain.create()  # Reuses cached nodes
+processing_chain.create()  # Creates entire dependency tree
 ```
 
 For complete examples including multi-output connections, chain indexing, type narrowing, and advanced patterns, see the **[API Documentation](API.md)**.
@@ -102,7 +98,7 @@ zabob-houdini validate
 
 ```python
 # In Houdini's Python shell, shelf tools, or HDAs
-from zabob_houdini import node, chain
+from zabob_houdini import node, chain, context
 ```
 
 ## Documentation

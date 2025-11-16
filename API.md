@@ -55,14 +55,16 @@ def node(
 
 **Examples:**
 ```python
-# Simple geometry node
-box = node("/obj/geo1", "box", sizex=2, sizey=2, sizez=2)
+# Using context manager for organization
+with context(node("/obj", "geo")) as ctx:
+    # Simple geometry node
+    box = ctx.node("box", sizex=2, sizey=2, sizez=2)
 
-# Transform with input
-xform = node("/obj/geo1", "xform", "my_transform", _input=box, tx=5)
+    # Transform with input
+    xform = ctx.node("xform", "my_transform", _input=box, tx=5)
 
-# Node with display flag
-output = node("/obj/geo1", "null", "OUT", _input=xform, _display=True)
+    # Node with display flag
+    output = ctx.node("null", "OUT", _input=xform, _display=True)
 ```
 
 ### `chain()`
@@ -84,18 +86,20 @@ def chain(
 
 **Examples:**
 ```python
-# Simple chain
-processing = chain(
-    node(geo, "box"),
-    node(geo, "xform", tx=2),
-    node(geo, "subdivide", iterations=2)
-)
+# Using context for chain creation
+with context(node("/obj", "geo")) as ctx:
+    # Simple chain
+    processing = ctx.chain(
+        ctx.node("box"),
+        ctx.node("xform", tx=2),
+        ctx.node("subdivide", iterations=2)
+    )
 
-# Chain with external input
-chain_with_input = chain(
-    node(geo, "xform", "scale_up", _input=some_input, sx=2, sy=2, sz=2),
-    node(geo, "xform", "translate", tx=5)
-)
+    # Chain with external input
+    chain_with_input = ctx.chain(
+        ctx.node("xform", "scale_up", _input=some_input, sx=2, sy=2, sz=2),
+        ctx.node("xform", "translate", tx=5)
+    )
 ```
 
 ### `merge()`
@@ -116,21 +120,18 @@ def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance
 
 **Examples:**
 ```python
-# Merge two geometry nodes
-box = node(geo, "box")
-sphere = node(geo, "sphere")
-merged = merge(box, sphere)
+# Using context for merge operations
+with context(node("/obj", "geo")) as ctx:
+    # Merge two geometry nodes
+    box = ctx.node("box")
+    sphere = ctx.node("sphere")
+    merged = ctx.merge(box, sphere)
 
-# Merge with parameters
-merged = merge(box, sphere, tol=0.01)
+    # Merge with parameters
+    merged = ctx.merge(box, sphere, tol=0.01)
 
-# Merge multiple inputs
-inputs = [
-    node(geo, "box"),
-    node(geo, "sphere"),
-    node(geo, "tube")
-]
-combined = merge(*inputs)
+    # Merge multiple inputs by name
+    merged = ctx.merge("box", "sphere", "tube")
 ```
 
 ## Type Safety
@@ -159,6 +160,122 @@ children = obj_node.children()  # hou.ObjNode.children() available
 - **Documentation**: Makes code intent clearer for maintainers
 
 **Note:** The `as_type` parameter is only available on `NodeInstance.create()`. Chain creation via `Chain.create()` returns a tuple of `NodeInstance` objects without type narrowing.
+
+## Context Management
+
+### `context()`
+
+Creates a NodeContext for organizing nodes under a specific parent.
+
+```python
+def context(parent: NodeParent) -> NodeContext
+```
+
+**Parameters:**
+- `parent`: Parent node - can be a path string, `NodeInstance`, or `hou.Node`
+
+**Returns:** A context manager object for organizing nodes
+
+**Examples:**
+```python
+# Using with NodeInstance
+with context(node("/obj", "geo", "container")) as ctx:
+    box = ctx.node("box", "my_box")
+
+# Using with path string
+with context("/obj") as ctx:
+    geo1 = ctx.node("geo", "geometry1")
+    geo2 = ctx.node("geo", "geometry2")
+```
+
+### Context Objects
+
+The `context()` function returns a context manager for organizing node creation under a specific parent. Context objects provide convenient methods and name-based lookup.
+
+#### Properties
+
+```python
+@property
+def parent(self) -> NodeInstance
+    """Get the parent node for this context."""
+```
+
+#### Methods
+
+```python
+def node(self, node_type: str, name: str | None = None, **attributes: Any) -> NodeInstance
+    """
+    Create a node under this context's parent.
+
+    Args:
+        node_type: Houdini node type name
+        name: Optional node name (auto-generated if None)
+        **attributes: Node parameter values
+
+    Returns:
+        NodeInstance that will be created under the context parent
+
+    Note:
+        If the node is named, it will be registered for lookup via ctx[name]
+    """
+
+def chain(self, *nodes: ChainableNode | str, **attributes: Any) -> Chain
+    """
+    Create a chain with string argument lookup in this context.
+
+    Args:
+        *nodes: NodeInstance, Chain, or string names to chain together
+        **attributes: Reserved for future use
+
+    Returns:
+        Chain object
+
+    Note:
+        - String arguments are looked up as registered node names
+        - Named nodes from external NodeInstances are registered automatically
+    """
+
+def merge(self, *inputs: NodeInstance | str, name: str | None = None, **attributes: Any) -> NodeInstance
+    """
+    Create a merge node with string argument lookup in this context.
+
+    Args:
+        *inputs: NodeInstance objects or string names (looked up in context)
+        name: Optional name for merge node
+        **attributes: Additional merge parameters
+
+    Returns:
+        NodeInstance for the merge node
+
+    Note:
+        - String arguments are looked up as registered node names
+        - External NodeInstance objects are registered automatically if named
+    """
+
+def __getitem__(self, name: str) -> NodeInstance
+    """
+    Look up a registered node by name.
+
+    Args:
+        name: Node name to look up
+
+    Returns:
+        NodeInstance that was registered with this name
+
+    Raises:
+        KeyError: If no node with this name is registered
+    """
+```
+
+#### Context Manager Protocol
+
+```python
+def __enter__(self)
+    """Enter context manager - returns self."""
+
+def __exit__(self, exc_type, exc_val, exc_tb) -> None
+    """Exit context manager - no special cleanup needed."""
+```
 
 ## Classes
 
@@ -517,32 +634,58 @@ reordered = original.copy("distort", blur, "cleanup", _inputs=[source])
 - **Node Insertion**: `chain.copy(0, new_node, 1)` - insert NodeInstances
 - **Duplication**: `chain.copy("detail", "detail")` - repeat by name or index
 
-### Diamond Pattern
-Create nodes that share a common source:
+### NodeContext and Context Manager Pattern
+
+The recommended way to organize node creation is using the `context()` function with a context manager:
 
 ```python
-# Shared source
-source = chain(
-    node(geo, "box"),
-    node(geo, "xform", "center")
-)
+from zabob_houdini import context, node
 
-# Two processing paths
-path1 = chain(
-    node(geo, "xform", "scale_up", _input=source, sx=2),
-    node(geo, "xform", "rotate_y", ry=45)
-)
+# Create organized node networks with context manager
+with context(node("/obj", "geo", "processing")) as ctx:
+    # Create nodes using ctx.node() - automatically sets correct parent
+    source = ctx.node("box", "input_geometry", sizex=2, sizey=2, sizez=2)
 
-path2 = chain(
-    node(geo, "xform", "scale_down", _input=source, sx=0.5),
-    node(geo, "xform", "rotate_x", rx=30)
-)
+    # Use string names for clean chain definitions
+    processing_chain = ctx.chain("input_geometry",
+                                ctx.node("xform", "scale", sx=1.5),
+                                ctx.node("subdivide", "smooth"))
 
-# Merge results
-final = chain(
-    node(geo, "merge", _input=[path1, path2]),
-    node(geo, "xform", "final_transform", _display=True)
-)
+    # Merge operations with string lookup
+    alternate = ctx.node("sphere", "alternate_input")
+    final = ctx.merge("input_geometry", "alternate_input", name="combined")
+
+    # Access nodes by name anytime
+    retrieved = ctx["input_geometry"]  # Same as source
+
+# Context automatically handles parent relationships and name registration
+```
+
+### Diamond Pattern with Context
+Create nodes that share a common source using context organization:
+
+```python
+with context(node("/obj", "geo", "diamond_demo")) as ctx:
+    # Shared source chain
+    source = ctx.chain(
+        ctx.node("box", "base_geometry"),
+        ctx.node("xform", "center")
+    )
+
+    # Two processing paths using source
+    path1 = ctx.chain(
+        ctx.node("xform", "scale_up", _input=source, sx=2),
+        ctx.node("xform", "rotate_y", ry=45)
+    )
+
+    path2 = ctx.chain(
+        ctx.node("xform", "scale_down", _input=source, sx=0.5),
+        ctx.node("xform", "rotate_x", rx=30)
+    )
+
+    # Merge results using string names
+    final = ctx.merge("scale_up", "scale_down", name="combined")
+    output = ctx.node("null", "OUT", _input=final, _display=True)
 ```
 
 ### Nested Chains
@@ -634,15 +777,34 @@ def hou_node(path: str) -> hou.Node
 
 ## Best Practices
 
+### Context Organization
+```python
+# Best practice - use context manager for organization
+with context(node("/obj", "geo", "processing")) as ctx:
+    # Descriptive names for important nodes
+    source = ctx.node("box", "source_geometry", sizex=2, sizey=2, sizez=2)
+    scaled = ctx.node("xform", "scale_2x", _input=source, sx=2, sy=2, sz=2)
+
+    # Use string lookup in chains
+    processing = ctx.chain("source_geometry", "scale_2x",
+                          ctx.node("subdivide", "smooth"))
+
+    # Merge operations with string names
+    alternate = ctx.node("sphere", "alternate_input")
+    final = ctx.merge("source_geometry", "alternate_input", name="combined")
+```
+
 ### Node Naming
 ```python
-# Good - descriptive names
-source = node(geo, "box", "source_geometry")
-scaled = node(geo, "xform", "scale_2x", _input=source, sx=2, sy=2, sz=2)
+# Good - descriptive names within context
+with context(node("/obj", "geo", "demo")) as ctx:
+    source = ctx.node("box", "source_geometry")
+    scaled = ctx.node("xform", "scale_2x", _input="source_geometry", sx=2)
 
 # Acceptable - let system generate names
-source = node(geo, "box")
-scaled = node(geo, "xform", _input=source, sx=2, sy=2, sz=2)
+with context(node("/obj", "geo", "demo")) as ctx:
+    source = ctx.node("box")
+    scaled = ctx.node("xform", _input=source, sx=2)
 ```
 
 ### Input Management
@@ -659,30 +821,41 @@ node(geo, "switch", _input=[source1, None, source3])
 
 ### Chain Organization
 ```python
-# Good - logical groupings
-preprocessing = chain(
-    node(geo, "box"),
-    node(geo, "xform", "center"),
-    node(geo, "subdivide", iterations=1)
-)
+# Best practice - use context for logical groupings
+with context(node("/obj", "geo", "processing")) as ctx:
+    # Preprocessing steps
+    preprocessing = ctx.chain(
+        ctx.node("box", "input"),
+        ctx.node("xform", "center"),
+        ctx.node("subdivide", "detail", iterations=1)
+    )
 
-processing = chain(
-    node(geo, "xform", "scale", _input=preprocessing, sx=2),
-    node(geo, "xform", "rotate", ry=45)
-)
+    # Main processing using string lookup
+    processing = ctx.chain(
+        "center",  # Reference by name
+        ctx.node("xform", "scale", sx=2),
+        ctx.node("xform", "rotate", ry=45)
+    )
 
-# Good - clear final output
-output = node(geo, "null", "OUT", _input=processing, _display=True, _render=True)
+    # Clear final output
+    output = ctx.node("null", "OUT", _input="rotate", _display=True, _render=True)
 ```
 
 ### Creation Patterns
 ```python
-# Good - create final outputs, let dependencies propagate
-geo_container = node("/obj", "geo", "my_geometry")
-final_chain = create_processing_network(geo_container)
+# Best practice - organize with context, create selectively
+def create_processing_network():
+    with context(node("/obj", "geo", "my_geometry")) as ctx:
+        # Define entire network
+        final_chain = ctx.chain(
+            ctx.node("box", "input"),
+            ctx.node("xform", "process"),
+            ctx.node("null", "output", _display=True)
+        )
+        return ctx.parent, final_chain
 
-# Only create what's needed
-geo_container.create()
+# Only create what's needed - dependencies propagate automatically
+geo_container, final_chain = create_processing_network()
 final_chain.create()  # Creates entire dependency tree
 ```
 

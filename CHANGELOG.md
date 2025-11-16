@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- New `NodeContext` class for organizing nodes under a specific parent
+  - Context manager protocol for convenient use with `with` statements
+  - `node()` method creates nodes under the context's parent without specifying parent
+  - `chain()` method creates chains with string name lookup for existing context nodes
+  - Named node registration and lookup: `ctx["node_name"]` retrieves nodes by name
+  - Dictionary-style access to named nodes created within the context
+  - Automatic registration of new chain nodes (preserves existing context nodes)
+- New `context()` function for creating NodeContext instances
+  - Accepts NodeInstance, string path, or hou.Node as parent
+  - Wraps non-NodeInstance parents automatically for consistent interface
+  - Returns NodeContext that can be used as context manager
 - Enhanced `NodeInstance.copy()` with comprehensive parameter support
   - `name` parameter for renaming copied nodes
   - `_display` and `_render` parameters for display/render flag control

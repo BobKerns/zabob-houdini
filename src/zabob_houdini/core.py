@@ -481,6 +481,203 @@ class NodeInstance(NodeBase):
         )
 
 
+@dataclass
+class NodeContext:
+    """
+    A context manager for creating nodes within a specific parent.
+
+    Provides a convenient way to create multiple nodes under the same parent
+    without having to specify the parent for each node() call.
+
+    Named nodes can be looked up using dictionary-style access: ctx['name']
+    """
+    parent: NodeInstance
+    _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
+
+    def __enter__(self) -> 'NodeContext':
+        """Enter the context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit the context manager."""
+        pass
+
+    def node(self,
+             node_type: NodeType,
+             /,
+             name: str | None = None,
+             *,
+             _input: 'InputNode | Sequence[InputNode] | None' = None,
+             _node: 'hou.Node | None' = None,
+             _display: bool = False,
+             _render: bool = False,
+             **attributes: Any
+            ) -> NodeInstance:
+        """
+        Create a node under this context's parent.
+
+        Args:
+            node_type: Type of node to create (e.g., "box", "xform")
+            name: Optional name for the node
+            _input: Optional input node(s) to connect
+            _node: Optional existing hou.Node to return from create()
+            _display: Set display flag on this node when created
+            _render: Set render flag on this node when created
+            **attributes: Node parameter values
+
+        Returns:
+            NodeInstance that can be created with .create()
+        """
+        # Create the node using the global node() function
+        node_instance = node(
+            self.parent,
+            node_type,
+            name,
+            _input=_input,
+            _node=_node,
+            _display=_display,
+            _render=_render,
+            **attributes
+        )
+
+        # Register named nodes for lookup
+        if name is not None:
+            self._nodes[name] = node_instance
+
+        return node_instance
+
+    def __getitem__(self, name: str) -> NodeInstance:
+        """Look up a named node created in this context."""
+        if name not in self._nodes:
+            raise KeyError(f"No node named '{name}' found in this context")
+        return self._nodes[name]
+
+    def chain(self, *nodes: 'ChainableNode | str', **attributes: Any) -> 'Chain':
+        """
+        Create a chain of nodes, with string arguments looked up in this context.
+
+        Args:
+            *nodes: Sequence of NodeInstance, Chain, hou.Node, or string names to chain together
+            **attributes: Additional attributes (currently unused, for future compatibility)
+
+        Returns:
+            Chain that can be created with .create()
+
+        Note:
+            - String arguments are looked up as node names in this context
+            - After creating the chain, any named nodes in the result that aren't already
+              registered in this context will be added to the name registry
+            - Existing context nodes are preserved and not overwritten by chain copies
+        """
+        # Resolve string arguments to actual nodes
+        resolved_nodes: list[ChainableNode] = []
+        for item in nodes:
+            if isinstance(item, str):
+                # Look up the named node in this context
+                resolved_nodes.append(self[item])
+            else:
+                resolved_nodes.append(item)
+
+        # Validate that all resolved nodes have the same parent as this context
+        for i, node_item in enumerate(resolved_nodes):
+            # Extract NodeInstance from ChainableNode
+            if isinstance(node_item, NodeInstance):
+                actual_node = node_item
+            elif isinstance(node_item, Chain) and node_item.nodes:
+                actual_node = node_item.nodes[0]  # Check first node of chain
+            else:
+                continue  # Skip validation for other types
+
+            if actual_node.parent != self.parent:
+                raise ValueError(
+                    f"All chain nodes must have same parent as context. "
+                    f"Context parent is {self.parent}, but node {i} has parent {actual_node.parent}"
+                )
+
+        # Create the chain using the global chain() function
+        created_chain = chain(*resolved_nodes, **attributes)
+
+        # Register any named nodes from the chain that aren't already in our context
+        # Only register nodes that don't already exist - preserve original context nodes
+        for node_instance in created_chain.nodes:
+            if (node_instance.name is not None and
+                node_instance.name not in self._nodes):
+                self._nodes[node_instance.name] = node_instance
+
+        return created_chain
+
+    def merge(self, *inputs: 'NodeInstance | str', name: str | None = None, **attributes: Any) -> NodeInstance:
+        """
+        Create a merge node with multiple inputs, with string arguments looked up in this context.
+
+        Args:
+            *inputs: NodeInstance objects or string names to merge (must have same parent)
+            name: Optional name for the merge node
+            **attributes: Additional merge node parameters
+
+        Returns:
+            NodeInstance for the merge node
+
+        Raises:
+            ValueError: If no inputs provided or inputs have different parents
+            KeyError: If a string input name is not found in this context
+
+        Note:
+            - String arguments are looked up as node names in this context
+            - If the merge node is named and not already in the context, it will be registered
+
+        Examples:
+            # Merge nodes by name
+            merged = ctx.merge("box", "sphere", name="combined")
+
+            # Mix string names and NodeInstance objects
+            merged = ctx.merge("box", external_sphere, name="mixed_merge")
+        """
+        if not inputs:
+            raise ValueError("merge() requires at least one input")
+
+        # Resolve string arguments to actual nodes
+        resolved_inputs: list[NodeInstance] = []
+        for item in inputs:
+            if isinstance(item, str):
+                # Look up the named node in this context
+                resolved_inputs.append(self[item])
+            elif isinstance(item, NodeInstance):
+                resolved_inputs.append(item)
+            else:
+                raise TypeError(f"merge() inputs must be NodeInstance or str, got {type(item).__name__}")
+
+        # Validate that all resolved nodes have the same parent as this context
+        for i, resolved_node in enumerate(resolved_inputs):
+            if resolved_node.parent != self.parent:
+                raise ValueError(
+                    f"All merge inputs must have same parent as context. "
+                    f"Context parent is {self.parent}, but input {i} has parent {resolved_node.parent}"
+                )
+
+        # Create the merge using the global merge() function
+        created_merge = merge(*resolved_inputs, **attributes)
+
+        # If we have a name, update the merge node with the name
+        if name is not None:
+            created_merge = created_merge.copy(name=name)
+
+        # Register external nodes that were passed in (not looked up from context)
+        for i, item in enumerate(inputs):
+            if isinstance(item, NodeInstance):
+                # This was an external node, register it if named and not already present
+                if (item.name is not None and
+                    item.name not in self._nodes):
+                    self._nodes[item.name] = item
+
+        # Register the merge node if it's named and not already in our context
+        if (created_merge.name is not None and
+            created_merge.name not in self._nodes):
+            self._nodes[created_merge.name] = created_merge
+
+        return created_merge
+
+
 @dataclass(frozen=True, eq=False)
 class Chain(NodeBase):
     """
@@ -834,6 +1031,16 @@ def chain(
         for node in _handle_entry(item)
     ))
 
+    # Validate that all nodes have the same parent
+    if flattened_nodes:
+        first_parent = flattened_nodes[0].parent
+        for i, node in enumerate(flattened_nodes[1:], 1):
+            if node.parent != first_parent:
+                raise ValueError(
+                    f"All chain nodes must have same parent. "
+                    f"Node 0 has parent {first_parent}, node {i} has parent {node.parent}"
+                )
+
     return Chain(
         nodes=flattened_nodes,  # Only NodeInstance objects now
     )
@@ -880,6 +1087,27 @@ def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
         _input=inputs,
         **attributes
     )
+
+
+def context(parent: NodeParent) -> NodeContext:
+    """
+    Create a NodeContext for organizing nodes under a specific parent.
+
+    Args:
+        parent: Parent node (path string, NodeInstance, or hou.Node)
+
+    Returns:
+        NodeContext that can be used as a context manager
+
+    Example:
+        with context(geo) as ctx:
+            # Create nodes under the geo parent
+            box = node(ctx.parent, "box")
+            sphere = node(ctx.parent, "sphere")
+    """
+    # Wrap the parent as a NodeInstance for consistent interface
+    parent_instance = wrap_node(parent) if not isinstance(parent, NodeInstance) else parent
+    return NodeContext(parent=parent_instance)
 
 
 def hou_node(path: str) -> 'hou.Node':
