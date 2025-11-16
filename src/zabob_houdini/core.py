@@ -262,7 +262,7 @@ class NodeInstance(NodeBase):
         """
         return tuple((_wrap_input(inp, 0) for inp in self._inputs))
 
-    def create(self, as_type: type[T] | None = None, _skip_chain: bool = False) -> T:
+    def create(self, as_type: type[T] | None = None, /, _skip_chain: bool = False) -> T:
         """
         Create the actual Houdini node.
 
@@ -387,12 +387,13 @@ class NodeInstance(NodeBase):
 
     def copy(self, /,
              _inputs: InputNodes = (),
-             _chain: 'Chain | None' = None,
              *,
              name: str | None = None,
              attributes: dict[str, Any] | None = None,
              _display: bool | None = None,
-             _render: bool | None = None) -> 'NodeInstance':
+             _render: bool | None = None,
+             _chain: 'Chain | None' = None,
+            ) -> 'NodeInstance':
         """Return a copy with optional modifications.
 
         Args:
@@ -624,7 +625,7 @@ class Chain(NodeBase):
 
         return tuple(created_node_instances)
 
-    def copy(self, *copy_params: ChainCopyParam, _inputs: InputNodes=(), _chain: Chain | None=None) -> 'Chain':  # type: ignore[override]
+    def copy(self, *copy_params: ChainCopyParam, _inputs: InputNodes=()) -> 'Chain':  # type: ignore[override]
         """
         Return a copy of this Chain with nodes reordered, dropped, or inserted.
 
@@ -635,7 +636,6 @@ class Chain(NodeBase):
                 - NodeInstance: New node to insert at this position
                 If no arguments given, copies all nodes in original order
             _inputs: Input nodes for the first node in the new chain
-            _chain: Parent chain reference
 
         Returns:
             New Chain with specified nodes in specified order

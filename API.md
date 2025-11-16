@@ -158,7 +158,7 @@ def last(self) -> NodeInstance
 #### Methods
 
 ```python
-def create(self, as_type: type[T] = hou.Node, _skip_chain: bool = False) -> T
+def create(self, as_type: type[T] = hou.Node) -> T
     """
     Create the actual Houdini node with optional type narrowing for type safety.
 
@@ -171,7 +171,6 @@ def create(self, as_type: type[T] = hou.Node, _skip_chain: bool = False) -> T
                 - hou.ObjNode: Object nodes
                 - hou.ChopNode: Channel operator nodes
                 - hou.RopNode: Render operator nodes
-        _skip_chain: Internal flag to avoid recursion during chain creation
 
     Returns:
         The created Houdini node, cached for subsequent calls. Type matches as_type.
