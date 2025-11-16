@@ -10,7 +10,6 @@ import sys
 from collections import defaultdict
 import functools
 from abc import ABC, abstractmethod
-import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, TypeVar, cast, TypeAlias, overload, TYPE_CHECKING
 from types import MappingProxyType
@@ -24,16 +23,7 @@ if "hou" not in sys.modules:
         "The 'hou' module is not available. This module requires Houdini's 'hou' module to run."
     )
 
-# This isn't functionally needed, but it avoids mpy SIGSEGVing from trying
-# to actually import the real module under some circumstances.
-if TYPE_CHECKING:
-    import hou
-else:
-    try:
-        import hou
-    except ImportError:
-        # hou module not available - this will be handled at runtime
-        hou = None  # type: ignore
+import hou
 
 if TYPE_CHECKING:
     T = TypeVar('T', bound=hou.Node)
@@ -180,7 +170,7 @@ def _merge_inputs(in1: Inputs, in2: Inputs) -> Inputs:
     ]
     return tuple(merged)
 
-@dataclasses.dataclass(frozen=True)
+@dataclass(frozen=True)
 class NodeBase(ABC):
     """
     Base class for Houdini node representations.
@@ -212,15 +202,6 @@ class NodeBase(ABC):
         """Return the last node for this node/chain."""
         pass
 
-    @abstractmethod
-    def copy(self, /, _inputs: InputNodes=(), _chain: Chain | None=None) -> 'NodeBase':
-        """Return a copy of this node/chain object. Copies are independent for creation.
-
-        This is used by Chain.create() to avoid mutating original definitions when
-        creating Houdini nodes.
-        """
-        pass
-
     def __hash__(self) -> int:
         """Hash based on object identity - these represent specific node instances."""
         return id(self)
@@ -229,7 +210,7 @@ class NodeBase(ABC):
         """Equality based on object identity - these represent specific node instances."""
         return self is other
 
-@dataclasses.dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class NodeInstance(NodeBase):
     """
     Represents a single Houdini node with parameters and inputs.
@@ -688,7 +669,6 @@ class Chain(NodeBase):
                     # It's an int or str - get the original node's inputs
                     original_first = self[first_param]
                     self_inputs = original_first.inputs
-                # If first item is inserted NodeInstance, it keeps its own inputs
             else:
                 # Default copy: preserve first node's inputs
                 self_inputs = self.nodes[0].inputs
@@ -984,18 +964,14 @@ if TYPE_CHECKING:
     '''
 else:
     # Runtime initialization - only when hou is available
-    if hou is not None:
-        _ROOT = hou_node('/')
-        ROOT = NodeInstance(
-            _parent=cast(NodeInstance, None),
-            node_type='root',
-            name='/',
-            attributes=HashableMapping({}),
-            _inputs=(),
-            _node=_ROOT
-        )
-        # Register it
-        _node_registry['/'] = ROOT
-    else:
-        # Placeholder when hou is not available
-        ROOT = None  # type: ignore
+    _ROOT = hou_node('/')
+    ROOT = NodeInstance(
+        _parent=cast(NodeInstance, None),
+        node_type='root',
+        name='/',
+        attributes=HashableMapping({}),
+        _inputs=(),
+        _node=_ROOT
+    )
+    # Register it
+    _node_registry['/'] = ROOT
