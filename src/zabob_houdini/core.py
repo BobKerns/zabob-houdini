@@ -6,7 +6,6 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 
 from __future__ import annotations
 
-import sys
 from collections import defaultdict
 import functools
 from abc import ABC, abstractmethod
