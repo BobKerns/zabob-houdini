@@ -1296,10 +1296,11 @@ def test_copy_signature_validation():
 
 def test_chain_positional_reordering():
     """Test Chain.copy() positional reordering functionality."""
+    geo = node("/obj", "geo")
     # Create chain with named nodes
-    n1 = node("/obj/geo", "box", name="first")
-    n2 = node("/obj/geo", "sphere", name="second")
-    n3 = node("/obj/geo", "merge", name="third")
+    n1 = node(geo, "box", name="first")
+    n2 = node(geo, "sphere", name="second")
+    n3 = node(geo, "merge", name="third")
 
     original_chain = chain(n1, n2, n3)
 
@@ -1314,7 +1315,7 @@ def test_chain_positional_reordering():
     mixed_chain = original_chain.copy(0, "third")
 
     # Test node insertion
-    new_node = node("/obj/geo", "xform", name="inserted")
+    new_node = node(geo, "xform", name="inserted")
     inserted_chain = original_chain.copy(0, new_node, 2)
 
     return {

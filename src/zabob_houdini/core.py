@@ -669,8 +669,6 @@ class Chain(NodeBase):
                     # It's an int or str - get the original node's inputs
                     original_first = self[first_param]
                     self_inputs = original_first.inputs
-                else:
-                    self_inputs = _merge_inputs(inputs, first_param.inputs)
             else:
                 # Default copy: preserve first node's inputs
                 self_inputs = self.nodes[0].inputs
