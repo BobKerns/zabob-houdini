@@ -6,7 +6,7 @@ This example shows how to track which nodes depend on other nodes,
 useful for understanding node graph structure and managing changes.
 """
 
-from zabob_houdini import node, chain, get_dependents, get_source_nodes, get_sink_nodes, context
+from zabob_houdini import node, chain, get_dependents, context
 
 def main():
     """Demonstrate dependency tracking functionality."""
@@ -77,16 +77,13 @@ def main():
         print("\nNetwork Topology Analysis:")
         print("==========================")
 
-        # Collect all nodes from both networks
-        all_nodes = [box, sphere, xform1, xform2, merge, output] + list(processing_chain)
-
-        # Find source and sink nodes
-        sources = get_source_nodes(all_nodes)
-        sinks = get_sink_nodes(all_nodes)
-
+        # Network topology analysis using context methods
+        sources = ctx.get_source_nodes()
+        sinks = ctx.get_sink_nodes()
+        
         print(f"Source nodes (no inputs): {[n.name for n in sources]}")
         print(f"Sink nodes (no dependents): {[n.name for n in sinks]}")
-
+        
         # This helps identify entry and exit points of the node graph
         print(f"\nGraph has {len(sources)} entry points and {len(sinks)} exit points")
 

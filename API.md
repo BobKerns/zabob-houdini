@@ -749,21 +749,26 @@ def hou_node(path: str) -> hou.Node
 
 ### Dependency Analysis
 
+The `NodeContext` class provides methods for analyzing node dependencies and network topology:
+
 ```python
-def get_dependents(node: NodeInstance) -> list[NodeInstance]
-    """Get list of nodes that depend on the given node."""
+class NodeContext:
+    def get_dependents(self, node: NodeInstance) -> list[NodeInstance]
+        """Get list of nodes that depend on the given node."""
 
-def get_source_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
-    """Get nodes that have no inputs (source nodes)."""
+    def get_source_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
+        """Get nodes that have no inputs (source nodes).
+        If nodes is None, examines all nodes in this context."""
 
-def get_sink_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
-    """Get nodes that have no dependents (sink nodes)."""
+    def get_sink_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
+        """Get nodes that have no dependents (sink nodes).
+        If nodes is None, examines all nodes in this context."""
 
-def get_leaf_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
-    """Alias for get_sink_nodes - nodes with no dependents."""
+    def get_leaf_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
+        """Alias for get_sink_nodes - nodes with no dependents."""
 
-def get_root_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
-    """Alias for get_source_nodes - nodes with no inputs."""
+    def get_root_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]
+        """Alias for get_source_nodes - nodes with no inputs."""
 ```
 
 **Usage Example:**
@@ -771,26 +776,26 @@ def get_root_nodes(nodes: list[NodeInstance]) -> list[NodeInstance]
 # Build a node network
 with context(node("/obj", "geo")) as ctx:
     box = ctx.node("box", "source1")
-    sphere = ctx.node("sphere", "source2")
+    sphere = ctx.node("sphere", "source2") 
     xform1 = ctx.node("xform", "process1", _input=box)
     xform2 = ctx.node("xform", "process2", _input=sphere)
     merge = ctx.node("merge", "combine", _input=[xform1, xform2])
     output = ctx.node("null", "output", _input=merge)
-
+    
     # Create all nodes
     output.create()
-
-    # Analyze the network structure
-    all_nodes = [box, sphere, xform1, xform2, merge, output]
-
-    sources = get_source_nodes(all_nodes)  # [box, sphere]
-    sinks = get_sink_nodes(all_nodes)      # [output]
-
+    
+    # Analyze the network structure using context methods
+    sources = ctx.get_source_nodes()      # [box, sphere] - automatically uses context nodes
+    sinks = ctx.get_sink_nodes()          # [output] - automatically uses context nodes
+    
     # Check what depends on a specific node
-    box_deps = get_dependents(box)         # [xform1]
-```
-
-## Caching and Performance
+    box_deps = ctx.get_dependents(box)    # [xform1]
+    
+    # Can also analyze specific node lists
+    specific_nodes = [box, xform1, merge]
+    sources_subset = ctx.get_source_nodes(specific_nodes)  # [box]
+```## Caching and Performance
 
 ### Automatic Caching
 - `NodeInstance.create()` is cached - calling it multiple times returns the same `hou.Node`

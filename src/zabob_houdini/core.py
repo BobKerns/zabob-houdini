@@ -100,50 +100,6 @@ def get_dependents(node: 'NodeInstance') -> list['NodeInstance']:
     """Get list of nodes that depend on the given node."""
     return list(_dependency_registry.get(node, []))
 
-def get_source_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
-    """Get nodes that have no inputs (source nodes).
-
-    Args:
-        nodes: List of nodes to examine
-
-    Returns:
-        List of nodes that have no input connections
-    """
-    return [node for node in nodes if not node.inputs or all(inp is None for inp in node.inputs)]
-
-def get_sink_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
-    """Get nodes that have no dependents (sink nodes).
-
-    Args:
-        nodes: List of nodes to examine
-
-    Returns:
-        List of nodes that no other nodes depend on
-    """
-    return [node for node in nodes if not get_dependents(node)]
-
-def get_leaf_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
-    """Alias for get_sink_nodes - nodes with no dependents (leaf nodes in the graph).
-
-    Args:
-        nodes: List of nodes to examine
-
-    Returns:
-        List of nodes that no other nodes depend on
-    """
-    return get_sink_nodes(nodes)
-
-def get_root_nodes(nodes: list['NodeInstance']) -> list['NodeInstance']:
-    """Alias for get_source_nodes - nodes with no inputs (root nodes in the graph).
-
-    Args:
-        nodes: List of nodes to examine
-
-    Returns:
-        List of nodes that have no input connections
-    """
-    return get_source_nodes(nodes)
-
 def _generate_name(parent: str, type: str) -> str:
     """Generate a unique name with the given prefix."""
     while True:
@@ -750,6 +706,58 @@ class NodeContext:
             self._nodes[created_merge.name] = created_merge
 
         return created_merge
+
+    def get_dependents(self, node: NodeInstance) -> list[NodeInstance]:
+        """Get list of nodes that depend on the given node."""
+        return get_dependents(node)
+
+    def get_source_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
+        """Get nodes that have no inputs (source nodes).
+        
+        Args:
+            nodes: List of nodes to examine. If None, examines all nodes in this context.
+            
+        Returns:
+            List of nodes that have no input connections
+        """
+        if nodes is None:
+            nodes = list(self._nodes.values())
+        return [node for node in nodes if not node.inputs or all(inp is None for inp in node.inputs)]
+
+    def get_sink_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
+        """Get nodes that have no dependents (sink nodes).
+        
+        Args:
+            nodes: List of nodes to examine. If None, examines all nodes in this context.
+            
+        Returns:
+            List of nodes that no other nodes depend on
+        """
+        if nodes is None:
+            nodes = list(self._nodes.values())
+        return [node for node in nodes if not get_dependents(node)]
+
+    def get_leaf_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
+        """Alias for get_sink_nodes - nodes with no dependents (leaf nodes in the graph).
+        
+        Args:
+            nodes: List of nodes to examine. If None, examines all nodes in this context.
+            
+        Returns:
+            List of nodes that no other nodes depend on
+        """
+        return self.get_sink_nodes(nodes)
+
+    def get_root_nodes(self, nodes: list[NodeInstance] | None = None) -> list[NodeInstance]:
+        """Alias for get_source_nodes - nodes with no inputs (root nodes in the graph).
+        
+        Args:
+            nodes: List of nodes to examine. If None, examines all nodes in this context.
+        
+        Returns:
+            List of nodes that have no input connections
+        """
+        return self.get_source_nodes(nodes)
 
 
 @dataclass(frozen=True, eq=False)

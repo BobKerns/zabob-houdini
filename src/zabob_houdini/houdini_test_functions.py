@@ -1854,32 +1854,29 @@ def test_dependency_tracking() -> JsonObject:
         sphere1_dependents = get_dependents(sphere1)
         merge1_dependents = get_dependents(merge1)
 
-        # Test source/sink analysis
-        from zabob_houdini.core import get_source_nodes, get_sink_nodes, get_leaf_nodes, get_root_nodes
-
+        # Test source/sink analysis using context methods
         # Build a network for analysis
         network_geo = node("/obj", "geo", "network_geo")
         ctx = context(network_geo)
-
+        
         source1 = ctx.node("box", "source1")
-        source2 = ctx.node("sphere", "source2")
+        source2 = ctx.node("sphere", "source2") 
         process1 = ctx.node("xform", "process1", _input=source1)
         process2 = ctx.node("xform", "process2", _input=source2)
         merge_node = ctx.node("merge", "combine", _input=[process1, process2])
         sink1 = ctx.node("null", "output1", _input=merge_node)
         sink2 = ctx.node("null", "output2", _input=merge_node)
-
+        
         # Create the network
         sink1.create()
         sink2.create()
-
-        all_network_nodes = [source1, source2, process1, process2, merge_node, sink1, sink2]
-
-        sources = get_source_nodes(all_network_nodes)
-        sinks = get_sink_nodes(all_network_nodes)
-        roots = get_root_nodes(all_network_nodes)  # Should be same as sources
-        leaves = get_leaf_nodes(all_network_nodes)  # Should be same as sinks
-
+        
+        # Use context methods for analysis
+        sources = ctx.get_source_nodes()
+        sinks = ctx.get_sink_nodes()
+        roots = ctx.get_root_nodes()  # Should be same as sources
+        leaves = ctx.get_leaf_nodes()  # Should be same as sinks
+        
         return {
             'success': True,
             'box_has_dependent': len(box_dependents) > 0,
