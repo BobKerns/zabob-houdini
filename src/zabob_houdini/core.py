@@ -6,10 +6,10 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
 import functools
 from abc import ABC, abstractmethod
-import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, TypeVar, cast, TypeAlias, overload, TYPE_CHECKING
 from types import MappingProxyType
@@ -170,7 +170,7 @@ def _merge_inputs(in1: Inputs, in2: Inputs) -> Inputs:
     ]
     return tuple(merged)
 
-@dataclasses.dataclass(frozen=True)
+@dataclass(frozen=True)
 class NodeBase(ABC):
     """
     Base class for Houdini node representations.
@@ -219,7 +219,7 @@ class NodeBase(ABC):
         """Equality based on object identity - these represent specific node instances."""
         return self is other
 
-@dataclasses.dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class NodeInstance(NodeBase):
     """
     Represents a single Houdini node with parameters and inputs.
@@ -678,7 +678,8 @@ class Chain(NodeBase):
                     # It's an int or str - get the original node's inputs
                     original_first = self[first_param]
                     self_inputs = original_first.inputs
-                # If first item is inserted NodeInstance, it keeps its own inputs
+                else:
+                    self_inputs = _merge_inputs(inputs, first_param.inputs)
             else:
                 # Default copy: preserve first node's inputs
                 self_inputs = self.nodes[0].inputs
