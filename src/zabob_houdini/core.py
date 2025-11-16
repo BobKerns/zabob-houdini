@@ -6,6 +6,7 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
 import functools
 from abc import ABC, abstractmethod
@@ -14,22 +15,16 @@ from dataclasses import dataclass, field
 from typing import Any, TypeVar, cast, TypeAlias, overload, TYPE_CHECKING
 from types import MappingProxyType
 import weakref
-from itertools import zip_longest, islice
-from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
-import functools
+from itertools import zip_longest
+from collections.abc import Iterator, Sequence
 
-# This isn't functionally needed, but it avoids mpy SIGSEGVing from trying
-# to actually import the real module under some circumstances.
-if TYPE_CHECKING:
-    import hou
-else:
-    try:
-        import hou
-    except ImportError:
-        # hou module not available - this will be handled at runtime
-        hou = None  # type: ignore
+if "hou" not in sys.modules:
+    # Avoids SIGSEGV when importing hou in non-Houdini environments
+    raise ImportError(
+        "The 'hou' module is not available. This module requires Houdini's 'hou' module to run."
+    )
+
+import hou
 
 if TYPE_CHECKING:
     T = TypeVar('T', bound=hou.Node)
@@ -676,14 +671,18 @@ class Chain(NodeBase):
         # Handle inputs for first node
         inputs = _wrap_inputs(_inputs)
         self_inputs: Inputs = ()
-        if self.nodes and new_nodes and copy_params:
-            # Get inputs from the original first node being copied
-            first_param = copy_params[0]
-            if not isinstance(first_param, NodeInstance):
-                # It's an int or str - get the original node's inputs
-                original_first = self[first_param]
-                self_inputs = original_first.inputs
-            # If first item is inserted NodeInstance, it keeps its own inputs
+        if self.nodes and new_nodes:
+            if copy_params:
+                # Get inputs from the original first node being copied
+                first_param = copy_params[0]
+                if not isinstance(first_param, NodeInstance):
+                    # It's an int or str - get the original node's inputs
+                    original_first = self[first_param]
+                    self_inputs = original_first.inputs
+                # If first item is inserted NodeInstance, it keeps its own inputs
+            else:
+                # Default copy: preserve first node's inputs
+                self_inputs = self.nodes[0].inputs
 
         merged_inputs = _merge_inputs(inputs, self_inputs)
 
@@ -704,7 +703,7 @@ def node(
     parent: NodeParent,
     node_type: NodeType,
     name: str | None = None,
-    _input: 'InputNode | list[InputNode] | None' = None,
+    _input: 'InputNode | Sequence[InputNode] | None' = None,
     _node: 'hou.Node | None' = None,
     _display: bool = False,
     _render: bool = False,
@@ -726,13 +725,7 @@ def node(
     Returns:
         NodeInstance that can be created with .create()
     """
-    inputs = []
-    if _input is not None:
-        match _input:
-            case list() as input_list:
-                inputs.extend(input_list)  # List can contain None values for sparse inputs
-            case _ as single_input:
-                inputs.append(single_input)
+    inputs = _wrap_inputs(_input)
 
     if name is None:
         match parent:
@@ -939,18 +932,14 @@ if TYPE_CHECKING:
     '''
 else:
     # Runtime initialization - only when hou is available
-    if hou is not None:
-        _ROOT = hou_node('/')
-        ROOT = NodeInstance(
-            _parent=cast(NodeInstance, None),
-            node_type='root',
-            name='/',
-            attributes=HashableMapping({}),
-            _inputs=(),
-            _node=_ROOT
-        )
-        # Register it
-        _node_registry['/'] = ROOT
-    else:
-        # Placeholder when hou is not available
-        ROOT = None  # type: ignore
+    _ROOT = hou_node('/')
+    ROOT = NodeInstance(
+        _parent=cast(NodeInstance, None),
+        node_type='root',
+        name='/',
+        attributes=HashableMapping({}),
+        _inputs=(),
+        _node=_ROOT
+    )
+    # Register it
+    _node_registry['/'] = ROOT
