@@ -262,7 +262,26 @@ class NodeInstance(NodeBase):
         """
         return tuple((_wrap_input(inp, 0) for inp in self._inputs))
 
-    def create(self, as_type: type[T] | None = None, /, _skip_chain: bool = False) -> T:
+    def create(self, as_type: type[T] | None = None) -> T:
+        """
+        Create the actual Houdini node.
+
+        Args:
+            as_type: Expected node type to narrow the return type to (e.g., hou.SopNode).
+                    Defaults to hou.Node for maximum compatibility.
+            _skip_chain: Internal flag to avoid recursion when creating chain nodes.
+
+        Returns:
+            The created Houdini node object, cast to the specified type.
+            Result is cached via @functools.cache.
+
+        Raises:
+            TypeError: If the created node cannot be cast to the specified type,
+                      or if an existing node is not of the expected type.
+        """
+        return self._create(as_type)
+
+    def _create(self, as_type: type[T] | None = None, /, _skip_chain: bool = False) -> T:
         """
         Create the actual Houdini node.
 
@@ -387,6 +406,33 @@ class NodeInstance(NodeBase):
 
     def copy(self, /,
              _inputs: InputNodes = (),
+             name: str | None = None,
+             attributes: dict[str, Any] | None = None,
+             _display: bool | None = None,
+             _render: bool | None = None,
+            ) -> 'NodeInstance':
+        """Return a copy with optional modifications.
+
+        Args:
+            _inputs: New input connections (merged with existing)
+            name: New name for the node (if provided)
+            attributes: Additional/override attributes (merged with existing)
+            _display: Override display flag
+            _render: Override render flag
+
+        Returns:
+            New NodeInstance with merged properties
+        """
+        return self._copy(_inputs=_inputs,
+                          name=name,
+                          attributes=attributes,
+                          _display=_display,
+                          _render=_render,
+        )
+
+
+    def _copy(self, /,
+             _inputs: InputNodes = (),
              *,
              name: str | None = None,
              attributes: dict[str, Any] | None = None,
@@ -447,7 +493,7 @@ class Chain(NodeBase):
         so we can store a private copy. This ensures we never hold a shared
         node.
         '''
-        nodes = tuple(n.copy(_chain=self) for n in nodes)
+        nodes = tuple(n._copy(_chain=self) for n in nodes)
         object.__setattr__(self, 'nodes', nodes)
 
     @functools.cached_property
@@ -610,7 +656,7 @@ class Chain(NodeBase):
         # Use _skip_chain=True to avoid recursion since we're already creating the chain
         for i, node_instance in enumerate(nodes):
             # Create the node in Houdini (NodeInstance.create caches result)
-            created_hou_node = node_instance.create(_skip_chain=True)
+            created_hou_node = node_instance._create(_skip_chain=True)
             created_node_instances.append(node_instance)
 
             # Connect this node to the previous one if needed
