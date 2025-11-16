@@ -1209,7 +1209,7 @@ def test_enhanced_copy_functionality():
     sphere = node(geo, "sphere", name="input_sphere")
     complex_copy = box.copy(
         _inputs=[sphere],
-        name="complex_box",\
+        name="complex_box",
         _display=True,
         _render=False,
         sizex=4,
