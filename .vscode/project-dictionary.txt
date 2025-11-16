@@ -11,6 +11,7 @@ bgeoc
 blosc
 colorspace
 conftest
+dataclass
 dataclasses
 debugpy
 diffable
@@ -37,6 +38,7 @@ isinstance
 keepachangelog
 KHTML
 kwargs
+lookupable
 minversion
 mocap
 multiparm

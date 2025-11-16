@@ -5,41 +5,40 @@ Simple Diamond Chain Demo - Basic version without problematic nodes.
 This demonstrates the basic A → B2 → C and A → B3 → C pattern.
 """
 
-from zabob_houdini import chain, node
+from zabob_houdini import chain, node, context
 
 def create_simple_diamond():
     """Create a simple diamond pattern within a single geo node."""
 
-    # Create the container geometry node
-    geo = node("/obj", "geo", name="diamond")
+    # Create the container geometry node and use context manager
+    with context(node("/obj", "geo", name="diamond")) as ctx:
+        # Chain A: Create base geometry
+        chain_A = ctx.chain(
+            ctx.node("box", "source_box", sizex=2, sizey=2, sizez=2),
+            ctx.node("xform", "center", tx=0, ty=0, tz=0),
+        )
 
-    # Chain A: Create base geometry
-    chain_A = chain(
-        node(geo, "box", "source_box", sizex=2, sizey=2, sizez=2),
-        node(geo, "xform", "center", tx=0, ty=0, tz=0),
-    )
+        # Chain B2: First processing path - scale up and move right
+        chain_B2 = ctx.chain(
+            ctx.node("xform", "scale_up", sx=1.5, sy=1.5, sz=1.5, _input=chain_A),
+            ctx.node("xform", "rotate_y", ry=45),
+            ctx.node("xform", "translate_right", tx=3),  # Move right so we can see both
+        )
 
-    # Chain B2: First processing path - scale up and move right
-    chain_B2 = chain(
-        node(geo, "xform", "scale_up", sx=1.5, sy=1.5, sz=1.5, _input=chain_A),
-        node(geo, "xform", "rotate_y", ry=45),
-        node(geo, "xform", "translate_right", tx=3),  # Move right so we can see both
-    )
+        # Chain B3: Second processing path - scale down and move left
+        chain_B3 = ctx.chain(
+            ctx.node("xform", "scale_down", sx=0.8, sy=0.8, sz=0.8, _input=chain_A),
+            ctx.node("xform", "rotate_x", rx=30),
+            ctx.node("xform", "translate_left", tx=-3),  # Move left so we can see both
+        )
 
-    # Chain B3: Second processing path - scale down and move left
-    chain_B3 = chain(
-        node(geo, "xform", "scale_down", sx=0.8, sy=0.8, sz=0.8, _input=chain_A),
-        node(geo, "xform", "rotate_x", rx=30),
-        node(geo, "xform", "translate_left", tx=-3),  # Move left so we can see both
-    )
+        # Chain C: Merge both processing paths
+        chain_C = ctx.chain(
+            ctx.node("merge", "combine_branches", _input=[chain_B2, chain_B3]),
+            ctx.node("xform", "final_position", ty=2, _display=True, _render=True),  # Set display and render flags
+        )
 
-    # Chain C: Merge both processing paths
-    chain_C = chain(
-        node(geo, "merge", "combine_branches", _input=[chain_B2, chain_B3]),
-        node(geo, "xform", "final_position", ty=2, _display=True, _render=True),  # Set display and render flags
-    )
-
-    return geo, chain_A, chain_B2, chain_B3, chain_C
+        return ctx.parent, chain_A, chain_B2, chain_B3, chain_C
 
 if __name__ == "__main__":
     print("Creating simple diamond chain pattern...")
