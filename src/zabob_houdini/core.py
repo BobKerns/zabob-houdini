@@ -288,7 +288,6 @@ class NodeInstance(NodeBase):
         Args:
             as_type: Expected node type to narrow the return type to (e.g., hou.SopNode).
                     Defaults to hou.Node for maximum compatibility.
-            _skip_chain: Internal flag to avoid recursion when creating chain nodes.
 
         Returns:
             The created Houdini node object, cast to the specified type.
