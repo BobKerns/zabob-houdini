@@ -499,6 +499,7 @@ class NodeContext:
     """
     parent: NodeInstance
     _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
+    _all_nodes: list[NodeInstance] = field(default_factory=list, init=False)
     _dependency_registry: weakref.WeakKeyDictionary[NodeInstance, list[NodeInstance]] = field(default_factory=weakref.WeakKeyDictionary, init=False)
 
     def __enter__(self) -> 'NodeContext':
@@ -546,6 +547,9 @@ class NodeContext:
             _render=_render,
             **attributes
         )
+
+        # Track all nodes created in this context
+        self._all_nodes.append(node_instance)
 
         # Register named nodes for lookup
         if name is not None:
@@ -620,6 +624,11 @@ class NodeContext:
         # Create the chain using the global chain() function
         created_chain = chain(*resolved_nodes, **attributes)
 
+        # Track all chain nodes in our comprehensive list
+        for node_instance in created_chain.nodes:
+            if node_instance not in self._all_nodes:
+                self._all_nodes.append(node_instance)
+
         # Register any named nodes from the chain that aren't already in our context
         # Only register nodes that don't already exist - preserve original context nodes
         for node_instance in created_chain.nodes:
@@ -691,10 +700,17 @@ class NodeContext:
         if name is not None:
             created_merge = created_merge.copy(name=name)
 
+        # Track the merge node in our comprehensive list
+        if created_merge not in self._all_nodes:
+            self._all_nodes.append(created_merge)
+
         # Register external nodes that were passed in (not looked up from context)
         for i, item in enumerate(inputs):
             if isinstance(item, NodeInstance):
-                # This was an external node, register it if named and not already present
+                # This was an external node, track it if not already present
+                if item not in self._all_nodes:
+                    self._all_nodes.append(item)
+                # Also register it by name if named and not already present
                 if (item.name is not None and
                     item.name not in self._nodes):
                     self._nodes[item.name] = item
@@ -736,19 +752,17 @@ class NodeContext:
         """Get nodes in this context that have no inputs (source nodes).
 
         Returns:
-            List of context nodes that have no input connections
+            List of all context nodes (named and unnamed) that have no input connections
         """
-        nodes = list(self._nodes.values())
-        return [node for node in nodes if not node.inputs or all(inp is None for inp in node.inputs)]
+        return [node for node in self._all_nodes if not node.inputs or all(inp is None for inp in node.inputs)]
 
     def get_sink_nodes(self) -> list[NodeInstance]:
         """Get nodes in this context that have no dependents (sink nodes).
 
         Returns:
-            List of context nodes that no other nodes depend on
+            List of all context nodes (named and unnamed) that no other nodes depend on
         """
-        nodes = list(self._nodes.values())
-        return [node for node in nodes if not self.get_dependents(node)]
+        return [node for node in self._all_nodes if not self.get_dependents(node)]
 
 
 @dataclass(frozen=True, eq=False)
