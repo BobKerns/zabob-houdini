@@ -331,7 +331,18 @@ class NodeInstance(NodeBase):
         else:
             parent_node = self.parent.create()
             # Create the node
-            created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
+            try:
+                created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
+            except Exception as e:
+                parent_type = parent_node.type().name() if parent_node else "unknown"
+                parent_path = parent_node.path() if parent_node else "unknown"
+                # Extract the actual error message, skipping generic "The attempted operation failed"
+                error_msg = str(e).strip()
+                if "The attempted operation failed." in error_msg:
+                    error_msg = error_msg.replace("The attempted operation failed.", "").strip()
+                if not error_msg:
+                    error_msg = "Unknown error"
+                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{self.name}' in {parent_type} ({parent_path}): {error_msg}") from e
 
         # Set attributes/parameters
         if self.attributes:
@@ -340,7 +351,17 @@ class NodeInstance(NodeBase):
                     try:
                         created_node.setParms(dict(self.attributes))
                     except Exception as e:
-                        print(f"Warning: Failed to set parameters: {e}")
+                        node_type = created_node.type().name()
+                        node_name = created_node.name()
+                        node_path = created_node.path()
+                        print(f"Warning: Failed to set parameters on {node_type} node '{node_name}' ({node_path}): {e}")
+                        print(f"  Attempted parameters: {dict(self.attributes)}")
+                        # Try to identify which parameters are invalid
+                        valid_parms = {parm.name() for parm in created_node.parms()}
+                        invalid_parms = set(self.attributes.keys()) - valid_parms
+                        if invalid_parms:
+                            print(f"  Invalid parameters for {node_type}: {invalid_parms}")
+                        print(f"  Valid parameters for {node_type}: {sorted(valid_parms)}")
                 case _:
                     print(f"Warning: Cannot set parameters on node type {created_node.type().name()} - skipping attributes")
 
@@ -385,9 +406,6 @@ class NodeInstance(NodeBase):
 
         # Register this NodeInstance as the creator of this hou.Node
         _node_registry[created_node.path()] = self
-
-        # TODO: Create our own placement algorithm, calling moveToGoodPosition is really ugly
-        created_node.moveToGoodPosition()
 
         return created_node
 
@@ -486,6 +504,140 @@ class NodeInstance(NodeBase):
             attributes=final_attributes,
         )
 
+    def __repr__(self) -> str:
+        """Custom repr that avoids circular references from _chain attribute."""
+        # Generate input names for display
+        input_names = []
+        for inp in self._inputs:
+            if inp is not None:
+                node, _ = inp
+                if node.name:
+                    input_names.append(node.name)
+                else:
+                    input_names.append(f"<{node.node_type}>")
+
+        inputs_str = f"[{', '.join(input_names)}]" if input_names else "[]"
+
+        return f"NodeInstance(type={self.node_type!r}, name={self.name!r}, inputs={inputs_str})"
+
+
+@dataclass
+class ChainBuilder:
+    """Context manager for building chains without registering intermediate nodes."""
+
+    def __init__(self, context: 'NodeContext', _input: 'InputNode | Sequence[InputNode] | None' = None):
+        self.context = context
+        self._input = _input
+        self._nodes: list[NodeInstance] = []
+
+    def __enter__(self) -> 'ChainBuilder':
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if exc_type is not None:
+            # Exception occurred: discard any partially built chain, clean up temporary state
+            self._created_chain = None
+            self._nodes.clear()
+            return
+        if exc_type is None and self._nodes:
+            # Create the final chain with proper input connections
+            if self._input is not None:
+                # Apply input to the first node
+                first_node = self._nodes[0]._copy(_inputs=_wrap_inputs(self._input))
+                nodes_with_input = [first_node] + self._nodes[1:]
+            else:
+                nodes_with_input = self._nodes
+
+            # Create the chain using the global chain() function
+            self._created_chain = chain(*nodes_with_input)
+
+            # Register all chain nodes in the context
+            for node_instance in self._created_chain.nodes:
+                if node_instance not in self.context._dependency_registry:
+                    self.context._dependency_registry[node_instance] = []
+
+                # Register named nodes
+                if (node_instance.name is not None and
+                    node_instance.name not in self.context._nodes):
+                    self.context._nodes[node_instance.name] = node_instance
+
+            # Track chain dependencies (each node depends on the previous one)
+            for i in range(1, len(self._created_chain.nodes)):
+                prev_node = self._created_chain.nodes[i-1]
+                current_node = self._created_chain.nodes[i]
+                self.context._add_dependency(prev_node, current_node)
+
+            # Track dependencies from all inputs to the first chain node
+            # Use the constructed chain's first node inputs which have the correct merged list
+            first_chain_node = self._created_chain.first
+            for inp in first_chain_node.inputs:
+                if inp is not None:
+                    input_node, _ = inp
+                    self.context._add_dependency(input_node, first_chain_node)
+
+    @property
+    def parent(self) -> NodeInstance:
+        """Return the parent NodeInstance for this chain."""
+        return self.context.parent
+    
+    def node(self, node_type: NodeType, /, name: str | None = None, **attributes: Any) -> NodeInstance:
+        """Add a node to this chain (not registered with context until chain completes)."""
+        # Create node without registering it with the context
+        node_instance = NodeInstance(
+            _parent=self.context.parent,  # Use the context's parent
+            node_type=node_type,
+            name=name,
+            attributes=HashableMapping(attributes) if attributes else HashableMapping(),
+        )
+        self._nodes.append(node_instance)
+        return node_instance
+
+    @property
+    def last(self) -> NodeInstance:
+        """Return the last node that will be in this chain."""
+        if hasattr(self, '_created_chain') and self._created_chain:
+            return self._created_chain.last
+        elif self._nodes:
+            return self._nodes[-1]
+        else:
+            raise RuntimeError("Chain is empty")
+
+    @property
+    def first(self) -> NodeInstance:
+        """Return the first node that will be in this chain."""
+        if hasattr(self, '_created_chain') and self._created_chain:
+            return self._created_chain.first
+        elif self._nodes:
+            return self._nodes[0]
+        else:
+            raise RuntimeError("Chain is empty")
+
+    def __getitem__(self, index: int) -> NodeInstance:
+        """Access nodes in the chain by index."""
+        if hasattr(self, '_created_chain') and self._created_chain:
+            return self._created_chain[index]
+        elif self._nodes:
+            return self._nodes[index]
+        else:
+            raise IndexError("Chain is empty")
+
+    def __len__(self) -> int:
+        """Return the number of nodes in the chain."""
+        if hasattr(self, '_created_chain') and self._created_chain:
+            return len(self._created_chain)
+        else:
+            return len(self._nodes)
+
+    @property
+    def inputs(self) -> Inputs:
+        """Return the inputs of the first node in the chain."""
+        if hasattr(self, '_created_chain') and self._created_chain:
+            return self._created_chain.inputs
+        elif self._nodes:
+            return self._nodes[0].inputs
+        else:
+            raise RuntimeError("Chain is empty")
+
 
 @dataclass
 class NodeContext:
@@ -499,7 +651,6 @@ class NodeContext:
     """
     parent: NodeInstance
     _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
-    _all_nodes: list[NodeInstance] = field(default_factory=list, init=False)
     _dependency_registry: weakref.WeakKeyDictionary[NodeInstance, list[NodeInstance]] = field(default_factory=weakref.WeakKeyDictionary, init=False)
 
     def __enter__(self) -> 'NodeContext':
@@ -507,8 +658,15 @@ class NodeContext:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Exit the context manager."""
-        pass
+        """Exit the context manager - apply layout and create sink nodes."""
+        if exc_type is None:  # Only if no exception occurred
+            # Apply layout to position all nodes
+            self.apply_layout()
+
+            # Create all sink nodes (nodes with no dependents)
+            sink_nodes = self.get_sink_nodes()
+            for node in sink_nodes:
+                node.create()
 
     def node(self,
              node_type: NodeType,
@@ -548,8 +706,9 @@ class NodeContext:
             **attributes
         )
 
-        # Track all nodes created in this context
-        self._all_nodes.append(node_instance)
+        # Ensure node is registered in dependency registry (even if no dependencies)
+        if node_instance not in self._dependency_registry:
+            self._dependency_registry[node_instance] = []
 
         # Register named nodes for lookup
         if name is not None:
@@ -579,77 +738,35 @@ class NodeContext:
             raise KeyError(f"No node named '{name}' found in this context")
         return self._nodes[name]
 
-    def chain(self, *nodes: 'ChainableNode | str', **attributes: Any) -> 'Chain':
+    def chain(self, *, _input: 'InputNode | Sequence[InputNode] | None' = None, **attributes: Any) -> 'ChainBuilder':
         """
-        Create a chain of nodes, with string arguments looked up in this context.
+        Create a ChainBuilder context manager for building chains.
 
         Args:
-            *nodes: Sequence of NodeInstance, Chain, hou.Node, or string names to chain together
+            _input: Optional input node(s) to connect to the first node in the chain
             **attributes: Additional attributes (currently unused, for future compatibility)
 
         Returns:
-            Chain that can be created with .create()
+            ChainBuilder context manager for building chains
+
+        Usage:
+            # Context manager style
+            with ctx.chain(_input=source) as c:
+                c.node("xform", "path_a")
+                c.node("subdivide", "path_b")
 
         Note:
-            - String arguments are looked up as node names in this context
-            - After creating the chain, any named nodes in the result that aren't already
-              registered in this context will be added to the name registry
-            - Existing context nodes are preserved and not overwritten by chain copies
+            - After exiting the context, any named nodes in the result will be registered
+            - Use the ChainBuilder.node() method to add nodes to the chain
         """
-        # Resolve string arguments to actual nodes
-        resolved_nodes: list[ChainableNode] = []
-        for item in nodes:
-            if isinstance(item, str):
-                # Look up the named node in this context
-                resolved_nodes.append(self[item])
-            else:
-                resolved_nodes.append(item)
+        return ChainBuilder(self, _input)
 
-        # Validate that all resolved nodes have the same parent as this context
-        for i, node_item in enumerate(resolved_nodes):
-            # Extract NodeInstance from ChainableNode
-            if isinstance(node_item, NodeInstance):
-                actual_node = node_item
-            elif isinstance(node_item, Chain) and node_item.nodes:
-                actual_node = node_item.nodes[0]  # Check first node of chain
-            else:
-                continue  # Skip validation for other types
-
-            if actual_node.parent != self.parent:
-                raise ValueError(
-                    f"All chain nodes must have same parent as context. "
-                    f"Context parent is {self.parent}, but node {i} has parent {actual_node.parent}"
-                )
-
-        # Create the chain using the global chain() function
-        created_chain = chain(*resolved_nodes, **attributes)
-
-        # Track all chain nodes in our comprehensive list
-        for node_instance in created_chain.nodes:
-            if node_instance not in self._all_nodes:
-                self._all_nodes.append(node_instance)
-
-        # Register any named nodes from the chain that aren't already in our context
-        # Only register nodes that don't already exist - preserve original context nodes
-        for node_instance in created_chain.nodes:
-            if (node_instance.name is not None and
-                node_instance.name not in self._nodes):
-                self._nodes[node_instance.name] = node_instance
-
-        # Track chain dependencies (each node depends on the previous one)
-        for i in range(1, len(created_chain.nodes)):
-            prev_node = created_chain.nodes[i-1]
-            current_node = created_chain.nodes[i]
-            self._add_dependency(prev_node, current_node)
-
-        return created_chain
-
-    def merge(self, *inputs: 'NodeInstance | str', name: str | None = None, **attributes: Any) -> NodeInstance:
+    def merge(self, *inputs: 'NodeInstance | Chain | ChainBuilder | str', name: str | None = None, **attributes: Any) -> NodeInstance:
         """
         Create a merge node with multiple inputs, with string arguments looked up in this context.
 
         Args:
-            *inputs: NodeInstance objects or string names to merge (must have same parent)
+            *inputs: NodeInstance, Chain, ChainBuilder objects, or string names to merge (must have same parent)
             name: Optional name for the merge node
             **attributes: Additional merge node parameters
 
@@ -662,6 +779,7 @@ class NodeContext:
 
         Note:
             - String arguments are looked up as node names in this context
+            - Chain/ChainBuilder arguments are automatically converted to their .last node
             - If the merge node is named and not already in the context, it will be registered
 
         Examples:
@@ -682,8 +800,10 @@ class NodeContext:
                 resolved_inputs.append(self[item])
             elif isinstance(item, NodeInstance):
                 resolved_inputs.append(item)
+            elif hasattr(item, 'last'):  # Chain or ChainBuilder object
+                resolved_inputs.append(item.last)
             else:
-                raise TypeError(f"merge() inputs must be NodeInstance or str, got {type(item).__name__}")
+                raise TypeError(f"merge() inputs must be NodeInstance, Chain, ChainBuilder, or str, got {type(item).__name__}")
 
         # Validate that all resolved nodes have the same parent as this context
         for i, resolved_node in enumerate(resolved_inputs):
@@ -700,21 +820,20 @@ class NodeContext:
         if name is not None:
             created_merge = created_merge.copy(name=name)
 
-        # Track the merge node in our comprehensive list
-        if created_merge not in self._all_nodes:
-            self._all_nodes.append(created_merge)
+        # Ensure merge node is registered in dependency registry
+        if created_merge not in self._dependency_registry:
+            self._dependency_registry[created_merge] = []
 
         # Register external nodes that were passed in (not looked up from context)
         for i, item in enumerate(inputs):
             if isinstance(item, NodeInstance):
-                # This was an external node, track it if not already present
-                if item not in self._all_nodes:
-                    self._all_nodes.append(item)
+                # Ensure external node is registered in dependency registry
+                if item not in self._dependency_registry:
+                    self._dependency_registry[item] = []
                 # Also register it by name if named and not already present
                 if (item.name is not None and
                     item.name not in self._nodes):
                     self._nodes[item.name] = item
-
         # Register the merge node if it's named and not already in our context
         if (created_merge.name is not None and
             created_merge.name not in self._nodes):
@@ -754,7 +873,7 @@ class NodeContext:
         Returns:
             List of all context nodes (named and unnamed) that have no input connections
         """
-        return [node for node in self._all_nodes if not node.inputs or all(inp is None for inp in node.inputs)]
+        return [node for node in self._dependency_registry.keys() if not node.inputs or all(inp is None for inp in node.inputs)]
 
     def get_sink_nodes(self) -> list[NodeInstance]:
         """Get nodes in this context that have no dependents (sink nodes).
@@ -762,7 +881,253 @@ class NodeContext:
         Returns:
             List of all context nodes (named and unnamed) that no other nodes depend on
         """
-        return [node for node in self._all_nodes if not self.get_dependents(node)]
+        return [node for node in self._dependency_registry.keys() if not self.get_dependents(node)]
+
+    def layout_nodes(self, layer_height: float = 2.0, node_width: float = 2.0, min_spacing: float = 0.5) -> dict[NodeInstance, tuple[float, float]]:
+        """Compute optimal layout positions for all nodes in the context.
+
+        Uses a topological layering approach:
+        1. Start with source nodes (no inputs) at the top layer
+        2. Position each subsequent layer below based on dependencies
+        3. Center nodes between their inputs when possible
+        4. Allocate space based on output fanout, propagating upward
+        5. Resolve conflicts by adding space at each layer
+
+        Args:
+            layer_height: Vertical spacing between layers
+            node_width: Estimated width of each node for spacing calculations
+            min_spacing: Minimum horizontal spacing between nodes
+
+        Returns:
+            Dictionary mapping NodeInstance to (x, y) position tuples
+        """
+        all_nodes = list(self._dependency_registry.keys())
+        if not all_nodes:
+            return {}
+
+        # Step 1: Compute topological layers
+        layers = self._compute_layers(all_nodes)
+
+        # Step 2: Compute space requirements (bottom-up)
+        space_requirements = self._compute_space_requirements(layers, node_width, min_spacing)
+
+        # Step 3: Position nodes within each layer
+        positions = self._position_nodes_in_layers(layers, space_requirements, layer_height, node_width, min_spacing)
+
+        return positions
+
+    def _compute_layers(self, all_nodes: list[NodeInstance]) -> dict[int, list[NodeInstance]]:
+        """Compute vertical layers using proper top-down traversal."""
+        node_depths: dict[NodeInstance, int] = {}
+
+        # Get actual source nodes (no inputs within our context)
+        source_nodes = []
+        for node in all_nodes:
+            has_inputs_in_context = any(
+                inp is not None and inp[0] in all_nodes
+                for inp in node.inputs
+            )
+            if not has_inputs_in_context:
+                source_nodes.append(node)
+
+        # Top-down traversal to assign depths
+        def assign_depth(node: NodeInstance, depth: int) -> None:
+            # Update depth if this path is deeper
+            if node in node_depths:
+                if depth > node_depths[node]:
+                    node_depths[node] = depth
+                else:
+                    return  # Already processed with equal or deeper path
+            else:
+                node_depths[node] = depth
+
+            # Process all dependents with updated depth
+            dependents = self.get_dependents(node)
+            for dependent in dependents:
+                if dependent in all_nodes:
+                    assign_depth(dependent, depth + 1)
+
+        # Start from source nodes at depth 0
+        for source in source_nodes:
+            assign_depth(source, 0)
+
+        # Handle any remaining unprocessed nodes (shouldn't happen in a proper DAG)
+        for node in all_nodes:
+            if node not in node_depths:
+                # Fallback: assign based on input depths
+                input_nodes = [
+                    inp[0] for inp in node.inputs
+                    if inp is not None and inp[0] in all_nodes
+                ]
+                if input_nodes:
+                    max_input_depth = max(node_depths.get(inp, 0) for inp in input_nodes)
+                    node_depths[node] = max_input_depth + 1
+                else:
+                    node_depths[node] = 0
+
+        # Move all sink nodes to a common bottom layer
+        sink_nodes = self.get_sink_nodes()
+        if sink_nodes:
+            max_depth = max(node_depths.values())
+            sink_depth = max_depth + 1
+            for sink in sink_nodes:
+                if sink in all_nodes:
+                    node_depths[sink] = sink_depth
+
+        # Create contiguous layer mapping (0, 1, 2, ...) from potentially sparse depths
+        unique_depths = sorted(set(node_depths.values()))
+        depth_to_layer = {depth: idx for idx, depth in enumerate(unique_depths)}
+
+        # Group nodes by contiguous layer indices
+        layers: dict[int, list[NodeInstance]] = {}
+        for node, depth in node_depths.items():
+            layer_idx = depth_to_layer[depth]
+            if layer_idx not in layers:
+                layers[layer_idx] = []
+            layers[layer_idx].append(node)
+
+        return layers
+
+    def _compute_space_requirements(self, layers: dict[int, list[NodeInstance]],
+                                   node_width: float, min_spacing: float) -> dict[NodeInstance, float]:
+        """Compute space requirements for each node based on output fanout."""
+        space_requirements: dict[NodeInstance, float] = {}
+        max_layer = max(layers.keys()) if layers else 0
+
+        # Start from bottom layer and work upward
+        for layer_idx in range(max_layer, -1, -1):
+            layer_nodes = layers[layer_idx]
+
+            for node in layer_nodes:
+                dependents = self.get_dependents(node)
+
+                if not dependents:
+                    # Sink node - use minimum space
+                    space_requirements[node] = node_width + min_spacing
+                else:
+                    # Space is sum of dependent space requirements
+                    dependent_space = sum(
+                        space_requirements.get(dep, node_width + min_spacing)
+                        for dep in dependents
+                    )
+                    space_requirements[node] = max(dependent_space, node_width + min_spacing)
+
+        return space_requirements
+
+    def _position_nodes_in_layers(self, layers: dict[int, list[NodeInstance]],
+                                 space_requirements: dict[NodeInstance, float],
+                                 layer_height: float, node_width: float,
+                                 min_spacing: float) -> dict[NodeInstance, tuple[float, float]]:
+        """Position nodes using bidirectional layout algorithm."""
+
+        # Step 1: Upward pass - compute required horizontal space for each node
+        # based on outputs that need to be positioned below it
+        node_required_width: dict[NodeInstance, float] = {}
+
+        # Process layers from bottom (sinks) to top (sources)
+        for layer_idx in sorted(layers.keys(), reverse=True):
+            layer_nodes = layers[layer_idx]
+
+            for node in layer_nodes:
+                # Find all outputs (nodes that depend on this node)
+                outputs = self.get_dependents(node)
+
+                if not outputs:
+                    # Sink node: only needs its own space
+                    node_required_width[node] = space_requirements[node]
+                else:
+                    # Sum the required width of all direct outputs
+                    total_output_width = sum(node_required_width[output] for output in outputs)
+                    # Node needs at least its own width or the sum of its outputs
+                    node_required_width[node] = max(space_requirements[node], total_output_width)
+
+        # Step 2: Downward pass - position nodes based on allocated space
+        positions: dict[NodeInstance, tuple[float, float]] = {}
+
+        # Start with top layer (sources)
+        min_layer = min(layers.keys())
+        source_nodes = layers[min_layer]
+        y_pos = -min_layer * layer_height
+
+        # Position sources to use their required width
+        total_width = sum(node_required_width[node] for node in source_nodes)
+        current_x = -total_width / 2
+
+        for node in source_nodes:
+            allocated_width = node_required_width[node]
+            x_pos = current_x + allocated_width / 2
+            positions[node] = (x_pos, y_pos)
+            current_x += allocated_width
+
+        # Position remaining layers
+        for layer_idx in sorted(layers.keys())[1:]:
+            layer_nodes = layers[layer_idx]
+            y_pos = -layer_idx * layer_height
+
+            # Group nodes by their inputs to distribute within input spans
+            input_groups: dict[tuple[NodeInstance, ...], list[NodeInstance]] = {}
+
+            for node in layer_nodes:
+                input_nodes = tuple(inp[0] for inp in node.inputs if inp is not None)
+                if input_nodes not in input_groups:
+                    input_groups[input_nodes] = []
+                input_groups[input_nodes].append(node)
+
+            # Position each group within its input span
+            for input_nodes, group_nodes in input_groups.items():
+                if not input_nodes:
+                    # No inputs - center at origin
+                    available_center = 0.0
+                    available_width = sum(node_required_width[node] for node in group_nodes)
+                else:
+                    # Calculate span from leftmost to rightmost input
+                    input_positions = [positions[inp][0] for inp in input_nodes]
+                    input_widths = [node_required_width[inp] for inp in input_nodes]
+
+                    # Find the allocated span
+                    leftmost = min(pos - width/2 for pos, width in zip(input_positions, input_widths))
+                    rightmost = max(pos + width/2 for pos, width in zip(input_positions, input_widths))
+                    available_width = rightmost - leftmost
+                    available_center = (leftmost + rightmost) / 2
+
+                # Distribute group nodes within the available span
+                group_total_width = sum(node_required_width[node] for node in group_nodes)
+
+                if group_total_width <= available_width:
+                    # Nodes fit - center them within available space
+                    start_x = available_center - group_total_width / 2
+                else:
+                    # Nodes exceed space - pack them tightly
+                    # currently the same as above, but could be modified to add extra spacing if desired
+                    start_x = available_center - group_total_width / 2
+
+                current_x = start_x
+                for node in group_nodes:
+                    allocated_width = node_required_width[node]
+                    x_pos = current_x + allocated_width / 2
+                    positions[node] = (x_pos, y_pos)
+                    current_x += allocated_width
+
+        return positions
+
+
+    def apply_layout(self, **layout_kwargs) -> None:
+        """Compute and apply layout positions to all created nodes.
+
+        Args:
+            **layout_kwargs: Arguments passed to layout_nodes()
+        """
+        positions = self.layout_nodes(**layout_kwargs)
+
+        for node, (x, y) in positions.items():
+            # Create the node first to get the hou.Node
+            hou_node = node.create()
+
+            # Set the position
+            try:
+                hou_node.setPosition((x, y))
+            except Exception as e:
+                print(f"Warning: Failed to set position for {node}: {e}")
 
 
 @dataclass(frozen=True, eq=False)
@@ -1133,12 +1498,12 @@ def chain(
     )
 
 
-def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
+def merge(*inputs: 'NodeInstance | Chain', **attributes: Any) -> NodeInstance:
     """
     Create a merge node with multiple inputs.
 
     Args:
-        *inputs: NodeInstance objects to merge (must have same parent)
+        *inputs: NodeInstance or Chain objects to merge (must have same parent)
         **attributes: Additional merge node parameters
 
     Returns:
@@ -1153,15 +1518,28 @@ def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
         sphere = node(geo, "sphere")
         merged = merge(box, sphere)
 
+        # Merge chains
+        chain_a = chain(node(geo, "box"), node(geo, "xform"))
+        chain_b = chain(node(geo, "sphere"), node(geo, "xform"))
+        merged = merge(chain_a, chain_b)
+
         # Merge with parameters
         merged = merge(box, sphere, tol=0.01)
     """
     if not inputs:
         raise ValueError("merge() requires at least one input")
 
+    # Convert Chain or ChainBuilder objects to their last NodeInstance
+    node_inputs = []
+    for inp in inputs:
+        if hasattr(inp, 'last'):  # Chain or ChainBuilder object
+            node_inputs.append(inp.last)
+        else:  # NodeInstance
+            node_inputs.append(inp)
+
     # Get parent from first input and verify all have same parent
-    first_parent = inputs[0].parent
-    for i, inp in enumerate(inputs[1:], 1):
+    first_parent = node_inputs[0].parent
+    for i, inp in enumerate(node_inputs[1:], 1):
         if inp.parent != first_parent:
             raise ValueError(
                 f"All merge inputs must have same parent. "
@@ -1171,7 +1549,7 @@ def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
     return node(
         first_parent,
         "merge",
-        _input=inputs,
+        _input=node_inputs,
         **attributes
     )
 

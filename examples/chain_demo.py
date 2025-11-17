@@ -37,14 +37,14 @@ def main():
             print(f"     [{i}]: {processing_chain[i].name}")
     print()
 
-        # Example 3: Chain indexing
-        print("3. Chain indexing:")
-        print(f"   First node: {processing_chain[0].name}")
-        print(f"   Last node: {processing_chain[-1].name}")
+    # Example 3: Chain indexing
+    print("3. Chain indexing:")
+    print(f"   First node: {processing_chain[0].name}")
+    print(f"   Last node: {processing_chain[-1].name}")
 
-        # Access nodes by name through context
-        transform_node = ctx["transform"]
-        print(f"   Node by name 'transform': {transform_node.name}")
+    # Access nodes by name through context
+    transform_node = ctx["transform"]
+    print(f"   Node by name 'transform': {transform_node.name}")
 
     # Example 4: Context-based chain operations
     print("4. Context-based chain operations:")

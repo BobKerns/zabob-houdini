@@ -49,3 +49,17 @@
     - `chain.copy("name2", 1, node(geo, "attribwrangle"), 3, _inputs=[alt_input])`
 
     The arguments can refer to nodes by name, index, or supply a new NodeInstance.
+
+### Circular Graph Construction
+- [ ] Implement circular graph support
+  - Allow forward references to nodes not yet defined
+  - Enable creating cycles in node networks (e.g., feedback loops)
+  - Handle dependency resolution for circular dependencies
+  - Prevent infinite loops during node creation
+
+### Begin/End Loop Construction
+- [ ] Add support for begin/end loop patterns
+  - Implement constructs for for-each loops over geometry
+  - Support while loops and conditional iteration
+  - Provide clean API for loop body definition
+  - Handle automatic begin/end node creation and wiring

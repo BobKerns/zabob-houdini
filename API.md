@@ -219,20 +219,21 @@ def node(self, node_type: str, name: str | None = None, **attributes: Any) -> No
         If the node is named, it will be registered for lookup via ctx[name]
     """
 
-def chain(self, *nodes: ChainableNode | str, **attributes: Any) -> Chain
+def chain(self, *, _input: InputNode | Sequence[InputNode] | None = None, **attributes: Any) -> ChainBuilder
     """
-    Create a chain with string argument lookup in this context.
+    Create a ChainBuilder context manager for building chains.
 
     Args:
-        *nodes: NodeInstance, Chain, or string names to chain together
-        **attributes: Reserved for future use
+        _input: Optional input node(s) to connect to the first node in the chain
+        **attributes: Additional attributes (currently unused, for future compatibility)
 
     Returns:
-        Chain object
+        ChainBuilder context manager for building chains
 
     Note:
-        - String arguments are looked up as registered node names
-        - Named nodes from external NodeInstances are registered automatically
+        - Always returns ChainBuilder context manager
+        - Use ChainBuilder.node() method to add nodes to the chain
+        - Named nodes are automatically registered with the context on exit
     """
 
 def merge(self, *inputs: NodeInstance | str, name: str | None = None, **attributes: Any) -> NodeInstance
@@ -274,7 +275,18 @@ def __enter__(self)
     """Enter context manager - returns self."""
 
 def __exit__(self, exc_type, exc_val, exc_tb) -> None
-    """Exit context manager - no special cleanup needed."""
+    """
+    Exit context manager with automatic layout and node creation.
+
+    This method automatically:
+    1. Applies bidirectional layout to all registered nodes
+    2. Creates all nodes in the Houdini scene
+    3. Detects and creates sink nodes for outputs
+
+    The layout algorithm uses a two-pass approach:
+    - Upward pass: Calculate space requirements for each layer
+    - Downward pass: Position nodes optimally within allocated space
+    """
 ```
 
 ## Classes
@@ -468,6 +480,84 @@ def last_node(self) -> hou.Node
     """Get the created hou.Node for the last node in the chain."""
 ```
 
+### ChainBuilder
+
+Context manager for building chains with conditional logic and automatic registration.
+
+#### Overview
+
+`ChainBuilder` is returned by `ctx.chain()`. It provides a context manager interface for building chains incrementally with conditional node inclusion.
+
+**Key Features:**
+- **Context Manager**: Use with `with` statement for automatic registration
+- **Conditional Logic**: Add nodes based on runtime conditions
+- **Automatic Registration**: Nodes are registered with context on `__exit__`
+- **Chain Compatibility**: Can be used anywhere a `Chain` is expected
+
+#### Usage Pattern
+
+```python
+with ctx.chain(_input=source) as builder:
+    builder.node("xform", "transform")
+    if some_condition:
+        builder.node("subdivide", "subdivide")  # Only added if condition is true
+    builder.node("color", "colorize")
+
+# Chain is automatically registered and can be used in merges
+final = ctx.merge(builder, other_chain, name="final")
+```
+
+#### Properties
+
+```python
+@property
+def parent(self) -> NodeInstance
+    """Get the parent of the first node in the chain."""
+
+@property
+def inputs(self) -> Inputs
+    """Get the inputs of the first node in the chain."""
+
+@property
+def first(self) -> NodeInstance
+    """Get the first node in the chain."""
+
+@property
+def last(self) -> NodeInstance
+    """Get the last node in the chain."""
+```
+
+#### Methods
+
+```python
+def node(self, node_type: str, name: str | None = None, **attributes: Any) -> NodeInstance
+    """
+    Add a node to the chain being built.
+
+    Args:
+        node_type: Houdini node type name
+        name: Optional node name (auto-generated if None)
+        **attributes: Node parameter values
+
+    Returns:
+        NodeInstance that was added to the chain
+
+    Note:
+        The new node is automatically connected to the previous node in the chain
+    """
+
+def __enter__(self) -> 'ChainBuilder'
+    """Enter context manager - returns self."""
+
+def __exit__(self, exc_type, exc_val, exc_tb) -> None
+    """
+    Exit context manager and register the built chain with the context.
+
+    This method converts the ChainBuilder into a Chain and registers it
+    for dependency tracking and automatic creation.
+    """
+```
+
 ## Type System
 
 ### Type Aliases
@@ -634,32 +724,48 @@ reordered = original.copy("distort", blur, "cleanup", _inputs=[source])
 - **Node Insertion**: `chain.copy(0, new_node, 1)` - insert NodeInstances
 - **Duplication**: `chain.copy("detail", "detail")` - repeat by name or index
 
-### NodeContext and Context Manager Pattern
+### NodeContext and ChainBuilder Pattern
 
-The recommended way to organize node creation is using the `context()` function with a context manager:
+The recommended way to organize node creation is using the `context()` function with automatic context management:
 
 ```python
 from zabob_houdini import context, node
 
-# Create organized node networks with context manager
+do_subdivide: bool = True
+
+# Create organized node networks with automatic layout and node creation
 with context(node("/obj", "geo", "processing")) as ctx:
-    # Create nodes using ctx.node() - automatically sets correct parent
+    # Create source node
     source = ctx.node("box", "input_geometry", sizex=2, sizey=2, sizez=2)
 
-    # Use string names for clean chain definitions
-    processing_chain = ctx.chain("input_geometry",
-                                ctx.node("xform", "scale", sx=1.5),
-                                ctx.node("subdivide", "smooth"))
+    # Use ChainBuilder for conditional chain construction
+    with ctx.chain(_input=source) as processing_path:
+        processing_path.node("xform", "scale", sx=1.5)
+        if do_subdivide:
+            processing_path.node("subdivide", "smooth")
 
-    # Merge operations with string lookup
-    alternate = ctx.node("sphere", "alternate_input")
-    final = ctx.merge("input_geometry", "alternate_input", name="combined")
+    # Build alternate paths
+    with ctx.chain(_input=source) as alternate_path:
+        alternate_path.node("sphere", "alternate_input")
+        alternate_path.node("color", "colorize", color=(1, 0, 0))
+
+    # Merge operations with automatic dependency tracking
+    final = ctx.merge(processing_path, alternate_path, name="combined")
 
     # Access nodes by name anytime
     retrieved = ctx["input_geometry"]  # Same as source
 
-# Context automatically handles parent relationships and name registration
+# Context automatically applies bidirectional layout and creates all nodes
+# No need to call .create() - everything is handled on context exit!
 ```
+
+### Automatic Layout and Context Management
+
+**Key Features:**
+- **Automatic Node Creation**: Context exit automatically calls `.create()` on all registered nodes
+- **Bidirectional Layout**: Upward pass allocates space, downward pass positions nodes optimally
+- **Sink Detection**: Automatically identifies and creates sink nodes for outputs
+- **Dependency Tracking**: Smart dependency resolution prevents conflicts and duplicates
 
 ### Diamond Pattern with Context
 Create nodes that share a common source using context organization:
