@@ -912,117 +912,98 @@ class NodeContext:
                                  space_requirements: dict[NodeInstance, float],
                                  layer_height: float, node_width: float,
                                  min_spacing: float) -> dict[NodeInstance, tuple[float, float]]:
-        """Position nodes using constraint propagation to center parents over children."""
+        """Position nodes using bidirectional layout algorithm."""
+
+        # Step 1: Upward pass - compute required horizontal space for each node
+        # based on outputs that need to be positioned below it
+        node_required_width: dict[NodeInstance, float] = {}
+
+        # Process layers from bottom (sinks) to top (sources)
+        for layer_idx in sorted(layers.keys(), reverse=True):
+            layer_nodes = layers[layer_idx]
+
+            for node in layer_nodes:
+                # Find all outputs (nodes that depend on this node)
+                outputs = []
+                for other_node in self._dependency_registry.keys():
+                    for inp in other_node.inputs:
+                        if inp is not None and inp[0] is node:
+                            outputs.append(other_node)
+
+                if not outputs:
+                    # Sink node: only needs its own space
+                    node_required_width[node] = space_requirements[node]
+                else:
+                    # Sum the required width of all direct outputs
+                    total_output_width = sum(node_required_width[output] for output in outputs)
+                    # Node needs at least its own width or the sum of its outputs
+                    node_required_width[node] = max(space_requirements[node], total_output_width)
+
+        # Step 2: Downward pass - position nodes based on allocated space
         positions: dict[NodeInstance, tuple[float, float]] = {}
 
-        # Initial positioning: start with top layer (sources) and work down
+        # Start with top layer (sources)
         min_layer = min(layers.keys())
-
-        # Step 1: Position top layer (sources) evenly
         source_nodes = layers[min_layer]
         y_pos = -min_layer * layer_height
-        total_width = sum(space_requirements[node] for node in source_nodes)
+
+        # Position sources to use their required width
+        total_width = sum(node_required_width[node] for node in source_nodes)
         current_x = -total_width / 2
 
         for node in source_nodes:
-            node_space = space_requirements[node]
-            x_pos = current_x + node_space / 2
+            allocated_width = node_required_width[node]
+            x_pos = current_x + allocated_width / 2
             positions[node] = (x_pos, y_pos)
-            current_x += node_space
+            current_x += allocated_width
 
-        # Step 2: Position remaining layers using input-based positioning first
-        for layer_idx in sorted(layers.keys())[1:]:  # Skip top layer
+        # Position remaining layers
+        for layer_idx in sorted(layers.keys())[1:]:
             layer_nodes = layers[layer_idx]
             y_pos = -layer_idx * layer_height
 
-            # Initial positioning based on centering constraint
-            initial_positions = {}
+            # Group nodes by their inputs to distribute within input spans
+            input_groups: dict[tuple[NodeInstance, ...], list[NodeInstance]] = {}
+
             for node in layer_nodes:
-                dependents = self.get_dependents(node)
-                dependent_positions = []
+                input_nodes = tuple(inp[0] for inp in node.inputs if inp is not None)
+                if input_nodes not in input_groups:
+                    input_groups[input_nodes] = []
+                input_groups[input_nodes].append(node)
 
-                for dependent in dependents:
-                    if dependent in positions:
-                        x_pos, _ = positions[dependent]
-                        dependent_positions.append(x_pos)
-
-                if dependent_positions:
-                    # Center over dependents
-                    initial_positions[node] = sum(dependent_positions) / len(dependent_positions)
+            # Position each group within its input span
+            for input_nodes, group_nodes in input_groups.items():
+                if not input_nodes:
+                    # No inputs - center at origin
+                    available_center = 0.0
+                    available_width = sum(node_required_width[node] for node in group_nodes)
                 else:
-                    # No dependents positioned yet - use input-based fallback
-                    input_positions = []
-                    for inp in node.inputs:
-                        if inp is not None:
-                            input_node, _ = inp
-                            if input_node in positions:
-                                input_x, _ = positions[input_node]
-                                input_positions.append(input_x)
+                    # Calculate span from leftmost to rightmost input
+                    input_positions = [positions[inp][0] for inp in input_nodes]
+                    input_widths = [node_required_width[inp] for inp in input_nodes]
 
-                    if input_positions:
-                        initial_positions[node] = sum(input_positions) / len(input_positions)
-                    else:
-                        initial_positions[node] = 0.0
+                    # Find the allocated span
+                    leftmost = min(pos - width/2 for pos, width in zip(input_positions, input_widths))
+                    rightmost = max(pos + width/2 for pos, width in zip(input_positions, input_widths))
+                    available_width = rightmost - leftmost
+                    available_center = (leftmost + rightmost) / 2
 
-            # Resolve conflicts while preserving centering constraints
-            final_positions = self._resolve_position_conflicts(
-                layer_nodes, initial_positions, space_requirements, min_spacing
-            )
+                # Distribute group nodes within the available span
+                group_total_width = sum(node_required_width[node] for node in group_nodes)
 
-            # Set positions with consistent Y coordinate
-            for node, x_pos in final_positions.items():
-                positions[node] = (x_pos, y_pos)
+                if group_total_width <= available_width:
+                    # Nodes fit - center them within available space
+                    start_x = available_center - group_total_width / 2
+                else:
+                    # Nodes exceed space - pack them tightly
+                    start_x = available_center - group_total_width / 2
 
-        # Step 3: Constraint propagation - iteratively improve centering
-        max_layer = max(layers.keys())
-        for iteration in range(3):  # Limit iterations to prevent infinite loops
-            improved = False
-
-            # Process layers from top to bottom
-            for layer_idx in sorted(layers.keys()):
-                if layer_idx == max_layer:  # Skip bottom layer (sinks)
-                    continue
-
-                layer_nodes = layers[layer_idx]
-                y_pos = -layer_idx * layer_height
-
-                # Compute desired positions based on current dependent positions
-                desired_positions = {}
-                for node in layer_nodes:
-                    dependents = self.get_dependents(node)
-                    dependent_positions = []
-
-                    for dependent in dependents:
-                        if dependent in positions:
-                            x_pos, _ = positions[dependent]
-                            dependent_positions.append(x_pos)
-
-                    if dependent_positions:
-                        desired_x = sum(dependent_positions) / len(dependent_positions)
-                        current_x, _ = positions[node]
-
-                        # Only move if the improvement is significant
-                        if abs(desired_x - current_x) > 0.1:
-                            desired_positions[node] = desired_x
-                            improved = True
-                        else:
-                            desired_positions[node] = current_x
-                    else:
-                        desired_positions[node] = positions[node][0]
-
-                if desired_positions:
-                    # Resolve conflicts with the new desired positions
-                    adjusted_positions = self._resolve_position_conflicts(
-                        layer_nodes, desired_positions, space_requirements, min_spacing
-                    )
-
-                    # Update positions
-                    for node, x_pos in adjusted_positions.items():
-                        positions[node] = (x_pos, y_pos)
-
-            # Stop if no significant improvements were made
-            if not improved:
-                break
+                current_x = start_x
+                for node in group_nodes:
+                    allocated_width = node_required_width[node]
+                    x_pos = current_x + allocated_width / 2
+                    positions[node] = (x_pos, y_pos)
+                    current_x += allocated_width
 
         return positions
 
@@ -1053,21 +1034,57 @@ class NodeContext:
                                   preferred: dict[NodeInstance, float],
                                   space_requirements: dict[NodeInstance, float],
                                   min_spacing: float) -> dict[NodeInstance, float]:
-        """Resolve overlapping positions by adjusting spacing."""
-        # Sort nodes by preferred position
+        """Resolve overlapping positions while preserving input-relative centering."""
+        if not layer_nodes:
+            return {}
+
+        # Sort nodes by preferred position to maintain relative ordering
         sorted_nodes = sorted(layer_nodes, key=lambda n: preferred.get(n, 0.0))
 
-        final_positions: dict[NodeInstance, float] = {}
-        current_right_edge = float('-inf')
+        # If no conflicts, return preferred positions
+        if len(sorted_nodes) == 1:
+            return {sorted_nodes[0]: preferred.get(sorted_nodes[0], 0.0)}
 
+        final_positions: dict[NodeInstance, float] = {}
+
+        # Check if there are any actual conflicts
+        conflicts = False
+
+        for i in range(len(sorted_nodes) - 1):
+            node1 = sorted_nodes[i]
+            node2 = sorted_nodes[i + 1]
+            pos1 = preferred.get(node1, 0.0)
+            pos2 = preferred.get(node2, 0.0)
+            space1 = space_requirements[node1]
+            space2 = space_requirements[node2]
+
+            # Check if node1's right edge would overlap with node2's left edge
+            node1_right = pos1 + space1/2
+            node2_left = pos2 - space2/2
+            gap = node2_left - node1_right
+
+            if gap < min_spacing:
+                conflicts = True
+                break
+
+        # If no conflicts, use preferred positions
+        if not conflicts:
+            for node in sorted_nodes:
+                final_positions[node] = preferred.get(node, 0.0)
+            return final_positions
+
+        # Resolve conflicts by adjusting positions
+        current_right_edge = float('-inf')
         for node in sorted_nodes:
             preferred_x = preferred.get(node, 0.0)
             node_space = space_requirements[node]
             node_half_width = node_space / 2
 
             # Ensure we don't overlap with previous node
-            min_x = current_right_edge + min_spacing + node_half_width
-            actual_x = max(preferred_x, min_x)
+            min_allowed_x = current_right_edge + min_spacing + node_half_width
+
+            # Use preferred position if it doesn't cause overlap, otherwise shift right
+            actual_x = max(preferred_x, min_allowed_x)
 
             final_positions[node] = actual_x
             current_right_edge = actual_x + node_half_width
