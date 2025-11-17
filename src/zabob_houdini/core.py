@@ -357,7 +357,8 @@ class NodeInstance(NodeBase):
                     match input_node:
                         case NodeInstance() as node_instance:
                             # Input is a NodeInstance - create it first
-                            input_hou_node = node_instance.create()
+                            # Pass _skip_chain=True to avoid recursion during chain creation
+                            input_hou_node = node_instance._create(_skip_chain=True)
                         case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
@@ -765,8 +766,17 @@ class Chain(NodeBase):
         so we can store a private copy. This ensures we never hold a shared
         node.
         '''
-        nodes = tuple(n._copy(_chain=self) for n in nodes)
-        object.__setattr__(self, 'nodes', nodes)
+        copied_nodes = []
+        for i, node in enumerate(nodes):
+            if i == 0:
+                # First node keeps its original inputs
+                copied_nodes.append(node._copy(_chain=self))
+            else:
+                # Subsequent nodes connect to the previous node
+                prev_node = copied_nodes[i-1]
+                copied_nodes.append(node._copy(_chain=self, _inputs=(prev_node,)))
+
+        object.__setattr__(self, 'nodes', tuple(copied_nodes))
 
     @functools.cached_property
     def parent(self) -> NodeInstance:
@@ -913,6 +923,9 @@ class Chain(NodeBase):
         """
         Create the actual chain of Houdini nodes.
 
+        Chain connections are now handled through each node's _inputs,
+        so we just need to create each node.
+
         Returns:
             Tuple of NodeInstance objects for created nodes. Same instances
             returned on subsequent calls (cached via @functools.cache).
@@ -921,25 +934,13 @@ class Chain(NodeBase):
         if not nodes:
             return tuple()
 
-        created_node_instances: list[NodeInstance] = []
-        previous_node: hou.Node | None = None
-
-        # Create each node and connect them in sequence - NO COPYING!
+        # Create each node - connections are handled automatically via _inputs
         # Use _skip_chain=True to avoid recursion since we're already creating the chain
-        for i, node_instance in enumerate(nodes):
-            # Create the node in Houdini (NodeInstance.create caches result)
-            created_hou_node = node_instance._create(_skip_chain=True)
+        created_node_instances = []
+        for node_instance in nodes:
+            # Create the node in Houdini (NodeInstance.create handles connections via _inputs)
+            node_instance._create(_skip_chain=True)
             created_node_instances.append(node_instance)
-
-            # Connect this node to the previous one if needed
-            if i > 0 and previous_node is not None:
-                try:
-                    created_hou_node.setInput(0, previous_node)
-                except Exception as e:
-                    print(f"Warning: Failed to connect chain nodes: {e}")
-
-            # For the next iteration
-            previous_node = created_hou_node
 
         return tuple(created_node_instances)
 

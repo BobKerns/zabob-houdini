@@ -785,7 +785,9 @@ with context(node("/obj", "geo")) as ctx:
 
     # Check what depends on a specific node
     box_deps = ctx.get_dependents(box)    # [xform1]
-```## Caching and Performance
+```
+
+## Caching and Performance
 
 ### Automatic Caching
 - `NodeInstance.create()` is cached - calling it multiple times returns the same `hou.Node`
