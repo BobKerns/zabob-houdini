@@ -386,8 +386,13 @@ class NodeInstance(NodeBase):
         # Register this NodeInstance as the creator of this hou.Node
         _node_registry[created_node.path()] = self
 
-        # TODO: Create our own placement algorithm, calling moveToGoodPosition is really ugly
-        created_node.moveToGoodPosition()
+        # Note: Node positioning is now handled by NodeContext.apply_layout()
+        # Individual nodes created outside of context still use moveToGoodPosition
+        if self._chain is None:  # Only auto-position if not part of a chain
+            try:
+                created_node.moveToGoodPosition()
+            except Exception as e:
+                print(f"Warning: Failed to auto-position node: {e}")
 
         return created_node
 
@@ -499,7 +504,6 @@ class NodeContext:
     """
     parent: NodeInstance
     _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
-    _all_nodes: list[NodeInstance] = field(default_factory=list, init=False)
     _dependency_registry: weakref.WeakKeyDictionary[NodeInstance, list[NodeInstance]] = field(default_factory=weakref.WeakKeyDictionary, init=False)
 
     def __enter__(self) -> 'NodeContext':
@@ -548,8 +552,9 @@ class NodeContext:
             **attributes
         )
 
-        # Track all nodes created in this context
-        self._all_nodes.append(node_instance)
+        # Ensure node is registered in dependency registry (even if no dependencies)
+        if node_instance not in self._dependency_registry:
+            self._dependency_registry[node_instance] = []
 
         # Register named nodes for lookup
         if name is not None:
@@ -624,10 +629,10 @@ class NodeContext:
         # Create the chain using the global chain() function
         created_chain = chain(*resolved_nodes, **attributes)
 
-        # Track all chain nodes in our comprehensive list
+        # Ensure all chain nodes are registered in dependency registry
         for node_instance in created_chain.nodes:
-            if node_instance not in self._all_nodes:
-                self._all_nodes.append(node_instance)
+            if node_instance not in self._dependency_registry:
+                self._dependency_registry[node_instance] = []
 
         # Register any named nodes from the chain that aren't already in our context
         # Only register nodes that don't already exist - preserve original context nodes
@@ -700,22 +705,20 @@ class NodeContext:
         if name is not None:
             created_merge = created_merge.copy(name=name)
 
-        # Track the merge node in our comprehensive list
-        if created_merge not in self._all_nodes:
-            self._all_nodes.append(created_merge)
+        # Ensure merge node is registered in dependency registry
+        if created_merge not in self._dependency_registry:
+            self._dependency_registry[created_merge] = []
 
         # Register external nodes that were passed in (not looked up from context)
         for i, item in enumerate(inputs):
             if isinstance(item, NodeInstance):
-                # This was an external node, track it if not already present
-                if item not in self._all_nodes:
-                    self._all_nodes.append(item)
+                # Ensure external node is registered in dependency registry
+                if item not in self._dependency_registry:
+                    self._dependency_registry[item] = []
                 # Also register it by name if named and not already present
                 if (item.name is not None and
                     item.name not in self._nodes):
-                    self._nodes[item.name] = item
-
-        # Register the merge node if it's named and not already in our context
+                    self._nodes[item.name] = item        # Register the merge node if it's named and not already in our context
         if (created_merge.name is not None and
             created_merge.name not in self._nodes):
             self._nodes[created_merge.name] = created_merge
@@ -754,7 +757,7 @@ class NodeContext:
         Returns:
             List of all context nodes (named and unnamed) that have no input connections
         """
-        return [node for node in self._all_nodes if not node.inputs or all(inp is None for inp in node.inputs)]
+        return [node for node in self._dependency_registry.keys() if not node.inputs or all(inp is None for inp in node.inputs)]
 
     def get_sink_nodes(self) -> list[NodeInstance]:
         """Get nodes in this context that have no dependents (sink nodes).
@@ -762,7 +765,205 @@ class NodeContext:
         Returns:
             List of all context nodes (named and unnamed) that no other nodes depend on
         """
-        return [node for node in self._all_nodes if not self.get_dependents(node)]
+        return [node for node in self._dependency_registry.keys() if not self.get_dependents(node)]
+
+    def layout_nodes(self, layer_height: float = 2.0, node_width: float = 2.0, min_spacing: float = 0.5) -> dict[NodeInstance, tuple[float, float]]:
+        """Compute optimal layout positions for all nodes in the context.
+
+        Uses a topological layering approach:
+        1. Start with source nodes (no inputs) at the top layer
+        2. Position each subsequent layer below based on dependencies
+        3. Center nodes between their inputs when possible
+        4. Allocate space based on output fanout, propagating upward
+        5. Resolve conflicts by adding space at each layer
+
+        Args:
+            layer_height: Vertical spacing between layers
+            node_width: Estimated width of each node for spacing calculations
+            min_spacing: Minimum horizontal spacing between nodes
+
+        Returns:
+            Dictionary mapping NodeInstance to (x, y) position tuples
+        """
+        all_nodes = list(self._dependency_registry.keys())
+        if not all_nodes:
+            return {}
+
+        # Step 1: Compute topological layers
+        layers = self._compute_layers(all_nodes)
+
+        # Step 2: Compute space requirements (bottom-up)
+        space_requirements = self._compute_space_requirements(layers, node_width, min_spacing)
+
+        # Step 3: Position nodes within each layer
+        positions = self._position_nodes_in_layers(layers, space_requirements, layer_height, node_width, min_spacing)
+
+        return positions
+
+    def _compute_layers(self, all_nodes: list[NodeInstance]) -> dict[int, list[NodeInstance]]:
+        """Compute topological layers for nodes."""
+        # Calculate the maximum depth for each node
+        node_depths: dict[NodeInstance, int] = {}
+
+        def get_node_depth(node: NodeInstance) -> int:
+            if node in node_depths:
+                return node_depths[node]
+
+            # Get input nodes that are in our context
+            input_nodes = []
+            for inp in node.inputs:
+                if inp is not None:
+                    input_node, _ = inp
+                    if input_node in all_nodes:
+                        input_nodes.append(input_node)
+
+            if not input_nodes:
+                # Source node
+                depth = 0
+            else:
+                # Depth is max of input depths + 1
+                depth = max(get_node_depth(inp) for inp in input_nodes) + 1
+
+            node_depths[node] = depth
+            return depth
+
+        # Compute depth for all nodes
+        for node in all_nodes:
+            get_node_depth(node)
+
+        # Group nodes by layer
+        layers: dict[int, list[NodeInstance]] = {}
+        for node, depth in node_depths.items():
+            if depth not in layers:
+                layers[depth] = []
+            layers[depth].append(node)
+
+        return layers
+
+    def _compute_space_requirements(self, layers: dict[int, list[NodeInstance]],
+                                   node_width: float, min_spacing: float) -> dict[NodeInstance, float]:
+        """Compute space requirements for each node based on output fanout."""
+        space_requirements: dict[NodeInstance, float] = {}
+        max_layer = max(layers.keys()) if layers else 0
+
+        # Start from bottom layer and work upward
+        for layer_idx in range(max_layer, -1, -1):
+            layer_nodes = layers[layer_idx]
+
+            for node in layer_nodes:
+                dependents = self.get_dependents(node)
+
+                if not dependents:
+                    # Sink node - use minimum space
+                    space_requirements[node] = node_width + min_spacing
+                else:
+                    # Space is sum of dependent space requirements
+                    dependent_space = sum(
+                        space_requirements.get(dep, node_width + min_spacing)
+                        for dep in dependents
+                    )
+                    space_requirements[node] = max(dependent_space, node_width + min_spacing)
+
+        return space_requirements
+
+    def _position_nodes_in_layers(self, layers: dict[int, list[NodeInstance]],
+                                 space_requirements: dict[NodeInstance, float],
+                                 layer_height: float, node_width: float,
+                                 min_spacing: float) -> dict[NodeInstance, tuple[float, float]]:
+        """Position nodes within each layer, resolving conflicts."""
+        positions: dict[NodeInstance, tuple[float, float]] = {}
+
+        for layer_idx in sorted(layers.keys()):
+            layer_nodes = layers[layer_idx]
+            y_pos = -layer_idx * layer_height  # Top-down positioning
+
+            if layer_idx == 0:
+                # First layer - distribute evenly
+                total_width = sum(space_requirements[node] for node in layer_nodes)
+                current_x = -total_width / 2
+
+                for node in layer_nodes:
+                    node_space = space_requirements[node]
+                    x_pos = current_x + node_space / 2
+                    positions[node] = (x_pos, y_pos)
+                    current_x += node_space
+            else:
+                # Subsequent layers - try to center between inputs, resolve conflicts
+                preferred_positions = self._compute_preferred_positions(layer_nodes, positions)
+                final_positions = self._resolve_position_conflicts(
+                    layer_nodes, preferred_positions, space_requirements, min_spacing
+                )
+
+                for node, x_pos in final_positions.items():
+                    positions[node] = (x_pos, y_pos)
+
+        return positions
+
+    def _compute_preferred_positions(self, layer_nodes: list[NodeInstance],
+                                   existing_positions: dict[NodeInstance, tuple[float, float]]) -> dict[NodeInstance, float]:
+        """Compute preferred x-positions based on input node positions."""
+        preferred: dict[NodeInstance, float] = {}
+
+        for node in layer_nodes:
+            input_positions = []
+            for inp in node.inputs:
+                if inp is not None:
+                    input_node, _ = inp
+                    if input_node in existing_positions:
+                        x_pos, _ = existing_positions[input_node]
+                        input_positions.append(x_pos)
+
+            if input_positions:
+                # Center between input positions
+                preferred[node] = sum(input_positions) / len(input_positions)
+            else:
+                # No inputs in context - use origin
+                preferred[node] = 0.0
+
+        return preferred
+
+    def _resolve_position_conflicts(self, layer_nodes: list[NodeInstance],
+                                  preferred: dict[NodeInstance, float],
+                                  space_requirements: dict[NodeInstance, float],
+                                  min_spacing: float) -> dict[NodeInstance, float]:
+        """Resolve overlapping positions by adjusting spacing."""
+        # Sort nodes by preferred position
+        sorted_nodes = sorted(layer_nodes, key=lambda n: preferred.get(n, 0.0))
+
+        final_positions: dict[NodeInstance, float] = {}
+        current_right_edge = float('-inf')
+
+        for node in sorted_nodes:
+            preferred_x = preferred.get(node, 0.0)
+            node_space = space_requirements[node]
+            node_half_width = node_space / 2
+
+            # Ensure we don't overlap with previous node
+            min_x = current_right_edge + min_spacing + node_half_width
+            actual_x = max(preferred_x, min_x)
+
+            final_positions[node] = actual_x
+            current_right_edge = actual_x + node_half_width
+
+        return final_positions
+
+    def apply_layout(self, **layout_kwargs) -> None:
+        """Compute and apply layout positions to all created nodes.
+
+        Args:
+            **layout_kwargs: Arguments passed to layout_nodes()
+        """
+        positions = self.layout_nodes(**layout_kwargs)
+
+        for node, (x, y) in positions.items():
+            # Create the node first to get the hou.Node
+            hou_node = node.create()
+
+            # Set the position
+            try:
+                hou_node.setPosition((x, y))
+            except Exception as e:
+                print(f"Warning: Failed to set position for {node}: {e}")
 
 
 @dataclass(frozen=True, eq=False)
