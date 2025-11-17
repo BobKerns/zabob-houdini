@@ -5,10 +5,7 @@ import pytest
 @pytest.mark.integration
 def test_enhanced_copy_integration(hython_test):
     """Test the enhanced copy functionality using hython_test fixture."""
-    result = hython_test("test_enhanced_copy_functionality")
-    assert result['success'] is True
-
-    data = result['result']
+    data = hython_test("test_enhanced_copy_functionality")
 
     # Test 1: Original node properties
     original = data["original"]
@@ -52,10 +49,7 @@ def test_enhanced_copy_integration(hython_test):
 @pytest.mark.integration
 def test_enhanced_copy_parameter_validation(hython_test):
     """Test copy method parameter validation."""
-    result = hython_test("test_copy_signature_validation")
-    assert result['success'] is True
-
-    data = result['result']
+    data = hython_test("test_copy_signature_validation")
 
     # Verify all expected parameters exist for NodeInstance.copy()
     assert data["node_has_inputs"] is True

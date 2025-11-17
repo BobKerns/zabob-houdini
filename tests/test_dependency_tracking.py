@@ -7,14 +7,7 @@ class TestDependencyTracking:
 
     def test_dependency_tracking(self, hython_test):
         """Test that dependencies are correctly tracked for nodes and chains."""
-        response = hython_test("test_dependency_tracking")
-
-        if not response.get('success', False):
-            pytest.fail(f"Test function failed: {response.get('error', 'Unknown error')}")
-
-        result = response.get('result', {})
-        if not result.get('success', False):
-            pytest.fail(f"Test function failed: {result.get('error', 'Unknown error')}\nTraceback:\n{result.get('traceback', 'No traceback')}")
+        result = hython_test("test_dependency_tracking")
 
         # Basic dependency tracking
         assert result['box_has_dependent'], "Box should have dependents"
