@@ -407,14 +407,6 @@ class NodeInstance(NodeBase):
         # Register this NodeInstance as the creator of this hou.Node
         _node_registry[created_node.path()] = self
 
-        # Note: Node positioning is now handled by NodeContext.apply_layout()
-        # Individual nodes created outside of context still use moveToGoodPosition
-        if self._chain is None:  # Only auto-position if not part of a chain
-            try:
-                created_node.moveToGoodPosition()
-            except Exception as e:
-                print(f"Warning: Failed to auto-position node: {e}")
-
         return created_node
 
     def _asType(self, node: hou.Node, cls: type[T]) -> T:
