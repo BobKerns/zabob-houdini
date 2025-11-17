@@ -12,9 +12,11 @@ Zabob-Houdini provides a clean, Pythonic interface for building Houdini node net
 
 **Key Features:**
 - **Declarative API**: Describe what you want, not how to build it
+- **Automatic Context Management**: Context exit handles layout and node creation automatically
+- **ChainBuilder Pattern**: Build chains with conditional logic using context managers
 - **Immutable Objects**: Node and chain definitions are immutable for safety and caching
 - **Automatic Connections**: Wire nodes together with simple syntax
-- **Chain Support**: Create linear processing pipelines easily
+- **Bidirectional Layout**: Smart positioning algorithm centers nodes properly
 - **Type Safety**: Full type hints for modern Python development
 - **Flexible**: Works in Houdini scripts, shelf tools, and HDAs
 
@@ -44,19 +46,28 @@ Both return **immutable objects** that use `.create()` to instantiate the actual
 ## Example Usage
 
 ```python
-from zabob_houdini import node, chain, context
+from zabob_houdini import node, context
 
-# Create a geometry container and organize nodes with context
+# Create a geometry container with automatic layout and node creation
 with context(node("/obj", "geo", "mygeometry")) as ctx:
-    # Create nodes within the context
-    box_node = ctx.node("box", "mybox")
-    transform_node = ctx.node("xform", "mytransform", _input=box_node)
+    # Create source node
+    source = ctx.node("box", "source")
 
-    # Or create a processing chain using context nodes
-    processing_chain = ctx.chain("mybox", "mytransform", ctx.node("subdivide"))
+    # Build chains with conditional logic using ChainBuilder
+    with ctx.chain(_input=source) as path_a:
+        path_a.node("xform", "transform_a")
+        if some_condition:
+            path_a.node("subdivide", "subdivide_a")
 
-# These definitions are cached and can be reused safely
-processing_chain.create()  # Creates entire dependency tree
+    with ctx.chain(_input=source) as path_b:
+        path_b.node("xform", "transform_b")
+        path_b.node("noise", "noise_b")
+
+    # Merge the paths
+    final = ctx.merge(path_a, path_b, name="final")
+
+# Context automatically applies layout and creates all nodes on exit
+# No need to call .create() - everything is handled for you!
 ```
 
 For complete examples including multi-output connections, chain indexing, type narrowing, and advanced patterns, see the **[API Documentation](API.md)**.

@@ -592,6 +592,42 @@ class ChainBuilder:
         else:
             raise RuntimeError("Chain is empty")
 
+    @property
+    def first(self) -> NodeInstance:
+        """Return the first node that will be in this chain."""
+        if hasattr(self, '_created_chain'):
+            return self._created_chain.first
+        elif self._nodes:
+            return self._nodes[0]
+        else:
+            raise RuntimeError("Chain is empty")
+
+    def __getitem__(self, index: int) -> NodeInstance:
+        """Access nodes in the chain by index."""
+        if hasattr(self, '_created_chain'):
+            return self._created_chain[index]
+        elif self._nodes:
+            return self._nodes[index]
+        else:
+            raise IndexError("Chain is empty")
+
+    def __len__(self) -> int:
+        """Return the number of nodes in the chain."""
+        if hasattr(self, '_created_chain'):
+            return len(self._created_chain)
+        else:
+            return len(self._nodes)
+
+    @property
+    def inputs(self) -> Inputs:
+        """Return the inputs of the first node in the chain."""
+        if hasattr(self, '_created_chain'):
+            return self._created_chain.inputs
+        elif self._nodes:
+            return self._nodes[0].inputs
+        else:
+            return tuple()
+
 
 @dataclass
 class NodeContext:
@@ -692,98 +728,28 @@ class NodeContext:
             raise KeyError(f"No node named '{name}' found in this context")
         return self._nodes[name]
 
-    def chain(self, *nodes: 'ChainableNode | str', _input: 'InputNode | Sequence[InputNode] | None' = None, **attributes: Any) -> 'Chain | ChainBuilder':
+    def chain(self, *, _input: 'InputNode | Sequence[InputNode] | None' = None, **attributes: Any) -> 'ChainBuilder':
         """
-        Create a chain of nodes, with string arguments looked up in this context.
-
-        When called without arguments, returns a ChainBuilder context manager for building chains.
+        Create a ChainBuilder context manager for building chains.
 
         Args:
-            *nodes: Sequence of NodeInstance, Chain, hou.Node, or string names to chain together
             _input: Optional input node(s) to connect to the first node in the chain
             **attributes: Additional attributes (currently unused, for future compatibility)
 
         Returns:
-            Chain if nodes are provided, ChainBuilder context manager if no nodes provided
+            ChainBuilder context manager for building chains
 
         Usage:
-            # Direct chain creation
-            chain = ctx.chain(node1, node2, _input=source)
-
-            # Context manager style (avoids registering intermediate nodes)
+            # Context manager style
             with ctx.chain(_input=source) as c:
                 c.node("xform", "path_a")
                 c.node("subdivide", "path_b")
 
         Note:
-            - String arguments are looked up as node names in this context
-            - After creating the chain, any named nodes in the result that aren't already
-              registered in this context will be added to the name registry
-            - Existing context nodes are preserved and not overwritten by chain copies
+            - After exiting the context, any named nodes in the result will be registered
+            - Use the ChainBuilder.node() method to add nodes to the chain
         """
-        # If no nodes provided, return a ChainBuilder context manager
-        if not nodes:
-            return ChainBuilder(self, _input)
-
-        # Resolve string arguments to actual nodes
-        resolved_nodes: list[ChainableNode] = []
-        for item in nodes:
-            if isinstance(item, str):
-                # Look up the named node in this context
-                resolved_nodes.append(self[item])
-            else:
-                resolved_nodes.append(item)
-
-        # Validate that all resolved nodes have the same parent as this context
-        for i, node_item in enumerate(resolved_nodes):
-            # Extract NodeInstance from ChainableNode
-            if isinstance(node_item, NodeInstance):
-                actual_node = node_item
-            elif isinstance(node_item, Chain) and node_item.nodes:
-                actual_node = node_item.nodes[0]  # Check first node of chain
-            else:
-                continue  # Skip validation for other types
-
-            if actual_node.parent != self.parent:
-                raise ValueError(
-                    f"All chain nodes must have same parent as context. "
-                    f"Context parent is {self.parent}, but node {i} has parent {actual_node.parent}"
-                )
-
-        # If _input is provided, apply it to the first resolved node
-        if _input is not None and resolved_nodes:
-            first_node = resolved_nodes[0]
-            if isinstance(first_node, NodeInstance):
-                # Create a copy of the first node with the input
-                resolved_nodes[0] = first_node._copy(_inputs=_wrap_inputs(_input))
-            elif isinstance(first_node, Chain) and first_node.nodes:
-                # For chains, apply input to the first node in the chain
-                chain_nodes = list(first_node.nodes)
-                chain_nodes[0] = chain_nodes[0]._copy(_inputs=_wrap_inputs(_input))
-                resolved_nodes[0] = Chain(chain_nodes)
-
-        # Create the chain using the global chain() function
-        created_chain = chain(*resolved_nodes, **attributes)
-
-        # Ensure all chain nodes are registered in dependency registry
-        for node_instance in created_chain.nodes:
-            if node_instance not in self._dependency_registry:
-                self._dependency_registry[node_instance] = []
-
-        # Register any named nodes from the chain that aren't already in our context
-        # Only register nodes that don't already exist - preserve original context nodes
-        for node_instance in created_chain.nodes:
-            if (node_instance.name is not None and
-                node_instance.name not in self._nodes):
-                self._nodes[node_instance.name] = node_instance
-
-        # Track chain dependencies (each node depends on the previous one)
-        for i in range(1, len(created_chain.nodes)):
-            prev_node = created_chain.nodes[i-1]
-            current_node = created_chain.nodes[i]
-            self._add_dependency(prev_node, current_node)
-
-        return created_chain
+        return ChainBuilder(self, _input)
 
     def merge(self, *inputs: 'NodeInstance | Chain | ChainBuilder | str', name: str | None = None, **attributes: Any) -> NodeInstance:
         """

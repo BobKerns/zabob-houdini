@@ -9,6 +9,7 @@ bclip
 bgeo
 bgeoc
 blosc
+chainbuilder
 colorspace
 conftest
 dataclass
