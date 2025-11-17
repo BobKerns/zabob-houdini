@@ -504,6 +504,94 @@ class NodeInstance(NodeBase):
             attributes=final_attributes,
         )
 
+    def __repr__(self) -> str:
+        """Custom repr that avoids circular references from _chain attribute."""
+        # Generate input names for display
+        input_names = []
+        for inp in self._inputs:
+            if inp is not None:
+                node, _ = inp
+                if node.name:
+                    input_names.append(node.name)
+                else:
+                    input_names.append(f"<{node.node_type}>")
+
+        inputs_str = f"[{', '.join(input_names)}]" if input_names else "[]"
+
+        return f"NodeInstance(type={self.node_type!r}, name={self.name!r}, inputs={inputs_str})"
+
+
+@dataclass
+class ChainBuilder:
+    """Context manager for building chains without registering intermediate nodes."""
+
+    def __init__(self, context: 'NodeContext', _input: 'InputNode | Sequence[InputNode] | None' = None):
+        self.context = context
+        self._input = _input
+        self._nodes: list[NodeInstance] = []
+
+    def __enter__(self) -> 'ChainBuilder':
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if exc_type is None and self._nodes:
+            # Create the final chain with proper input connections
+            if self._input is not None:
+                # Apply input to the first node
+                first_node = self._nodes[0]._copy(_inputs=_wrap_inputs(self._input))
+                nodes_with_input = [first_node] + self._nodes[1:]
+            else:
+                nodes_with_input = self._nodes
+
+            # Create the chain using the global chain() function
+            self._created_chain = chain(*nodes_with_input)
+
+            # Register all chain nodes in the context
+            for node_instance in self._created_chain.nodes:
+                if node_instance not in self.context._dependency_registry:
+                    self.context._dependency_registry[node_instance] = []
+
+                # Register named nodes
+                if (node_instance.name is not None and
+                    node_instance.name not in self.context._nodes):
+                    self.context._nodes[node_instance.name] = node_instance
+
+            # Track chain dependencies (each node depends on the previous one)
+            for i in range(1, len(self._created_chain.nodes)):
+                prev_node = self._created_chain.nodes[i-1]
+                current_node = self._created_chain.nodes[i]
+                self.context._add_dependency(prev_node, current_node)
+
+            # Track dependencies from all inputs to the first chain node
+            # Use the constructed chain's first node inputs which have the correct merged list
+            first_chain_node = self._created_chain.first
+            for inp in first_chain_node.inputs:
+                if inp is not None:
+                    input_node, _ = inp
+                    self.context._add_dependency(input_node, first_chain_node)
+
+    def node(self, node_type: NodeType, /, name: str | None = None, **attributes: Any) -> NodeInstance:
+        """Add a node to this chain (not registered with context until chain completes)."""
+        # Create node without registering it with the context
+        node_instance = NodeInstance(
+            _parent=self.context.parent,  # Use the context's parent
+            node_type=node_type,
+            name=name,
+            attributes=HashableMapping(attributes) if attributes else HashableMapping(),
+        )
+        self._nodes.append(node_instance)
+        return node_instance
+
+    @property
+    def last(self) -> NodeInstance:
+        """Return the last node that will be in this chain."""
+        if hasattr(self, '_created_chain'):
+            return self._created_chain.last
+        elif self._nodes:
+            return self._nodes[-1]
+        else:
+            raise RuntimeError("Chain is empty")
+
 
 @dataclass
 class NodeContext:
@@ -524,8 +612,15 @@ class NodeContext:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Exit the context manager."""
-        pass
+        """Exit the context manager - apply layout and create sink nodes."""
+        if exc_type is None:  # Only if no exception occurred
+            # Apply layout to position all nodes
+            self.apply_layout()
+
+            # Create all sink nodes (nodes with no dependents)
+            sink_nodes = self.get_sink_nodes()
+            for node in sink_nodes:
+                node.create()
 
     def node(self,
              node_type: NodeType,
@@ -597,16 +692,28 @@ class NodeContext:
             raise KeyError(f"No node named '{name}' found in this context")
         return self._nodes[name]
 
-    def chain(self, *nodes: 'ChainableNode | str', **attributes: Any) -> 'Chain':
+    def chain(self, *nodes: 'ChainableNode | str', _input: 'InputNode | Sequence[InputNode] | None' = None, **attributes: Any) -> 'Chain | ChainBuilder':
         """
         Create a chain of nodes, with string arguments looked up in this context.
 
+        When called without arguments, returns a ChainBuilder context manager for building chains.
+
         Args:
             *nodes: Sequence of NodeInstance, Chain, hou.Node, or string names to chain together
+            _input: Optional input node(s) to connect to the first node in the chain
             **attributes: Additional attributes (currently unused, for future compatibility)
 
         Returns:
-            Chain that can be created with .create()
+            Chain if nodes are provided, ChainBuilder context manager if no nodes provided
+
+        Usage:
+            # Direct chain creation
+            chain = ctx.chain(node1, node2, _input=source)
+
+            # Context manager style (avoids registering intermediate nodes)
+            with ctx.chain(_input=source) as c:
+                c.node("xform", "path_a")
+                c.node("subdivide", "path_b")
 
         Note:
             - String arguments are looked up as node names in this context
@@ -614,6 +721,10 @@ class NodeContext:
               registered in this context will be added to the name registry
             - Existing context nodes are preserved and not overwritten by chain copies
         """
+        # If no nodes provided, return a ChainBuilder context manager
+        if not nodes:
+            return ChainBuilder(self, _input)
+
         # Resolve string arguments to actual nodes
         resolved_nodes: list[ChainableNode] = []
         for item in nodes:
@@ -639,6 +750,18 @@ class NodeContext:
                     f"Context parent is {self.parent}, but node {i} has parent {actual_node.parent}"
                 )
 
+        # If _input is provided, apply it to the first resolved node
+        if _input is not None and resolved_nodes:
+            first_node = resolved_nodes[0]
+            if isinstance(first_node, NodeInstance):
+                # Create a copy of the first node with the input
+                resolved_nodes[0] = first_node._copy(_inputs=_wrap_inputs(_input))
+            elif isinstance(first_node, Chain) and first_node.nodes:
+                # For chains, apply input to the first node in the chain
+                chain_nodes = list(first_node.nodes)
+                chain_nodes[0] = chain_nodes[0]._copy(_inputs=_wrap_inputs(_input))
+                resolved_nodes[0] = Chain(chain_nodes)
+
         # Create the chain using the global chain() function
         created_chain = chain(*resolved_nodes, **attributes)
 
@@ -662,12 +785,12 @@ class NodeContext:
 
         return created_chain
 
-    def merge(self, *inputs: 'NodeInstance | str', name: str | None = None, **attributes: Any) -> NodeInstance:
+    def merge(self, *inputs: 'NodeInstance | Chain | ChainBuilder | str', name: str | None = None, **attributes: Any) -> NodeInstance:
         """
         Create a merge node with multiple inputs, with string arguments looked up in this context.
 
         Args:
-            *inputs: NodeInstance objects or string names to merge (must have same parent)
+            *inputs: NodeInstance, Chain, ChainBuilder objects, or string names to merge (must have same parent)
             name: Optional name for the merge node
             **attributes: Additional merge node parameters
 
@@ -680,6 +803,7 @@ class NodeContext:
 
         Note:
             - String arguments are looked up as node names in this context
+            - Chain/ChainBuilder arguments are automatically converted to their .last node
             - If the merge node is named and not already in the context, it will be registered
 
         Examples:
@@ -700,8 +824,10 @@ class NodeContext:
                 resolved_inputs.append(self[item])
             elif isinstance(item, NodeInstance):
                 resolved_inputs.append(item)
+            elif hasattr(item, 'last'):  # Chain or ChainBuilder object
+                resolved_inputs.append(item.last)
             else:
-                raise TypeError(f"merge() inputs must be NodeInstance or str, got {type(item).__name__}")
+                raise TypeError(f"merge() inputs must be NodeInstance, Chain, ChainBuilder, or str, got {type(item).__name__}")
 
         # Validate that all resolved nodes have the same parent as this context
         for i, resolved_node in enumerate(resolved_inputs):
@@ -1478,12 +1604,12 @@ def chain(
     )
 
 
-def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
+def merge(*inputs: 'NodeInstance | Chain', **attributes: Any) -> NodeInstance:
     """
     Create a merge node with multiple inputs.
 
     Args:
-        *inputs: NodeInstance objects to merge (must have same parent)
+        *inputs: NodeInstance or Chain objects to merge (must have same parent)
         **attributes: Additional merge node parameters
 
     Returns:
@@ -1498,15 +1624,28 @@ def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
         sphere = node(geo, "sphere")
         merged = merge(box, sphere)
 
+        # Merge chains
+        chain_a = chain(node(geo, "box"), node(geo, "xform"))
+        chain_b = chain(node(geo, "sphere"), node(geo, "xform"))
+        merged = merge(chain_a, chain_b)
+
         # Merge with parameters
         merged = merge(box, sphere, tol=0.01)
     """
     if not inputs:
         raise ValueError("merge() requires at least one input")
 
+    # Convert Chain or ChainBuilder objects to their last NodeInstance
+    node_inputs = []
+    for inp in inputs:
+        if hasattr(inp, 'last'):  # Chain or ChainBuilder object
+            node_inputs.append(inp.last)
+        else:  # NodeInstance
+            node_inputs.append(inp)
+
     # Get parent from first input and verify all have same parent
-    first_parent = inputs[0].parent
-    for i, inp in enumerate(inputs[1:], 1):
+    first_parent = node_inputs[0].parent
+    for i, inp in enumerate(node_inputs[1:], 1):
         if inp.parent != first_parent:
             raise ValueError(
                 f"All merge inputs must have same parent. "
@@ -1516,7 +1655,7 @@ def merge(*inputs: NodeInstance, **attributes: Any) -> NodeInstance:
     return node(
         first_parent,
         "merge",
-        _input=inputs,
+        _input=node_inputs,
         **attributes
     )
 
