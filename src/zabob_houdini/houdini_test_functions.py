@@ -141,9 +141,6 @@ def test_layout_stress_test() -> JsonObject:
             for i in range(1, len(final_chain)):
                 final_chain[i] = final_chain[i].copy(_input=final_chain[i-1])
 
-            # Apply layout
-            ctx.apply_layout(layer_height=2.0, node_width=2.0, min_spacing=1.0)
-
             # Get statistics
             all_nodes = list(ctx._dependency_registry.keys())
             source_nodes = ctx.get_source_nodes()
@@ -207,9 +204,6 @@ def test_simple_layout_demo() -> JsonObject:
 
             # Final processing
             ctx.node("xform", "final_proc", _input=merged)
-
-            # Apply layout
-            ctx.apply_layout(layer_height=2.0, node_width=2.0, min_spacing=1.0)
 
             # Get positions
             positions = ctx.layout_nodes()

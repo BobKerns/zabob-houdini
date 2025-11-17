@@ -338,8 +338,8 @@ class NodeInstance(NodeBase):
                 parent_path = parent_node.path() if parent_node else "unknown"
                 # Extract the actual error message, skipping generic "The attempted operation failed"
                 error_msg = str(e).strip()
-                if error_msg.startswith("The attempted operation failed."):
-                    error_msg = error_msg[len("The attempted operation failed."):].strip()
+                if "The attempted operation failed." in error_msg:
+                    error_msg = error_msg.replace("The attempted operation failed.", "").strip()
                 if not error_msg:
                     error_msg = "Unknown error"
                 raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{self.name}' in {parent_type} ({parent_path}): {error_msg}") from e
@@ -525,6 +525,11 @@ class NodeInstance(NodeBase):
 class ChainBuilder:
     """Context manager for building chains without registering intermediate nodes."""
 
+    @property
+    def parent(self) -> NodeInstance:
+        """Return the parent NodeInstance for this chain."""
+        return self.context.parent
+    
     def __init__(self, context: 'NodeContext', _input: 'InputNode | Sequence[InputNode] | None' = None):
         self.context = context
         self._input = _input
@@ -534,6 +539,11 @@ class ChainBuilder:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if exc_type is not None:
+            # Exception occurred: discard any partially built chain, clean up temporary state
+            self._created_chain = None
+            self._nodes.clear()
+            return
         if exc_type is None and self._nodes:
             # Create the final chain with proper input connections
             if self._input is not None:
@@ -585,7 +595,7 @@ class ChainBuilder:
     @property
     def last(self) -> NodeInstance:
         """Return the last node that will be in this chain."""
-        if hasattr(self, '_created_chain'):
+        if hasattr(self, '_created_chain') and self._created_chain:
             return self._created_chain.last
         elif self._nodes:
             return self._nodes[-1]
@@ -595,7 +605,7 @@ class ChainBuilder:
     @property
     def first(self) -> NodeInstance:
         """Return the first node that will be in this chain."""
-        if hasattr(self, '_created_chain'):
+        if hasattr(self, '_created_chain') and self._created_chain:
             return self._created_chain.first
         elif self._nodes:
             return self._nodes[0]
@@ -604,7 +614,7 @@ class ChainBuilder:
 
     def __getitem__(self, index: int) -> NodeInstance:
         """Access nodes in the chain by index."""
-        if hasattr(self, '_created_chain'):
+        if hasattr(self, '_created_chain') and self._created_chain:
             return self._created_chain[index]
         elif self._nodes:
             return self._nodes[index]
@@ -613,7 +623,7 @@ class ChainBuilder:
 
     def __len__(self) -> int:
         """Return the number of nodes in the chain."""
-        if hasattr(self, '_created_chain'):
+        if hasattr(self, '_created_chain') and self._created_chain:
             return len(self._created_chain)
         else:
             return len(self._nodes)
@@ -621,12 +631,12 @@ class ChainBuilder:
     @property
     def inputs(self) -> Inputs:
         """Return the inputs of the first node in the chain."""
-        if hasattr(self, '_created_chain'):
+        if hasattr(self, '_created_chain') and self._created_chain:
             return self._created_chain.inputs
         elif self._nodes:
             return self._nodes[0].inputs
         else:
-            return tuple()
+            raise RuntimeError("Chain is empty")
 
 
 @dataclass
@@ -922,16 +932,19 @@ class NodeContext:
 
         # Top-down traversal to assign depths
         def assign_depth(node: NodeInstance, depth: int) -> None:
-            # Stop if this node already has a depth assigned (prevents cycles and redundant work)
+            # Update depth if this path is deeper
             if node in node_depths:
-                return
+                if depth > node_depths[node]:
+                    node_depths[node] = depth
+                else:
+                    return  # Already processed with equal or deeper path
+            else:
+                node_depths[node] = depth
 
-            node_depths[node] = depth
-
-            # Process all dependents (nodes that use this node as input)
+            # Process all dependents with updated depth
             dependents = self.get_dependents(node)
             for dependent in dependents:
-                if dependent in all_nodes:  # Only process nodes in our context
+                if dependent in all_nodes:
                     assign_depth(dependent, depth + 1)
 
         # Start from source nodes at depth 0
@@ -1017,11 +1030,7 @@ class NodeContext:
 
             for node in layer_nodes:
                 # Find all outputs (nodes that depend on this node)
-                outputs = []
-                for other_node in self._dependency_registry.keys():
-                    for inp in other_node.inputs:
-                        if inp is not None and inp[0] is node:
-                            outputs.append(other_node)
+                outputs = self.get_dependents(node)
 
                 if not outputs:
                     # Sink node: only needs its own space
@@ -1089,6 +1098,7 @@ class NodeContext:
                     start_x = available_center - group_total_width / 2
                 else:
                     # Nodes exceed space - pack them tightly
+                    # currently the same as above, but could be modified to add extra spacing if desired
                     start_x = available_center - group_total_width / 2
 
                 current_x = start_x

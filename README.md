@@ -48,6 +48,7 @@ Both return **immutable objects** that use `.create()` to instantiate the actual
 ```python
 from zabob_houdini import node, context
 
+do_subdivide: bool = True
 # Create a geometry container with automatic layout and node creation
 with context(node("/obj", "geo", "mygeometry")) as ctx:
     # Create source node
@@ -56,7 +57,7 @@ with context(node("/obj", "geo", "mygeometry")) as ctx:
     # Build chains with conditional logic using ChainBuilder
     with ctx.chain(_input=source) as path_a:
         path_a.node("xform", "transform_a")
-        if some_condition:
+        if do_subdivide:
             path_a.node("subdivide", "subdivide_a")
 
     with ctx.chain(_input=source) as path_b:

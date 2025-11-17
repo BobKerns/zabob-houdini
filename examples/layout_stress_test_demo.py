@@ -17,7 +17,7 @@ Run with: python examples/layout_stress_test_demo.py
 Or via hython for direct Houdini execution.
 """
 
-from zabob_houdini import node, chain, context, ROOT, merge
+from zabob_houdini import context
 import hou
 
 def create_layout_stress_test():

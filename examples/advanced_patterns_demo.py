@@ -11,9 +11,15 @@ Key Features Demonstrated:
 - Automatic dependency tracking across complex networks
 - Integration of both manual chains and ChainBuilder patterns
 - Advanced merge operations with mixed input types
+
+NOTE: This example is currently flawed by accessing the ChainBuilder.last
+property before the chain is fully built, which may lead to unexpected behavior.
+This is a known issue and will be addressed in future updates, probably by
+returning a forward reference.
+
 """
 
-from zabob_houdini import node, chain, context
+from zabob_houdini import node, context
 
 def create_processing_network(config: dict):
     """

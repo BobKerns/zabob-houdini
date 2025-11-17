@@ -486,7 +486,7 @@ Context manager for building chains with conditional logic and automatic registr
 
 #### Overview
 
-`ChainBuilder` is returned by `ctx.chain()` when called without arguments. It provides a context manager interface for building chains incrementally with conditional node inclusion.
+`ChainBuilder` is returned by `ctx.chain()`. It provides a context manager interface for building chains incrementally with conditional node inclusion.
 
 **Key Features:**
 - **Context Manager**: Use with `with` statement for automatic registration
@@ -731,6 +731,8 @@ The recommended way to organize node creation is using the `context()` function 
 ```python
 from zabob_houdini import context, node
 
+do_subdivide: bool = True
+
 # Create organized node networks with automatic layout and node creation
 with context(node("/obj", "geo", "processing")) as ctx:
     # Create source node
@@ -739,13 +741,15 @@ with context(node("/obj", "geo", "processing")) as ctx:
     # Use ChainBuilder for conditional chain construction
     with ctx.chain(_input=source) as processing_path:
         processing_path.node("xform", "scale", sx=1.5)
-        if some_condition:
+        if do_subdivide:
             processing_path.node("subdivide", "smooth")
 
-        # Build alternate paths
-        with ctx.chain() as alternate_path:
-            alternate_path.node("sphere", "alternate_input")
-            alternate_path.node("color", "colorize", color=(1, 0, 0))    # Merge operations with automatic dependency tracking
+    # Build alternate paths
+    with ctx.chain(_input=source) as alternate_path:
+        alternate_path.node("sphere", "alternate_input")
+        alternate_path.node("color", "colorize", color=(1, 0, 0))
+
+    # Merge operations with automatic dependency tracking
     final = ctx.merge(processing_path, alternate_path, name="combined")
 
     # Access nodes by name anytime
