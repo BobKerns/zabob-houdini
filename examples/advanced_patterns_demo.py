@@ -123,9 +123,12 @@ def create_processing_network(config: dict):
                 # Always add output node
                 post_process.node("null", "OUTPUT")
 
+            # final_output is available for use later.
             final_output = post_process
         else:
             # Simple output node
+
+            # final_output is available for use later.
             final_output = ctx.node("null", "OUTPUT", _input=final_input)
 
         print(f"📊 Network Statistics:")

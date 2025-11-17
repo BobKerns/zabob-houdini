@@ -43,10 +43,6 @@ def main():
                 print("  ➕ Adding subdivision to path A")
                 path_a.node("subdivide", "subdivide_a")
 
-            if add_noise:
-                print("  ➕ Adding noise to path A")
-                path_a.node("mountain", "noise_a", amp=0.1)
-
         print("🔄 Building processing path B with ChainBuilder...")
         with ctx.chain(_input=source) as path_b:
             path_b.node("xform", "transform_b", tx=-3)
@@ -60,6 +56,7 @@ def main():
             path_b.node("color", "color_b", color=(0, 1, 0))
 
         print("🔀 Merging paths...")
+        # final is available for use later.
         final = ctx.merge(path_a, path_b, name="final_merge")
 
         print(f"📊 Created {len(ctx._dependency_registry)} nodes in context:")

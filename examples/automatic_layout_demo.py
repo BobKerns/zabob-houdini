@@ -53,6 +53,7 @@ def main():
             alt_path.node("extrude", "alt_extrude", dist=0.5)
 
         # Final merge of both branches
+        # output variable is available for use later.
         output = ctx.merge(final_path, alt_path, name="final_output")
 
         print(f"📊 Network Statistics:")

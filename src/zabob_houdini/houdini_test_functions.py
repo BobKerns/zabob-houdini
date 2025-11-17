@@ -206,7 +206,7 @@ def test_simple_layout_demo() -> JsonObject:
             merged = ctx.merge(box_xform, sphere_xform, name="combined")
 
             # Final processing
-            final_xform = ctx.node("xform", "final_proc", _input=merged)
+            ctx.node("xform", "final_proc", _input=merged)
 
             # Apply layout
             ctx.apply_layout(layer_height=2.0, node_width=2.0, min_spacing=1.0)

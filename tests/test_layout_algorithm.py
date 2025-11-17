@@ -63,9 +63,6 @@ def test_simple_layout_demo(hython_test):
     x_coords = [pos['x'] for pos in positions.values()]
     y_coords = [pos['y'] for pos in positions.values()]
 
-    # Should have some spread in both dimensions
-    x_range = max(x_coords) - min(x_coords)
-    y_range = max(y_coords) - min(y_coords)
 
     print(f"\nSimple Layout Test Results:")
     print(f"  Nodes positioned: {len(positions)}")

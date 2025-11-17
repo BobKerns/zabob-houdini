@@ -823,7 +823,8 @@ class NodeContext:
                 # Also register it by name if named and not already present
                 if (item.name is not None and
                     item.name not in self._nodes):
-                    self._nodes[item.name] = item        # Register the merge node if it's named and not already in our context
+                    # Register the merge node if it's named and not already in our context
+                    self._nodes[item.name] = item
         if (created_merge.name is not None and
             created_merge.name not in self._nodes):
             self._nodes[created_merge.name] = created_merge
@@ -1099,89 +1100,6 @@ class NodeContext:
 
         return positions
 
-    def _compute_preferred_positions(self, layer_nodes: list[NodeInstance],
-                                   existing_positions: dict[NodeInstance, tuple[float, float]]) -> dict[NodeInstance, float]:
-        """Compute preferred x-positions based on input node positions."""
-        preferred: dict[NodeInstance, float] = {}
-
-        for node in layer_nodes:
-            input_positions = []
-            for inp in node.inputs:
-                if inp is not None:
-                    input_node, _ = inp
-                    if input_node in existing_positions:
-                        x_pos, _ = existing_positions[input_node]
-                        input_positions.append(x_pos)
-
-            if input_positions:
-                # Center between input positions
-                preferred[node] = sum(input_positions) / len(input_positions)
-            else:
-                # No inputs in context - use origin
-                preferred[node] = 0.0
-
-        return preferred
-
-    def _resolve_position_conflicts(self, layer_nodes: list[NodeInstance],
-                                  preferred: dict[NodeInstance, float],
-                                  space_requirements: dict[NodeInstance, float],
-                                  min_spacing: float) -> dict[NodeInstance, float]:
-        """Resolve overlapping positions while preserving input-relative centering."""
-        if not layer_nodes:
-            return {}
-
-        # Sort nodes by preferred position to maintain relative ordering
-        sorted_nodes = sorted(layer_nodes, key=lambda n: preferred.get(n, 0.0))
-
-        # If no conflicts, return preferred positions
-        if len(sorted_nodes) == 1:
-            return {sorted_nodes[0]: preferred.get(sorted_nodes[0], 0.0)}
-
-        final_positions: dict[NodeInstance, float] = {}
-
-        # Check if there are any actual conflicts
-        conflicts = False
-
-        for i in range(len(sorted_nodes) - 1):
-            node1 = sorted_nodes[i]
-            node2 = sorted_nodes[i + 1]
-            pos1 = preferred.get(node1, 0.0)
-            pos2 = preferred.get(node2, 0.0)
-            space1 = space_requirements[node1]
-            space2 = space_requirements[node2]
-
-            # Check if node1's right edge would overlap with node2's left edge
-            node1_right = pos1 + space1/2
-            node2_left = pos2 - space2/2
-            gap = node2_left - node1_right
-
-            if gap < min_spacing:
-                conflicts = True
-                break
-
-        # If no conflicts, use preferred positions
-        if not conflicts:
-            for node in sorted_nodes:
-                final_positions[node] = preferred.get(node, 0.0)
-            return final_positions
-
-        # Resolve conflicts by adjusting positions
-        current_right_edge = float('-inf')
-        for node in sorted_nodes:
-            preferred_x = preferred.get(node, 0.0)
-            node_space = space_requirements[node]
-            node_half_width = node_space / 2
-
-            # Ensure we don't overlap with previous node
-            min_allowed_x = current_right_edge + min_spacing + node_half_width
-
-            # Use preferred position if it doesn't cause overlap, otherwise shift right
-            actual_x = max(preferred_x, min_allowed_x)
-
-            final_positions[node] = actual_x
-            current_right_edge = actual_x + node_half_width
-
-        return final_positions
 
     def apply_layout(self, **layout_kwargs) -> None:
         """Compute and apply layout positions to all created nodes.

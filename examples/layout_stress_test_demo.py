@@ -37,6 +37,7 @@ def create_layout_stress_test():
         # Simple linear chain
         box1 = ctx.node("box", "chain_box", sizex=1.0, sizey=1.0, sizez=1.0)
         transform1 = ctx.node("xform", "chain_xform1", _input=box1, tx=1.0)
+        # subdivide1 is available for use later.
         subdivide1 = ctx.node("subdivide", "chain_subdivide", _input=transform1, iterations=2)
 
         print("\n=== Test 2: Diamond Pattern ===")
@@ -50,6 +51,7 @@ def create_layout_stress_test():
 
         # Merge back together
         diamond_merge = ctx.merge(path_a, path_b, path_c, name="diamond_merge")
+        # diamond_final is available for use later.
         diamond_final = ctx.node("smooth", "diamond_final", _input=diamond_merge)
 
         print("\n=== Test 3: Multiple Merge Operations ===")
@@ -63,6 +65,7 @@ def create_layout_stress_test():
         # Multiple merge operations
         cubes_merge = ctx.merge(cube_a, cube_b, cube_c, name="cubes_merge")
         spheres_merge = ctx.merge(sphere_a, sphere_b, name="spheres_merge")
+        # all_geo_merge is available for use later.
         all_geo_merge = ctx.merge(cubes_merge, spheres_merge, name="all_geo_merge")
 
         print("\n=== Test 4: Deep Hierarchy with Branches ===")
@@ -86,6 +89,7 @@ def create_layout_stress_test():
         level3_merge_b = ctx.merge(branch_2c, branch_2d, name="tree_merge_3b")
 
         # Final merge
+        # tree_final is available for use later.
         tree_final = ctx.merge(level3_merge_a, level3_merge_b, name="tree_final")
 
         print("\n=== Test 5: Wide Fan-out with Multiple Levels ===")
@@ -111,6 +115,7 @@ def create_layout_stress_test():
 
         # Third level - final merge
         if len(fan_pairs) > 1:
+            # fan_final is available for use later.
             fan_final = ctx.merge(*fan_pairs, name="fan_final")
 
         print("\n=== Test 6: Complex Mixed Pattern ===")
@@ -148,6 +153,7 @@ def create_layout_stress_test():
         # Final complex merge
         all_mixed = diamond_results + chain_results
         if len(all_mixed) > 1:
+            # mixed_final is available for use later.
             mixed_final = ctx.merge(*all_mixed, name="mixed_final")
 
         print("\n=== Test 7: Stress Test - Very Complex Graph ===")
@@ -199,6 +205,7 @@ def create_layout_stress_test():
 
             # Ultimate final merge
             if final1 is not None and final2 is not None:
+                # ultimate_final is available for use later.
                 ultimate_final = ctx.merge(final1, final2, name="stress_ultimate_final")
 
         print(f"\n=== Applying Layout Algorithm ===")
