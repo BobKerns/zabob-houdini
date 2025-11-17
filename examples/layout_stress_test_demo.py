@@ -41,11 +41,11 @@ def create_layout_stress_test():
 
         print("\n=== Test 2: Diamond Pattern ===")
         # Diamond: single source, split to multiple, then merge back
-        source_sphere = ctx.node("sphere", "diamond_source", radius=0.8)
+        source_sphere = ctx.node("sphere", "diamond_source", rad=(0.8, 0.8, 0.8))
 
         # Split into multiple paths
-        path_a = ctx.node("mountain", "diamond_path_a", _input=source_sphere, height=0.5)
-        path_b = ctx.node("noise", "diamond_path_b", _input=source_sphere, amp=0.3)
+        path_a = ctx.node("mountain", "diamond_path_a", _input=source_sphere)
+        path_b = ctx.node("subdivide", "diamond_path_b", _input=source_sphere, iterations=1)
         path_c = ctx.node("subdivide", "diamond_path_c", _input=source_sphere, iterations=1)
 
         # Merge back together
@@ -57,8 +57,8 @@ def create_layout_stress_test():
         cube_a = ctx.node("box", "merge_cube_a", sizex=0.5)
         cube_b = ctx.node("box", "merge_cube_b", sizey=0.7)
         cube_c = ctx.node("box", "merge_cube_c", sizez=0.9)
-        sphere_a = ctx.node("sphere", "merge_sphere_a", radius=0.6)
-        sphere_b = ctx.node("sphere", "merge_sphere_b", radius=0.4)
+        sphere_a = ctx.node("sphere", "merge_sphere_a", rad=(0.6, 0.6, 0.6))
+        sphere_b = ctx.node("sphere", "merge_sphere_b", rad=(0.4, 0.4, 0.4))
 
         # Multiple merge operations
         cubes_merge = ctx.merge(cube_a, cube_b, cube_c, name="cubes_merge")
@@ -70,7 +70,7 @@ def create_layout_stress_test():
         root_torus = ctx.node("torus", "tree_root", radx=1.0, rady=0.3)
 
         # Level 1 branches
-        branch_1a = ctx.node("mountain", "tree_1a", _input=root_torus, height=0.2)
+        branch_1a = ctx.node("mountain", "tree_1a", _input=root_torus)
         branch_1b = ctx.node("twist", "tree_1b", _input=root_torus, strength=45)
 
         # Level 2 branches from 1a
@@ -78,7 +78,7 @@ def create_layout_stress_test():
         branch_2b = ctx.node("smooth", "tree_2b", _input=branch_1a, strength=0.5)
 
         # Level 2 branches from 1b
-        branch_2c = ctx.node("noise", "tree_2c", _input=branch_1b, amp=0.1)
+        branch_2c = ctx.node("xform", "tree_2c", _input=branch_1b, s=(1.1, 1.1, 1.1))
         branch_2d = ctx.node("normal", "tree_2d", _input=branch_1b)
 
         # Level 3 - merge some branches
@@ -96,9 +96,7 @@ def create_layout_stress_test():
         fan_branches = []
         for i in range(6):
             branch = ctx.node("mountain", f"fan_branch_{i}",
-                            _input=fan_source,
-                            height=0.1 + i * 0.05,
-                            offset=i * 30)
+                            _input=fan_source)
             fan_branches.append(branch)
 
         # Second level - pair up branches
@@ -122,7 +120,8 @@ def create_layout_stress_test():
         mixed_sources = []
         for i in range(4):
             if i % 2 == 0:
-                source = ctx.node("sphere", f"mixed_sphere_{i}", radius=0.3 + i * 0.1)
+                rad_val = 0.3 + i * 0.1
+                source = ctx.node("sphere", f"mixed_sphere_{i}", rad=(rad_val, rad_val, rad_val))
             else:
                 source = ctx.node("box", f"mixed_box_{i}", sizex=0.4 + i * 0.1)
             mixed_sources.append(source)
@@ -131,7 +130,7 @@ def create_layout_stress_test():
         diamond_results = []
         for i, source in enumerate(mixed_sources[:2]):
             # Each source splits into 3 paths
-            path1 = ctx.node("noise", f"mixed_diamond_{i}_path1", _input=source, amp=0.1)
+            path1 = ctx.node("smooth", f"mixed_diamond_{i}_path1", _input=source, strength=0.3)
             path2 = ctx.node("smooth", f"mixed_diamond_{i}_path2", _input=source, strength=0.3)
             path3 = ctx.node("subdivide", f"mixed_diamond_{i}_path3", _input=source, iterations=1)
 
@@ -143,7 +142,7 @@ def create_layout_stress_test():
         chain_results = []
         for i, source in enumerate(mixed_sources[2:], start=2):
             transform = ctx.node("xform", f"mixed_chain_{i}_xform", _input=source, rx=30)
-            mountain = ctx.node("mountain", f"mixed_chain_{i}_mountain", _input=transform, height=0.2)
+            mountain = ctx.node("mountain", f"mixed_chain_{i}_mountain", _input=transform)
             chain_results.append(mountain)
 
         # Final complex merge
@@ -156,7 +155,7 @@ def create_layout_stress_test():
 
         # Multiple source types
         stress_sources = []
-        source_types = ["sphere", "box", "torus", "tube", "grid"]
+        source_types = ["sphere", "box", "torus", "circle", "grid"]
         for i, stype in enumerate(source_types):
             source = ctx.node(stype, f"stress_source_{stype}_{i}")
             stress_sources.append(source)
@@ -165,8 +164,8 @@ def create_layout_stress_test():
         layer1_nodes = []
         for i, source in enumerate(stress_sources):
             # Each source gets processed by 2 different operations
-            proc1 = ctx.node("mountain", f"stress_l1_mountain_{i}", _input=source, height=0.1)
-            proc2 = ctx.node("noise", f"stress_l1_noise_{i}", _input=source, amp=0.2)
+            proc1 = ctx.node("mountain", f"stress_l1_mountain_{i}", _input=source)
+            proc2 = ctx.node("subdivide", f"stress_l1_subdivide_{i}", _input=source, iterations=1)
             layer1_nodes.extend([proc1, proc2])
 
         # Layer 2: Cross-connect some nodes (creates complex dependencies)
@@ -232,11 +231,6 @@ def create_layout_stress_test():
         print(f"  Number of layers: {len(layers)}")
         print(f"  Nodes per layer: {[len(nodes) for nodes in layers.values()]}")
 
-        # Save the hip file
-        hip_file_path = "/Users/rwk/p/zabob-houdini/layout_stress_test.hip"
-        hou.hipFile.save(hip_file_path)
-        print(f"\nSaved hip file: {hip_file_path}")
-
         return ctx
 
 def main():
@@ -250,10 +244,10 @@ def main():
         print("\n" + "=" * 50)
         print("Stress test completed successfully!")
         print("\nTo examine the results:")
-        print("1. Open layout_stress_test.hip in Houdini")
-        print("2. Navigate to /obj/layout_test_geo")
-        print("3. Examine the node layout in the network editor")
-        print("4. Check how complex patterns are handled")
+        print("1. Navigate to /obj/layout_test_geo in Houdini")
+        print("2. Examine the node layout in the network editor")
+        print("3. Check how complex patterns are handled")
+        print("4. Hip file will be saved if --hipfile option was used")
 
         # Print some final analysis
         all_nodes = list(ctx._dependency_registry.keys())

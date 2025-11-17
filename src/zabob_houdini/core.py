@@ -331,7 +331,18 @@ class NodeInstance(NodeBase):
         else:
             parent_node = self.parent.create()
             # Create the node
-            created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
+            try:
+                created_node: hou.Node = parent_node.createNode(self.node_type, self.name)
+            except Exception as e:
+                parent_type = parent_node.type().name() if parent_node else "unknown"
+                parent_path = parent_node.path() if parent_node else "unknown"
+                # Extract the actual error message, skipping generic "The attempted operation failed"
+                error_msg = str(e).strip()
+                if error_msg.startswith("The attempted operation failed."):
+                    error_msg = error_msg[len("The attempted operation failed."):].strip()
+                if not error_msg:
+                    error_msg = "Unknown error"
+                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{self.name}' in {parent_type} ({parent_path}): {error_msg}") from e
 
         # Set attributes/parameters
         if self.attributes:
@@ -340,7 +351,17 @@ class NodeInstance(NodeBase):
                     try:
                         created_node.setParms(dict(self.attributes))
                     except Exception as e:
-                        print(f"Warning: Failed to set parameters: {e}")
+                        node_type = created_node.type().name()
+                        node_name = created_node.name()
+                        node_path = created_node.path()
+                        print(f"Warning: Failed to set parameters on {node_type} node '{node_name}' ({node_path}): {e}")
+                        print(f"  Attempted parameters: {dict(self.attributes)}")
+                        # Try to identify which parameters are invalid
+                        valid_parms = {parm.name() for parm in created_node.parms()}
+                        invalid_parms = set(self.attributes.keys()) - valid_parms
+                        if invalid_parms:
+                            print(f"  Invalid parameters for {node_type}: {invalid_parms}")
+                        print(f"  Valid parameters for {node_type}: {sorted(valid_parms)}")
                 case _:
                     print(f"Warning: Cannot set parameters on node type {created_node.type().name()} - skipping attributes")
 
@@ -801,42 +822,71 @@ class NodeContext:
         return positions
 
     def _compute_layers(self, all_nodes: list[NodeInstance]) -> dict[int, list[NodeInstance]]:
-        """Compute topological layers for nodes."""
-        # Calculate the maximum depth for each node
+        """Compute vertical layers using proper top-down traversal."""
         node_depths: dict[NodeInstance, int] = {}
 
-        def get_node_depth(node: NodeInstance) -> int:
+        # Get actual source nodes (no inputs within our context)
+        source_nodes = []
+        for node in all_nodes:
+            has_inputs_in_context = any(
+                inp is not None and inp[0] in all_nodes
+                for inp in node.inputs
+            )
+            if not has_inputs_in_context:
+                source_nodes.append(node)
+
+        # Top-down traversal to assign depths
+        def assign_depth(node: NodeInstance, depth: int) -> None:
+            # Stop if this node already has a depth assigned (prevents cycles and redundant work)
             if node in node_depths:
-                return node_depths[node]
-
-            # Get input nodes that are in our context
-            input_nodes = []
-            for inp in node.inputs:
-                if inp is not None:
-                    input_node, _ = inp
-                    if input_node in all_nodes:
-                        input_nodes.append(input_node)
-
-            if not input_nodes:
-                # Source node
-                depth = 0
-            else:
-                # Depth is max of input depths + 1
-                depth = max(get_node_depth(inp) for inp in input_nodes) + 1
+                return
 
             node_depths[node] = depth
-            return depth
 
-        # Compute depth for all nodes
+            # Process all dependents (nodes that use this node as input)
+            dependents = self.get_dependents(node)
+            for dependent in dependents:
+                if dependent in all_nodes:  # Only process nodes in our context
+                    assign_depth(dependent, depth + 1)
+
+        # Start from source nodes at depth 0
+        for source in source_nodes:
+            assign_depth(source, 0)
+
+        # Handle any remaining unprocessed nodes (shouldn't happen in a proper DAG)
         for node in all_nodes:
-            get_node_depth(node)
+            if node not in node_depths:
+                # Fallback: assign based on input depths
+                input_nodes = [
+                    inp[0] for inp in node.inputs
+                    if inp is not None and inp[0] in all_nodes
+                ]
+                if input_nodes:
+                    max_input_depth = max(node_depths.get(inp, 0) for inp in input_nodes)
+                    node_depths[node] = max_input_depth + 1
+                else:
+                    node_depths[node] = 0
 
-        # Group nodes by layer
+        # Move all sink nodes to a common bottom layer
+        sink_nodes = self.get_sink_nodes()
+        if sink_nodes:
+            max_depth = max(node_depths.values())
+            sink_depth = max_depth + 1
+            for sink in sink_nodes:
+                if sink in all_nodes:
+                    node_depths[sink] = sink_depth
+
+        # Create contiguous layer mapping (0, 1, 2, ...) from potentially sparse depths
+        unique_depths = sorted(set(node_depths.values()))
+        depth_to_layer = {depth: idx for idx, depth in enumerate(unique_depths)}
+
+        # Group nodes by contiguous layer indices
         layers: dict[int, list[NodeInstance]] = {}
         for node, depth in node_depths.items():
-            if depth not in layers:
-                layers[depth] = []
-            layers[depth].append(node)
+            layer_idx = depth_to_layer[depth]
+            if layer_idx not in layers:
+                layers[layer_idx] = []
+            layers[layer_idx].append(node)
 
         return layers
 
@@ -870,32 +920,117 @@ class NodeContext:
                                  space_requirements: dict[NodeInstance, float],
                                  layer_height: float, node_width: float,
                                  min_spacing: float) -> dict[NodeInstance, tuple[float, float]]:
-        """Position nodes within each layer, resolving conflicts."""
+        """Position nodes using constraint propagation to center parents over children."""
         positions: dict[NodeInstance, tuple[float, float]] = {}
 
-        for layer_idx in sorted(layers.keys()):
+        # Initial positioning: start with top layer (sources) and work down
+        min_layer = min(layers.keys())
+
+        # Step 1: Position top layer (sources) evenly
+        source_nodes = layers[min_layer]
+        y_pos = -min_layer * layer_height
+        total_width = sum(space_requirements[node] for node in source_nodes)
+        current_x = -total_width / 2
+
+        for node in source_nodes:
+            node_space = space_requirements[node]
+            x_pos = current_x + node_space / 2
+            positions[node] = (x_pos, y_pos)
+            current_x += node_space
+
+        # Step 2: Position remaining layers using input-based positioning first
+        for layer_idx in sorted(layers.keys())[1:]:  # Skip top layer
             layer_nodes = layers[layer_idx]
-            y_pos = -layer_idx * layer_height  # Top-down positioning
+            y_pos = -layer_idx * layer_height
 
-            if layer_idx == 0:
-                # First layer - distribute evenly
-                total_width = sum(space_requirements[node] for node in layer_nodes)
-                current_x = -total_width / 2
+            # Initial positioning based on centering constraint
+            initial_positions = {}
+            for node in layer_nodes:
+                dependents = self.get_dependents(node)
+                dependent_positions = []
 
+                for dependent in dependents:
+                    if dependent in positions:
+                        x_pos, _ = positions[dependent]
+                        dependent_positions.append(x_pos)
+
+                if dependent_positions:
+                    # Center over dependents
+                    initial_positions[node] = sum(dependent_positions) / len(dependent_positions)
+                else:
+                    # No dependents positioned yet - use input-based fallback
+                    input_positions = []
+                    for inp in node.inputs:
+                        if inp is not None:
+                            input_node, _ = inp
+                            if input_node in positions:
+                                input_x, _ = positions[input_node]
+                                input_positions.append(input_x)
+
+                    if input_positions:
+                        initial_positions[node] = sum(input_positions) / len(input_positions)
+                    else:
+                        initial_positions[node] = 0.0
+
+            # Resolve conflicts while preserving centering constraints
+            final_positions = self._resolve_position_conflicts(
+                layer_nodes, initial_positions, space_requirements, min_spacing
+            )
+
+            # Set positions with consistent Y coordinate
+            for node, x_pos in final_positions.items():
+                positions[node] = (x_pos, y_pos)
+
+        # Step 3: Constraint propagation - iteratively improve centering
+        max_layer = max(layers.keys())
+        for iteration in range(3):  # Limit iterations to prevent infinite loops
+            improved = False
+
+            # Process layers from top to bottom
+            for layer_idx in sorted(layers.keys()):
+                if layer_idx == max_layer:  # Skip bottom layer (sinks)
+                    continue
+
+                layer_nodes = layers[layer_idx]
+                y_pos = -layer_idx * layer_height
+
+                # Compute desired positions based on current dependent positions
+                desired_positions = {}
                 for node in layer_nodes:
-                    node_space = space_requirements[node]
-                    x_pos = current_x + node_space / 2
-                    positions[node] = (x_pos, y_pos)
-                    current_x += node_space
-            else:
-                # Subsequent layers - try to center between inputs, resolve conflicts
-                preferred_positions = self._compute_preferred_positions(layer_nodes, positions)
-                final_positions = self._resolve_position_conflicts(
-                    layer_nodes, preferred_positions, space_requirements, min_spacing
-                )
+                    dependents = self.get_dependents(node)
+                    dependent_positions = []
 
-                for node, x_pos in final_positions.items():
-                    positions[node] = (x_pos, y_pos)
+                    for dependent in dependents:
+                        if dependent in positions:
+                            x_pos, _ = positions[dependent]
+                            dependent_positions.append(x_pos)
+
+                    if dependent_positions:
+                        desired_x = sum(dependent_positions) / len(dependent_positions)
+                        current_x, _ = positions[node]
+
+                        # Only move if the improvement is significant
+                        if abs(desired_x - current_x) > 0.1:
+                            desired_positions[node] = desired_x
+                            improved = True
+                        else:
+                            desired_positions[node] = current_x
+                    else:
+                        desired_positions[node] = positions[node][0]
+
+                if desired_positions:
+                    # Resolve conflicts with the new desired positions
+                    adjusted_positions = self._resolve_position_conflicts(
+                        layer_nodes, desired_positions, space_requirements, min_spacing
+                    )
+
+                    # Update positions
+                    for node, x_pos in adjusted_positions.items():
+                        positions[node] = (x_pos, y_pos)
+
+            # Stop if no significant improvements were made
+            if not improved:
+                break
 
         return positions
 

@@ -18,6 +18,7 @@ diffable
 docstrings
 dotenv
 ehthumbs
+fanout
 fillvalue
 fromlist
 getitem
@@ -84,6 +85,7 @@ sizex
 sizey
 sizez
 softprops
+stype
 testbox
 testgeo
 testpaths
