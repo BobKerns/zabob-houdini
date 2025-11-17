@@ -525,11 +525,6 @@ class NodeInstance(NodeBase):
 class ChainBuilder:
     """Context manager for building chains without registering intermediate nodes."""
 
-    @property
-    def parent(self) -> NodeInstance:
-        """Return the parent NodeInstance for this chain."""
-        return self.context.parent
-    
     def __init__(self, context: 'NodeContext', _input: 'InputNode | Sequence[InputNode] | None' = None):
         self.context = context
         self._input = _input
@@ -580,6 +575,11 @@ class ChainBuilder:
                     input_node, _ = inp
                     self.context._add_dependency(input_node, first_chain_node)
 
+    @property
+    def parent(self) -> NodeInstance:
+        """Return the parent NodeInstance for this chain."""
+        return self.context.parent
+    
     def node(self, node_type: NodeType, /, name: str | None = None, **attributes: Any) -> NodeInstance:
         """Add a node to this chain (not registered with context until chain completes)."""
         # Create node without registering it with the context
@@ -833,8 +833,8 @@ class NodeContext:
                 # Also register it by name if named and not already present
                 if (item.name is not None and
                     item.name not in self._nodes):
-                    # Register the merge node if it's named and not already in our context
                     self._nodes[item.name] = item
+        # Register the merge node if it's named and not already in our context
         if (created_merge.name is not None and
             created_merge.name not in self._nodes):
             self._nodes[created_merge.name] = created_merge
