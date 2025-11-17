@@ -37,6 +37,8 @@ else:
 _node_registry: weakref.WeakValueDictionary[str, 'NodeInstance'] = weakref.WeakValueDictionary()
 
 
+
+
 def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
     """
     Wrap a hou.Node in a NodeInstance, checking the global registry first.
@@ -72,6 +74,9 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
     return wrapped
 
 _generated_names: dict[str, int] = defaultdict(lambda: 1)
+
+
+
 def _generate_name(parent: str, type: str) -> str:
     """Generate a unique name with the given prefix."""
     while True:
@@ -352,7 +357,8 @@ class NodeInstance(NodeBase):
                     match input_node:
                         case NodeInstance() as node_instance:
                             # Input is a NodeInstance - create it first
-                            input_hou_node = node_instance.create()
+                            # Pass _skip_chain=True to avoid recursion during chain creation
+                            input_hou_node = node_instance._create(_skip_chain=True)
                         case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
@@ -493,6 +499,8 @@ class NodeContext:
     """
     parent: NodeInstance
     _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
+    _all_nodes: list[NodeInstance] = field(default_factory=list, init=False)
+    _dependency_registry: weakref.WeakKeyDictionary[NodeInstance, list[NodeInstance]] = field(default_factory=weakref.WeakKeyDictionary, init=False)
 
     def __enter__(self) -> 'NodeContext':
         """Enter the context manager."""
@@ -540,9 +548,28 @@ class NodeContext:
             **attributes
         )
 
+        # Track all nodes created in this context
+        self._all_nodes.append(node_instance)
+
         # Register named nodes for lookup
         if name is not None:
             self._nodes[name] = node_instance
+
+        # Track dependencies for inputs
+        if _input is not None:
+            inputs = _input if isinstance(_input, (list, tuple)) else [_input]
+            for input_spec in inputs:
+                if input_spec is not None:
+                    # Resolve the input to a NodeInstance
+                    if isinstance(input_spec, NodeInstance):
+                        input_node = input_spec
+                    elif isinstance(input_spec, Chain):
+                        input_node = input_spec.last
+                    else:
+                        continue  # Skip other types (hou.Node, str, tuples)
+
+                    # Track the dependency
+                    self._add_dependency(input_node, node_instance)
 
         return node_instance
 
@@ -597,12 +624,23 @@ class NodeContext:
         # Create the chain using the global chain() function
         created_chain = chain(*resolved_nodes, **attributes)
 
+        # Track all chain nodes in our comprehensive list
+        for node_instance in created_chain.nodes:
+            if node_instance not in self._all_nodes:
+                self._all_nodes.append(node_instance)
+
         # Register any named nodes from the chain that aren't already in our context
         # Only register nodes that don't already exist - preserve original context nodes
         for node_instance in created_chain.nodes:
             if (node_instance.name is not None and
                 node_instance.name not in self._nodes):
                 self._nodes[node_instance.name] = node_instance
+
+        # Track chain dependencies (each node depends on the previous one)
+        for i in range(1, len(created_chain.nodes)):
+            prev_node = created_chain.nodes[i-1]
+            current_node = created_chain.nodes[i]
+            self._add_dependency(prev_node, current_node)
 
         return created_chain
 
@@ -662,10 +700,17 @@ class NodeContext:
         if name is not None:
             created_merge = created_merge.copy(name=name)
 
+        # Track the merge node in our comprehensive list
+        if created_merge not in self._all_nodes:
+            self._all_nodes.append(created_merge)
+
         # Register external nodes that were passed in (not looked up from context)
         for i, item in enumerate(inputs):
             if isinstance(item, NodeInstance):
-                # This was an external node, register it if named and not already present
+                # This was an external node, track it if not already present
+                if item not in self._all_nodes:
+                    self._all_nodes.append(item)
+                # Also register it by name if named and not already present
                 if (item.name is not None and
                     item.name not in self._nodes):
                     self._nodes[item.name] = item
@@ -675,7 +720,49 @@ class NodeContext:
             created_merge.name not in self._nodes):
             self._nodes[created_merge.name] = created_merge
 
+        # Track dependencies: merge node depends on all its inputs
+        for resolved_input in resolved_inputs:
+            self._add_dependency(resolved_input, created_merge)
+
         return created_merge
+
+    def _add_dependency(self, input_node: NodeInstance, dependent_node: NodeInstance) -> None:
+        """Add a dependency relationship: dependent_node depends on input_node."""
+        if input_node not in self._dependency_registry:
+            self._dependency_registry[input_node] = []
+        if dependent_node not in self._dependency_registry[input_node]:
+            self._dependency_registry[input_node].append(dependent_node)
+
+    def _remove_dependency(self, input_node: NodeInstance, dependent_node: NodeInstance) -> None:
+        """Remove a dependency relationship."""
+        if input_node in self._dependency_registry:
+            try:
+                self._dependency_registry[input_node].remove(dependent_node)
+                # Clean up empty lists
+                if not self._dependency_registry[input_node]:
+                    del self._dependency_registry[input_node]
+            except ValueError:
+                pass  # Dependency wasn't there
+
+    def get_dependents(self, node: NodeInstance) -> list[NodeInstance]:
+        """Get list of nodes that depend on the given node."""
+        return list(self._dependency_registry.get(node, []))
+
+    def get_source_nodes(self) -> list[NodeInstance]:
+        """Get nodes in this context that have no inputs (source nodes).
+
+        Returns:
+            List of all context nodes (named and unnamed) that have no input connections
+        """
+        return [node for node in self._all_nodes if not node.inputs or all(inp is None for inp in node.inputs)]
+
+    def get_sink_nodes(self) -> list[NodeInstance]:
+        """Get nodes in this context that have no dependents (sink nodes).
+
+        Returns:
+            List of all context nodes (named and unnamed) that no other nodes depend on
+        """
+        return [node for node in self._all_nodes if not self.get_dependents(node)]
 
 
 @dataclass(frozen=True, eq=False)
@@ -693,8 +780,17 @@ class Chain(NodeBase):
         so we can store a private copy. This ensures we never hold a shared
         node.
         '''
-        nodes = tuple(n._copy(_chain=self) for n in nodes)
-        object.__setattr__(self, 'nodes', nodes)
+        copied_nodes = []
+        for i, node in enumerate(nodes):
+            if i == 0:
+                # First node keeps its original inputs
+                copied_nodes.append(node._copy(_chain=self))
+            else:
+                # Subsequent nodes connect to the previous node
+                prev_node = copied_nodes[i-1]
+                copied_nodes.append(node._copy(_chain=self, _inputs=(prev_node,)))
+
+        object.__setattr__(self, 'nodes', tuple(copied_nodes))
 
     @functools.cached_property
     def parent(self) -> NodeInstance:
@@ -841,6 +937,9 @@ class Chain(NodeBase):
         """
         Create the actual chain of Houdini nodes.
 
+        Chain connections are now handled through each node's _inputs,
+        so we just need to create each node.
+
         Returns:
             Tuple of NodeInstance objects for created nodes. Same instances
             returned on subsequent calls (cached via @functools.cache).
@@ -849,25 +948,13 @@ class Chain(NodeBase):
         if not nodes:
             return tuple()
 
-        created_node_instances: list[NodeInstance] = []
-        previous_node: hou.Node | None = None
-
-        # Create each node and connect them in sequence - NO COPYING!
+        # Create each node - connections are handled automatically via _inputs
         # Use _skip_chain=True to avoid recursion since we're already creating the chain
-        for i, node_instance in enumerate(nodes):
-            # Create the node in Houdini (NodeInstance.create caches result)
-            created_hou_node = node_instance._create(_skip_chain=True)
+        created_node_instances = []
+        for node_instance in nodes:
+            # Create the node in Houdini (NodeInstance.create handles connections via _inputs)
+            node_instance._create(_skip_chain=True)
             created_node_instances.append(node_instance)
-
-            # Connect this node to the previous one if needed
-            if i > 0 and previous_node is not None:
-                try:
-                    created_hou_node.setInput(0, previous_node)
-                except Exception as e:
-                    print(f"Warning: Failed to connect chain nodes: {e}")
-
-            # For the next iteration
-            previous_node = created_hou_node
 
         return tuple(created_node_instances)
 

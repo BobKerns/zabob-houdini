@@ -747,6 +747,46 @@ def hou_node(path: str) -> hou.Node
     """Get a Houdini node by path, raising exception if not found."""
 ```
 
+### Dependency Analysis
+
+The `NodeContext` class provides methods for analyzing node dependencies and network topology. **Dependency tracking is scoped to each context** - only nodes created through the context's methods (`node()`, `chain()`, `merge()`) have their dependencies tracked.
+
+```python
+class NodeContext:
+    def get_dependents(self, node: NodeInstance) -> list[NodeInstance]
+        """Get list of nodes that depend on the given node within this context."""
+
+    def get_source_nodes(self) -> list[NodeInstance]
+        """Get nodes in this context that have no inputs (source nodes)."""
+
+    def get_sink_nodes(self) -> list[NodeInstance]
+        """Get nodes in this context that have no dependents (sink nodes)."""
+```
+
+**Important**: Dependency tracking only works for nodes created through the context. Nodes created with the global `node()` function or passed in from other contexts will not have their dependencies tracked.
+
+**Usage Example:**
+```python
+# Build a node network
+with context(node("/obj", "geo")) as ctx:
+    box = ctx.node("box", "source1")
+    sphere = ctx.node("sphere", "source2")
+    xform1 = ctx.node("xform", "process1", _input=box)
+    xform2 = ctx.node("xform", "process2", _input=sphere)
+    merge = ctx.node("merge", "combine", _input=[xform1, xform2])
+    output = ctx.node("null", "output", _input=merge)
+
+    # Create all nodes
+    output.create()
+
+    # Analyze the network structure using context methods
+    sources = ctx.get_source_nodes()      # [box, sphere] - automatically uses context nodes
+    sinks = ctx.get_sink_nodes()          # [output] - automatically uses context nodes
+
+    # Check what depends on a specific node
+    box_deps = ctx.get_dependents(box)    # [xform1]
+```
+
 ## Caching and Performance
 
 ### Automatic Caching
