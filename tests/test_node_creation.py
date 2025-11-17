@@ -11,13 +11,9 @@ def test_diamond_pattern_creation(hython_test):
     """Test that diamond pattern creates nodes correctly without duplication."""
 
     # This test will be run in hython via the test bridge
-    result = hython_test("test_diamond_creation")
-
-    # The test function should return success and validation data
-    assert result['success']
+    validation_data = hython_test("test_diamond_creation")
 
     # Check that the expected nodes were created
-    validation_data = result['result']
     assert 'node_paths' in validation_data
     assert 'connections_valid' in validation_data
 
@@ -29,12 +25,9 @@ def test_diamond_pattern_creation(hython_test):
 def test_chain_input_connections(hython_test):
     """Test that chain input connections work correctly in actual Houdini."""
 
-    result = hython_test("test_chain_connections")
-
-    assert result['success']
+    validation_data = hython_test("test_chain_connections")
 
     # Verify connection data
-    validation_data = result['result']
     assert 'connections_valid' in validation_data
     assert validation_data['connections_valid'], "Connections are not valid"
 
@@ -42,12 +35,9 @@ def test_chain_input_connections(hython_test):
 def test_multiple_input_merge(hython_test):
     """Test that merge nodes with multiple inputs work correctly."""
 
-    result = hython_test("test_merge_connections")
-
-    assert result['success']
+    validation_data = hython_test("test_merge_connections")
 
     # Verify merge behavior
-    validation_data = result['result']
     assert 'merge_inputs' in validation_data
     assert validation_data['merge_inputs'] >= 2, "Merge node should have multiple inputs"
 
@@ -56,23 +46,17 @@ def test_multiple_input_merge(hython_test):
 def test_geometry_creation(hython_test, node_type):
     """Test creation of various geometry types."""
 
-    result = hython_test("test_geometry_node_creation", node_type)
-
-    assert result['success']
+    validation_data = hython_test("test_geometry_node_creation", node_type)
 
     # Verify the node was created with correct type
-    validation_data = result['result']
     assert validation_data.get('node_type') == node_type
 
 
 def test_parameter_setting(hython_test):
     """Test that node parameters are set correctly."""
 
-    result = hython_test("test_node_parameters")
-
-    assert result['success']
+    validation_data = hython_test("test_node_parameters")
 
     # Verify parameters were applied
-    validation_data = result['result']
     assert 'parameters_set' in validation_data
     assert validation_data['parameters_set'], "Parameters were not set correctly"

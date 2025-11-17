@@ -14,11 +14,7 @@ class TestParameterValidation:
     @pytest.mark.integration
     def test_chain_rejects_input_parameter(self, hython_test):
         """Test that chain() properly rejects the deprecated _input parameter."""
-        result = hython_test("test_chain_rejects_input_parameter")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
+        result_data = hython_test("test_chain_rejects_input_parameter")
 
         # Check that the error message contains the expected guidance
         assert result_data["error_contains_input"] is True
@@ -28,11 +24,7 @@ class TestParameterValidation:
     @pytest.mark.integration
     def test_valid_input_patterns(self, hython_test):
         """Test that valid input patterns work correctly."""
-        result = hython_test("test_valid_input_patterns")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
+        result_data = hython_test("test_valid_input_patterns")
 
         # Verify they were created successfully
         assert result_data["chain_B_length"] == 2
@@ -43,11 +35,7 @@ class TestParameterValidation:
     @pytest.mark.integration
     def test_node_input_validation(self, hython_test):
         """Test that individual node input validation works."""
-        result = hython_test("test_node_input_validation")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
+        result_data = hython_test("test_node_input_validation")
 
         assert result_data["single_input_works"] is True
         assert result_data["multiple_inputs_work"] is True
@@ -61,11 +49,7 @@ class TestParameterValidation:
     ])
     def test_invalid_input_types(self, hython_test, invalid_input):
         """Test that invalid input types are handled appropriately."""
-        result = hython_test("test_invalid_input_types", invalid_input)
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
+        result_data = hython_test("test_invalid_input_types", invalid_input)
 
         if invalid_input == "none":
             # None should be filtered out and result in no inputs
@@ -77,11 +61,7 @@ class TestParameterValidation:
     @pytest.mark.integration
     def test_parameter_validation_comprehensive(self, hython_test):
         """Test comprehensive parameter validation in Houdini environment."""
-        result = hython_test("test_parameter_validation")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
+        result_data = hython_test("test_parameter_validation")
 
         assert result_data["valid_patterns_work"] is True
         assert result_data["invalid_patterns_rejected"] is True

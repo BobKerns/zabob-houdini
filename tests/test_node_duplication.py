@@ -14,11 +14,7 @@ class TestNodeDuplication:
     @pytest.mark.integration
     def test_diamond_no_duplication(self, hython_test):
         """Test that diamond pattern doesn't create duplicate nodes."""
-        result = hython_test("test_diamond_no_duplication")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
+        result_data = hython_test("test_diamond_no_duplication")
 
         # The key test: all nodes should be unique (no duplicates)
         all_node_paths = result_data['all_node_paths']
@@ -41,11 +37,7 @@ class TestNodeDuplication:
     @pytest.mark.integration
     def test_chain_reference_vs_copy(self, hython_test):
         """Test that chains are referenced, not copied when used as inputs."""
-        result = hython_test("test_chain_reference_vs_copy")
-
-        assert result['success'] is True
-        assert 'result' in result
-        result_data = result['result']
+        result_data = hython_test("test_chain_reference_vs_copy")
 
         # When chain A is used as input to multiple nodes,
         # the nodes in chain A should only be created once

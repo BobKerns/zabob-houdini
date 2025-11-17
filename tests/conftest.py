@@ -14,13 +14,13 @@ import subprocess
 import json
 import shutil
 
-from zabob_houdini.utils import JsonValue, HoudiniResult
+from zabob_houdini.utils import JsonValue, HoudiniResult, JsonObject
 
 
 class HythonSessionFn(Protocol):
     """A function that can be called to execute a function in the hython environment."""
     def __call__(self, test_func_name: str, *args: JsonValue,
-                 module: str = "houdini_test_functions") -> HoudiniResult: ...
+                 module: str = "houdini_test_functions") -> JsonObject: ...
 
 
 @pytest.fixture
@@ -29,10 +29,11 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
     Fixture that provides a function to run test functions in hython.
 
     Uses persistent hython session that starts on first use.
+    Returns just the result data, handling success/error internally.
     """
     def run_houdini_test(test_func_name: str, *args: JsonValue,
-                         module: str = "houdini_test_functions") -> HoudiniResult:
-        """Run a test function in hython and validate the result."""
+                         module: str = "houdini_test_functions") -> JsonObject:
+        """Run a test function in hython and return the result data."""
         try:
             result = hython_session.call_function(test_func_name, *args,
                                             module=module)
@@ -44,13 +45,16 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
         except Exception as e:
             pytest.fail(f"Hython call failed: {e}")
 
-        # Validate the result structure
+        # Validate the result structure and extract result data
         if not result['success']:
             error_msg = result.get("error", "Unknown error")
             traceback_info = result.get("traceback", "")
             pytest.fail(f"Houdini test failed: {error_msg}\n{traceback_info}")
 
-        return result
+        # At this point we know success=True, so result field must be present
+        if "result" not in result:
+            pytest.fail("Houdini test did not return a result field")
+        return result['result']
 
     return run_houdini_test
 
