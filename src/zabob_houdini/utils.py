@@ -52,7 +52,7 @@ def write_response(result: HoudiniResult) -> None:
 
 def write_error_result(message: str) -> None:
     """Helper to write an error result to stdout."""
-    error_response = error_result(message,True)
+    error_response = error_result(message, True)
     json.dump(error_response, sys.stdout)
     sys.stdout.write('\n')
     sys.stdout.flush()
