@@ -26,12 +26,20 @@ class HoudiniResult(TypedDict):
     traceback: NotRequired[str]
 
 
-def error_result(message: str) -> HoudiniResult:
+def error_result(message: str, with_traceback: bool = True) -> HoudiniResult:
     """Helper to create an error result."""
+    if not with_traceback:
+        return {
+            'success': False,
+            'error': message,
+        }
+    trace = traceback.format_exc().splitlines()
+    # Don't show the error handling code in the traceback
+    trace = trace[0:1] + trace[4:]
     return {
         'success': False,
         'error': message,
-        'traceback': traceback.format_exc(),
+        'traceback': '\n'.join(trace),
     }
 
 
@@ -44,7 +52,7 @@ def write_response(result: HoudiniResult) -> None:
 
 def write_error_result(message: str) -> None:
     """Helper to write an error result to stdout."""
-    error_response = error_result(message)
+    error_response = error_result(message,True)
     json.dump(error_response, sys.stdout)
     sys.stdout.write('\n')
     sys.stdout.flush()

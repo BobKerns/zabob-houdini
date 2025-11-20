@@ -47,9 +47,14 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
 
         # Validate the result structure and extract result data
         if not result['success']:
+            heading = f"hython test {test_func_name} failed:"
             error_msg = result.get("error", "Unknown error")
+            separator = "------Hython Error Traceback------"
             traceback_info = result.get("traceback", "")
-            pytest.fail(f"Houdini test failed: {error_msg}\n{traceback_info}")
+            msg = "\n".join((
+                heading, error_msg, "",
+                separator, traceback_info))
+            pytest.fail(msg)
 
         # At this point we know success=True, so result field must be present
         if "result" not in result:
