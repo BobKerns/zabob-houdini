@@ -57,11 +57,14 @@ if IN_HOUDINI:
 
         Outputs one JSON result per line to stdout.
         """
+        import hou
+        from zabob_houdini.core import _node_registry
         for line in sys.stdin:
             line = line.strip()
             if not line:
                 continue
-
+            _node_registry.clear()  # Clear the node registry to avoid stale references between tests
+            hou.hipFile.clear()  # Clear the current hip file to avoid stale state between tests
             try:
                 request = json.loads(line)
             except json.JSONDecodeError as e:

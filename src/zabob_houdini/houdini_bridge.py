@@ -212,10 +212,6 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
         - All data is JSON-serializable for subprocess calls.
     """
     try:
-        import hou
-        from zabob_houdini.core import _node_registry
-        _node_registry.clear()  # Clear the node registry to avoid stale references between tests
-        hou.hipFile.clear()  # Clear the current hip file to avoid stale state between tests
         # Import the specified module and call the requested function
         houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
         func = getattr(houdini_module, function_name)
