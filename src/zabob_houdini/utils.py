@@ -5,6 +5,7 @@ Utility functions and types.
 from typing import NotRequired, TypeAlias, TypedDict, Any
 import json
 import sys
+import traceback
 
 
 JsonAtomicValue: TypeAlias = str | int | float | bool | None
@@ -29,7 +30,8 @@ def error_result(message: str) -> HoudiniResult:
     """Helper to create an error result."""
     return {
         'success': False,
-        'error': message
+        'error': message,
+        'traceback': traceback.format_exc(),
     }
 
 
