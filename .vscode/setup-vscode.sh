@@ -11,18 +11,21 @@ if [ ! -d ".vscode" ]; then
     exit 1
 fi
 
-# Copy settings if they don't exist
-if [ ! -f ".vscode/settings.json" ]; then
-    if [ -f ".vscode/settings.json.example" ]; then
-        cp ".vscode/settings.json.example" ".vscode/settings.json"
-        echo "✅ Created .vscode/settings.json from example"
-    else
-        echo "❌ Error: .vscode/settings.json.example not found"
-        exit 1
-    fi
-else
-    echo "ℹ️  .vscode/settings.json already exists, skipping..."
+# Add VS Code personal files to git exclude
+echo "📝 Configuring git to exclude personal VS Code files..."
+if [ ! -f ".git/info/exclude" ]; then
+    touch ".git/info/exclude"
 fi
+
+# Add VS Code personal files to exclude if not already there
+for file in ".vscode/settings.json" ".vscode/tasks.json" ".vscode/launch.json"; do
+    if ! grep -q "^${file}$" ".git/info/exclude" 2>/dev/null; then
+        echo "${file}" >> ".git/info/exclude"
+        echo "✅ Added ${file} to git exclude"
+    else
+        echo "ℹ️  ${file} already in git exclude"
+    fi
+done
 
 # Copy environment file if it doesn't exist
 if [ ! -f ".env" ]; then
@@ -61,9 +64,11 @@ echo "Next steps:"
 echo "1. Open VS Code in this directory: code ."
 echo "2. Install recommended extensions if prompted"
 echo "3. Edit .env if your Houdini installation path is different"
-echo "4. Edit .vscode/settings.json to add your personal preferences"
+echo "4. Customize .vscode/settings.json, tasks.json, and launch.json as needed"
+echo "   (These files are excluded from git so your changes stay personal)"
 echo ""
 echo "Recommended VS Code extensions:"
 echo "  - Python (ms-python.python)"
 echo "  - Code Spell Checker (streetsidesoftware.code-spell-checker)"
 echo "  - Pylance (ms-python.vscode-pylance)"
+echo "  - Command Variable (rioj7.command-variable) - for dynamic launch configs"

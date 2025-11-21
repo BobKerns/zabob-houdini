@@ -5,7 +5,8 @@
     "streetsidesoftware.code-spell-checker",
     "ms-python.black-formatter",
     "ms-python.flake8",
-    "charliermarsh.ruff"
+    "charliermarsh.ruff",
+    "rioj7.command-variable"
   ],
   "unwantedRecommendations": []
 }

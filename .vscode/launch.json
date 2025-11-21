@@ -1,0 +1,82 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Houdini Test Function",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "zabob_houdini",
+            "args": [
+                "_exec",
+                "houdini_test_functions",
+                "${input:Test Function Name}"
+            ],
+            "python": "hython",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "Generate Test List"
+        },
+        {
+            "name": "Debug Houdini Example",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/${input:Example File Name}",
+            "python": "hython",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "Generate Example List"
+        },
+        {
+            "name": "Hython Debugger: Current File",
+            "type": "debugpy",
+            "python": "hython",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        }
+    ],
+
+    "inputs": [
+        {
+            "id": "Test Function Name",
+            "type": "command",
+            "command": "extension.commandvariable.pickStringRemember",
+            "args": {
+                "key": "testFunction",
+                "description": "Select test function to run",
+                "default": "__exit__",
+                "fileName": "${workspaceFolder}/.vscode/tmp/test-functions.txt",
+                "pattern": {
+                    "regexp": "^(.+)$",
+                    "label": "$1",
+                    "value": "$1"
+                }
+            }
+        },
+        {
+            "id": "Example File Name",
+            "type": "command",
+            "command": "extension.commandvariable.pickStringRemember",
+            "args": {
+                "key": "exampleFile",
+                "description": "Select example file to run",
+                "default": "__exit__.py",
+                "fileName": "${workspaceFolder}/.vscode/tmp/example-files.txt",
+                "pattern": {
+                    "regexp": "^(.+)$",
+                    "label": "$1",
+                    "value": "$1"
+                }
+            }
+        }
+    ]
+}

@@ -351,23 +351,45 @@ The project includes VS Code configuration for optimal development experience:
 ./.vscode/setup-vscode.sh
 ```
 
-**Manual Setup:**
+This script automatically configures VS Code by adding personal configuration files to `.git/info/exclude`, allowing you to customize VS Code settings without affecting other contributors.
+
+### Git Exclude Configuration
+
+The setup script uses `.git/info/exclude` (instead of `.gitignore`) to exclude personal VS Code files:
+
+- **Files excluded**: `.vscode/settings.json`, `.vscode/tasks.json`, `.vscode/launch.json`
+- **Why `.git/info/exclude`**: This is a personal exclude file (not shared via git) that prevents your customizations from being committed while keeping the base configurations available for all contributors
+- **Benefits**:
+  - No risk of accidentally committing personal settings
+  - No need to maintain separate `.example` files
+  - No sync issues between template and personal files
+  - Each developer can freely customize their VS Code experience
+
+**Understanding .git/info/exclude:**
+
+Most developers are familiar with `.gitignore`, but `.git/info/exclude` is better for personal exclusions as it itself is not committed:
 
 ```bash
-# Copy the example settings to create your personal settings
-cp .vscode/settings.json.example .vscode/settings.json
+# View current exclusions
+cat .git/info/exclude
+
+# Manually add files to exclude (setup script does this automatically)
+echo ".vscode/settings.json" >> .git/info/exclude
 ```
 
-**What's included in the example settings:**
+The key difference is that `.gitignore` is shared with all developers, while `.git/info/exclude` is personal to your local repository.
+
+**What's included in the base configurations:**
 
 - **cSpell Integration**: Project dictionary for spell checking
 - **Python Environment**: Automatic virtual environment detection
 - **Houdini Integration**: Path to Houdini Python libraries for IntelliSense
 - **Type Stubs**: Enhanced Houdini type hints from `stubs/` directory
+- **Dynamic Launch Configs**: Test function and example file selection with Command Variable extension
 
 **Personal Overrides:**
 
-Your personal `.vscode/settings.json` won't be committed, so you can safely add:
+Since your personal VS Code configs are excluded from git, you can safely customize:
 
 ```jsonc
 {
@@ -383,10 +405,6 @@ Your personal `.vscode/settings.json` won't be committed, so you can safely add:
     "python.linting.pylintEnabled": true
 }
 ```
-
-**Alternative: Workspace-only settings:**
-
-If you prefer not to modify your personal settings, you can create a workspace-specific configuration by pressing `Ctrl/Cmd + Shift + P` and selecting `Preferences: Open Workspace Settings (JSON)`.
 
 **Why this approach?**
 

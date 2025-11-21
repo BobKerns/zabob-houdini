@@ -44,7 +44,8 @@ if IN_HOUDINI:
             sys.stdout.write('\n')
             sys.stdout.flush()
             if not result["success"]:
-                sys.exit(1)
+                import os
+                os._exit(1)
 
 
     @click.command(name='_batch_exec', hidden=True)
