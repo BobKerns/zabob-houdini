@@ -34,13 +34,14 @@ from typing import Any
 import hou
 
 from zabob_houdini.core import (
-    ROOT, Inputs, NodeInstance, NodeContext, get_node_instance,
-    hou_node, node, chain, context, wrap_node, _merge_inputs
+    ROOT, Inputs, NodeInstance, get_node_instance,
+    hou_node, node, chain, context, wrap_node, _merge_inputs,
+    merge
 )
 from zabob_houdini.utils import JsonObject, JsonArray
 
 
-def test_basic_node_creation() -> JsonObject:
+def _test_basic_node_creation_in_houdini() -> JsonObject:
     """Test basic node creation in Houdini."""
     # Create a geometry object
     obj = hou_node("/obj")
@@ -55,7 +56,7 @@ def test_basic_node_creation() -> JsonObject:
     }
 
 
-def test_zabob_node_creation() -> JsonObject:
+def _test_zabob_node_creation() -> JsonObject:
     """Test Zabob NodeInstance creation in Houdini."""
     # Create a geometry object for testing
     obj = hou_node("/obj")
@@ -71,7 +72,7 @@ def test_zabob_node_creation() -> JsonObject:
     }
 
 
-def test_zabob_chain_creation() -> JsonObject:
+def _test_zabob_chain_creation() -> JsonObject:
     """Test Zabob Chain creation in Houdini."""
     # Create a geometry object for testing
     obj = hou_node("/obj")
@@ -94,7 +95,7 @@ def test_zabob_chain_creation() -> JsonObject:
     }
 
 
-def test_layout_stress_test() -> JsonObject:
+def _test_layout_stress_test() -> JsonObject:
     """Run a built-in layout algorithm stress test and return statistics."""
     try:
         # Create a geometry object for testing
@@ -181,7 +182,7 @@ def test_layout_stress_test() -> JsonObject:
         }
 
 
-def test_simple_layout_demo() -> JsonObject:
+def _test_simple_layout_demo() -> JsonObject:
     """Test a simple layout demo to verify basic functionality."""
     try:
         # Create a geometry object for testing
@@ -227,7 +228,7 @@ def test_simple_layout_demo() -> JsonObject:
         }
 
 
-def test_node_with_inputs() -> JsonObject:
+def _test_node_input_connections() -> JsonObject:
     """Test node creation with input connections."""
     # Create a geometry object for testing
     obj = hou_node("/obj")
@@ -253,7 +254,7 @@ def test_node_with_inputs() -> JsonObject:
     }
 
 
-def test_caching_node_instance_create() -> JsonObject:
+def _test_create_caches_result() -> JsonObject:
     """Test NodeInstance.create() caching behavior."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -277,7 +278,7 @@ def test_caching_node_instance_create() -> JsonObject:
     }
 
 
-def test_different_instances_different_nodes() -> JsonObject:
+def _test_create_different_instances_different_nodes() -> JsonObject:
     """Test different NodeInstance objects create different nodes."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -301,7 +302,7 @@ def test_different_instances_different_nodes() -> JsonObject:
     }
 
 
-def test_chain_create_returns_node_instances() -> JsonObject:
+def _test_create_returns_tuple_of_node_instances() -> JsonObject:
     """Test Chain.create() returns tuple of NodeInstance copies."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -334,7 +335,7 @@ def test_chain_create_returns_node_instances() -> JsonObject:
     }
 
 
-def test_chain_convenience_methods() -> JsonObject:
+def _test_convenience_methods_with_created_nodes() -> JsonObject:
     '''
     Test Chain convenience methods for accessing created hou.Node instances.
     '''
@@ -368,7 +369,7 @@ def test_chain_convenience_methods() -> JsonObject:
     }
 
 
-def test_chain_empty_methods() -> JsonObject:
+def _test_convenience_methods_empty_chain() -> JsonObject:
     '''
     Test methods on an empty Chain.
     '''
@@ -406,7 +407,7 @@ def test_chain_empty_methods() -> JsonObject:
     }
 
 
-def test_node_instance_copy() -> JsonObject:
+def _test_copy_creates_independent_instance() -> JsonObject:
     """Test NodeInstance.copy() creates independent copies."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -438,7 +439,7 @@ def test_node_instance_copy() -> JsonObject:
     }
 
 
-def test_node_instance_copy_with_inputs() -> JsonObject:
+def _test_copy_with_chain_inputs() -> JsonObject:
     """Test NodeInstance.copy() with various input types."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -469,7 +470,7 @@ def test_node_instance_copy_with_inputs() -> JsonObject:
     }
 
 
-def test_chain_copy() -> JsonObject:
+def _test_copy_creates_independent_chain() -> JsonObject:
     """Test Chain.copy() creates independent copy."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -498,7 +499,7 @@ def test_chain_copy() -> JsonObject:
     }
 
 
-def test_chain_copy_deep_nodes() -> JsonObject:
+def _test_copy_deep_copies_node_instances() -> JsonObject:
     """Test Chain.copy() deep copies NodeInstances."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -528,7 +529,7 @@ def test_chain_copy_deep_nodes() -> JsonObject:
     }
 
 
-def test_chain_copy_nested() -> JsonObject:
+def _test_copy_deep_copies_nested_chains() -> JsonObject:
     """Test Chain.copy() recursively copies nested chains."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -560,7 +561,7 @@ def test_chain_copy_nested() -> JsonObject:
     }
 
 
-def test_empty_chain_create() -> JsonObject:
+def _test_create_empty_chain_returns_empty_tuple() -> JsonObject:
     """Test Chain.create() with empty chain returns empty tuple."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -579,7 +580,7 @@ def test_empty_chain_create() -> JsonObject:
     }
 
 
-def test_node_copy_non_chain_inputs() -> JsonObject:
+def _test_copy_preserves_non_chain_inputs() -> JsonObject:
     """Test NodeInstance.copy() preserves non-Chain inputs as-is."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -606,7 +607,7 @@ def test_node_copy_non_chain_inputs() -> JsonObject:
     }
 
 
-def test_node_registry() -> JsonObject:
+def _test_node_registry_functionality() -> JsonObject:
     """Test NodeInstance registry functionality."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -642,7 +643,7 @@ def test_node_registry() -> JsonObject:
     }
 
 
-def test_hou_available() -> JsonObject:
+def _test_hou_module_available() -> JsonObject:
     """Simple test to verify hou module is available."""
     version = hou.applicationVersion()
     app_name = hou.applicationName()
@@ -653,7 +654,7 @@ def test_hou_available() -> JsonObject:
     }
 
 
-def test_node_parentage() -> JsonObject:
+def _test_node_parentage() -> JsonObject:
     """Test that parentage is correctly handled in NodeInstance."""
     # Create geometry object for testing
     obj = hou_node("/obj")
@@ -669,7 +670,7 @@ def test_node_parentage() -> JsonObject:
     }
 
 
-def test_merge_inputs_sparse_handling() -> JsonObject:
+def _test_merge_inputs_sparse_handling() -> JsonObject:
     """Test _merge_inputs function with sparse (None) inputs."""
     # Create test nodes to use as inputs
     obj = hou_node("/obj")
@@ -730,7 +731,7 @@ def test_merge_inputs_sparse_handling() -> JsonObject:
 
 # New test functions for integration tests
 
-def test_diamond_creation() -> JsonObject:
+def _test_diamond_pattern_creation() -> JsonObject:
     """Test diamond pattern node creation without duplication."""
     # Create the container geometry node
     obj = hou_node("/obj")
@@ -787,7 +788,7 @@ def test_diamond_creation() -> JsonObject:
     }
 
 
-def test_chain_connections() -> JsonObject:
+def _test_chain_input_connections() -> JsonObject:
     """Test that chain input connections work correctly."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_connections")
@@ -822,7 +823,7 @@ def test_chain_connections() -> JsonObject:
     }
 
 
-def test_merge_connections() -> JsonObject:
+def _test_multiple_input_merge() -> JsonObject:
     """Test merge node with multiple inputs."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_merge")
@@ -852,7 +853,7 @@ def test_merge_connections() -> JsonObject:
     }
 
 
-def test_geometry_node_creation(node_type: str) -> JsonObject:
+def _test_geometry_creation(node_type: str) -> JsonObject:
     """Test creation of various geometry node types."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", f"test_{node_type}")
@@ -867,7 +868,7 @@ def test_geometry_node_creation(node_type: str) -> JsonObject:
     }
 
 
-def test_node_parameters() -> JsonObject:
+def _test_parameter_setting() -> JsonObject:
     '''
     Test setting and retrieving node parameters.
     '''
@@ -903,7 +904,7 @@ def test_node_parameters() -> JsonObject:
 
 # Additional test functions for the new unit tests
 
-def test_basic_input_connections() -> JsonObject:
+def _test_input_connections_basic() -> JsonObject:
     """Test that input connections are set up correctly on nodes."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_connections")
@@ -959,7 +960,7 @@ def test_basic_input_connections() -> JsonObject:
     }
 
 
-def test_chain_input_delegation() -> JsonObject:
+def _test_chain_input_delegation() -> JsonObject:
     """Test that Chain.inputs properly delegates to first node."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_delegation")
@@ -990,7 +991,7 @@ def test_chain_input_delegation() -> JsonObject:
     }
 
 
-def test_multiple_inputs_basic() -> JsonObject:
+def _test_multiple_inputs_basic() -> JsonObject:
     """Test that nodes can accept multiple inputs correctly."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_multi")
@@ -1022,7 +1023,7 @@ def test_multiple_inputs_basic() -> JsonObject:
 # - test_node_parameters (for parameter setting)
 
 
-def test_diamond_no_duplication() -> JsonObject:
+def _test_diamond_no_duplication() -> JsonObject:
     """Test that diamond pattern doesn't create duplicate nodes - this should expose the bug!"""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_diamond_duplication")
@@ -1087,7 +1088,7 @@ def test_diamond_no_duplication() -> JsonObject:
     }
 
 
-def test_chain_reference_vs_copy() -> JsonObject:
+def _test_chain_reference_vs_copy() -> JsonObject:
     """Test that chains are referenced, not copied when used as inputs."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_reference_vs_copy")
@@ -1124,7 +1125,7 @@ def test_chain_reference_vs_copy() -> JsonObject:
     }
 
 
-def test_parameter_validation() -> JsonObject:
+def _test_parameter_validation_comprehensive() -> JsonObject:
     """Test parameter validation in Houdini environment."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_validation")
@@ -1166,7 +1167,7 @@ def test_parameter_validation() -> JsonObject:
     }
 
 
-def test_chain_rejects_input_parameter() -> JsonObject:
+def _test_chain_rejects_input_parameter() -> JsonObject:
     """Test that chain() properly rejects the deprecated _input parameter."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_rejection")
@@ -1208,7 +1209,7 @@ def test_chain_rejects_input_parameter() -> JsonObject:
     }
 
 
-def test_valid_input_patterns() -> JsonObject:
+def _test_valid_input_patterns() -> JsonObject:
     """Test that valid input patterns work correctly."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_valid")
@@ -1239,7 +1240,7 @@ def test_valid_input_patterns() -> JsonObject:
     }
 
 
-def test_node_input_validation() -> JsonObject:
+def _test_node_input_validation() -> JsonObject:
     '''
     Test node input connections and validation.
     '''
@@ -1278,7 +1279,7 @@ def test_node_input_validation() -> JsonObject:
     }
 
 
-def test_invalid_input_types(input_type: str) -> JsonObject:
+def _test_invalid_input_types(input_type: str) -> JsonObject:
     """Test that invalid input types are handled appropriately."""
     obj = hou_node("/obj")
     geo_node = obj.createNode("geo", "test_invalid")
@@ -1321,7 +1322,7 @@ def test_invalid_input_types(input_type: str) -> JsonObject:
         return {'handled_appropriately': False, 'unknown_input_type': input_type}
 
 
-def test_enhanced_copy_functionality():
+def _test_enhanced_copy_integration():
     """Collect data about enhanced copy functionality for test validation."""
     # Create a geometry container
     geo = node("/obj", "geo", name="test_geo")
@@ -1392,7 +1393,7 @@ def test_enhanced_copy_functionality():
     }
 
 
-def test_copy_signature_validation():
+def _test_copy_signature_includes_args():
     """Collect copy method signature information for validation."""
     import inspect
 
@@ -1428,7 +1429,7 @@ def test_copy_signature_validation():
     }
 
 
-def test_chain_positional_reordering():
+def _test_positional_reordering():
     """Test Chain.copy() positional reordering functionality."""
     geo = node("/obj", "geo")
     # Create chain with named nodes
@@ -1464,7 +1465,7 @@ def test_chain_positional_reordering():
     }
 
 
-def test_node_context_dataclass() -> JsonObject:
+def _test_node_context_dataclass() -> JsonObject:
     """Test context object has proper parent attribute."""
     # Create a context
     parent = node("/obj", "geo", "test_geo")
@@ -1478,7 +1479,7 @@ def test_node_context_dataclass() -> JsonObject:
     }
 
 
-def test_node_context_context_manager() -> JsonObject:
+def _test_node_context_context_manager() -> JsonObject:
     """Test context object works as a context manager."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -1493,7 +1494,7 @@ def test_node_context_context_manager() -> JsonObject:
     return result
 
 
-def test_node_context_mutable() -> JsonObject:
+def _test_node_context_mutable() -> JsonObject:
     """Test context object is mutable (no longer frozen)."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -1506,7 +1507,7 @@ def test_node_context_mutable() -> JsonObject:
     }
 
 
-def test_context_with_node_instance() -> JsonObject:
+def _test_context_with_node_instance() -> JsonObject:
     """Test context function with NodeInstance parent."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -1517,7 +1518,7 @@ def test_context_with_node_instance() -> JsonObject:
     }
 
 
-def test_context_with_string_path() -> JsonObject:
+def _test_context_with_string_path() -> JsonObject:
     """Test context function with string path parent."""
     ctx = context("/obj")
 
@@ -1528,7 +1529,7 @@ def test_context_with_string_path() -> JsonObject:
     }
 
 
-def test_context_usage_example() -> JsonObject:
+def _test_context_usage_example() -> JsonObject:
     """Test realistic usage pattern with context manager."""
     # Create geometry container
     geo = node("/obj", "geo", "geometry1")
@@ -1549,7 +1550,7 @@ def test_context_usage_example() -> JsonObject:
     return result
 
 
-def test_context_preserves_parent_type() -> JsonObject:
+def _test_context_preserves_parent_type() -> JsonObject:
     """Test context function preserves NodeInstance type."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -1560,7 +1561,7 @@ def test_context_preserves_parent_type() -> JsonObject:
     }
 
 
-def test_node_context_node_method() -> JsonObject:
+def _test_node_context_node_method() -> JsonObject:
     """Test context.node() method creates nodes under the context parent."""
     geo = node("/obj", "geo", "test_geo")
     ctx = context(geo)
@@ -1577,7 +1578,7 @@ def test_node_context_node_method() -> JsonObject:
     }
 
 
-def test_node_context_name_lookup() -> JsonObject:
+def _test_node_context_name_lookup() -> JsonObject:
     """Test context name registration and lookup."""
     geo = node("/obj", "geo", "test_geo")
     ctx = context(geo)
@@ -1611,7 +1612,7 @@ def test_node_context_name_lookup() -> JsonObject:
     }
 
 
-def test_node_context_integration() -> JsonObject:
+def _test_node_context_integration() -> JsonObject:
     """Test full context workflow with node creation and lookup."""
     geo = node("/obj", "geo", "geometry1")
 
@@ -1644,7 +1645,7 @@ def test_node_context_integration() -> JsonObject:
         }
 
 
-def test_node_context_chain_method() -> JsonObject:
+def _test_node_context_chain_method() -> JsonObject:
     """Test context.chain() method with string name lookup."""
     geo = node("/obj", "geo", "geometry1")
 
@@ -1688,7 +1689,7 @@ def test_node_context_chain_method() -> JsonObject:
         }
 
 
-def test_node_context_chain_registration() -> JsonObject:
+def _test_node_context_chain_registration() -> JsonObject:
     """Test context.chain() registers new named nodes in context."""
     geo = node("/obj", "geo", "geometry1")
     ctx = context(geo)
@@ -1735,41 +1736,29 @@ def test_node_context_chain_registration() -> JsonObject:
     }
 
 
-def test_node_context_merge_method():
+def _test_node_context_merge_method():
     """Test context merge() method string argument lookup and basic functionality."""
-    from zabob_houdini.core import node, context
 
-    try:
         # Create parent and context
-        parent = node("/obj", "geo", "test_geo")
-        ctx = context(parent)        # Add some test nodes to the context
-        box = ctx.node("box", "my_box")
-        sphere = ctx.node("sphere", "my_sphere")
+    parent = node("/obj", "geo", "test_geo")
+    ctx = context(parent)        # Add some test nodes to the context
+    box = ctx.node("box", "my_box")
+    sphere = ctx.node("sphere", "my_sphere")
 
-        # Create merge using string arguments (should resolve to existing nodes)
-        merge_node = ctx.merge("my_box", "my_sphere", name="test_merge")
+    # Create merge using string arguments (should resolve to existing nodes)
+    merge_node = ctx.merge("my_box", "my_sphere", name="test_merge")
 
-        # Simple validation - just check that we got a merge node
-        return {
-            'merge_created': merge_node.node_type == "merge",
-            'string_lookup_worked': True,  # If we got here, lookup worked
-            'merge_has_correct_inputs': True,  # Assume correct for now
-            'merge_parent_correct': merge_node.parent == parent
-        }
-    except Exception as e:
-        # Return error info if something fails
-        return {
-            'merge_created': False,
-            'string_lookup_worked': False,
-            'merge_has_correct_inputs': False,
-            'merge_parent_correct': False,
-            'error': str(e)
-        }
+    # Simple validation - just check that we got a merge node
+    return {
+        'merge_created': merge_node.node_type == "merge",
+        'string_lookup_worked': True,  # If we got here, lookup worked
+        'merge_has_correct_inputs': True,  # Assume correct for now
+        'merge_parent_correct': merge_node.parent == parent
+    }
 
 
-def test_node_context_merge_registration():
+def _test_node_context_merge_registration():
     """Test that named merge nodes are registered in context and lookupable."""
-    from zabob_houdini.core import node, context
 
     # Create parent and context
     parent = node("/obj", "geo", "test_geo")
@@ -1825,9 +1814,8 @@ def test_node_context_merge_registration():
     }
 
 
-def test_parent_validation_chain() -> JsonObject:
+def _test_parent_validation_chain() -> JsonObject:
     """Test that chain() validates all nodes have the same parent."""
-    from zabob_houdini.core import node, chain
 
     # Create nodes with different parents
     geo1 = node("/obj", "geo", "geo1")
@@ -1865,10 +1853,8 @@ def test_parent_validation_chain() -> JsonObject:
     }
 
 
-def test_parent_validation_merge() -> JsonObject:
+def _test_parent_validation_merge() -> JsonObject:
     """Test that merge() validates all nodes have the same parent."""
-    from zabob_houdini.core import node, merge
-
     # Create nodes with different parents
     geo1 = node("/obj", "geo", "geo1")
     geo2 = node("/obj", "geo", "geo2")
@@ -1905,9 +1891,8 @@ def test_parent_validation_merge() -> JsonObject:
     }
 
 
-def test_node_context_parent_validation() -> JsonObject:
+def _test_node_context_parent_validation() -> JsonObject:
     """Test context validates nodes have same parent as context."""
-    from zabob_houdini.core import node, context
 
     # Create two different geometry containers
     geo1 = node("/obj", "geo", "geo1")
@@ -1957,7 +1942,7 @@ def test_node_context_parent_validation() -> JsonObject:
     }
 
 
-def test_dependency_tracking() -> JsonObject:
+def _test_dependency_tracking() -> JsonObject:
     """Test that node dependencies are tracked correctly."""
     try:
         from zabob_houdini.core import node, chain, context
@@ -2044,5 +2029,11 @@ def test_dependency_tracking() -> JsonObject:
             'error': str(e),
             'traceback': traceback.format_exc()
         }
+
+
+def __exit__() -> JsonObject:
+    """Exit gracefully when user cancels test selection."""
+    import os
+    os._exit(0)
 
 

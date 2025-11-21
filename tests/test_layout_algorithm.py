@@ -10,7 +10,7 @@ import pytest
 @pytest.mark.integration
 def test_layout_stress_test(hython_test):
     """Test the layout algorithm with complex graph structures."""
-    result = hython_test("test_layout_stress_test")
+    result = hython_test("_test_layout_stress_test")
     assert 'total_nodes' in result
     assert 'source_nodes' in result
     assert 'sink_nodes' in result
@@ -45,7 +45,7 @@ def test_layout_stress_test(hython_test):
 @pytest.mark.integration
 def test_simple_layout_demo(hython_test):
     """Test a simpler layout demo to verify basic functionality."""
-    test_result = hython_test("test_simple_layout_demo")
+    test_result = hython_test("_test_simple_layout_demo")
     assert 'positions' in test_result
     assert len(test_result['positions']) > 0
 
