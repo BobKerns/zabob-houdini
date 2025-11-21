@@ -1,35 +1,25 @@
 """
-Houdini-specific test functions that require the hou module.
+DEPRECATED: Monolithic houdini test functions module.
 
-This module contains test functions that can only run within Houdini's Python environment.
-These functions are called by the hython bridge for testing purposes.
+This module is being migrated to a split structure under zabob_houdini.testing.
+Functions are being moved to individual modules matching pytest test file structure.
 
-## Usage Guidelines
+New structure:
+- zabob_houdini.testing.houdini_integration
+- zabob_houdini.testing.node_creation
+- zabob_houdini.testing.core_caching
+- zabob_houdini.testing.layout_algorithm
+- etc.
 
-All test functions in this module should use the `@houdini_result` decorator:
+Use zabob_houdini.testing.get_test_function(name) to access functions from the new structure.
 
-```python
-@houdini_result
-def test_my_feature() -> JsonObject:
-    # Test implementation
-    return {
-        'test_passed': True,
-        'node_count': 3,
-        'details': 'All nodes created successfully'
-    }
-```
-
-The decorator handles:
-- Exception catching with detailed traceback reporting
-- Consistent return structure with success/error fields
-- JSON serialization for bridge communication
-- Type safety (always returns JsonObject in result field)
-
-Test functions should return structured data that describes the test results,
-making it easy for external callers to understand what was tested and the outcome.
+## Migration Status
+This file currently provides backward compatibility while functions are being moved.
+Functions marked as "MIGRATED" have been moved to their new modules.
+Functions without this marking are pending migration.
 """
 
-from typing import Any
+from typing import Any, Callable
 
 import hou
 
@@ -39,6 +29,22 @@ from zabob_houdini.core import (
     merge
 )
 from zabob_houdini.utils import JsonObject, JsonArray
+
+def get_test_function(function_name: str) -> Callable[[], JsonObject]:
+    """Get a test function, trying new modular structure first, then falling back to this module.
+
+    This provides backward compatibility during the migration to the split module structure.
+    """
+    try:
+        # Try new modular structure first
+        from zabob_houdini.testing import get_test_function as get_new_function
+        return get_new_function(function_name)
+    except (ImportError, ValueError):
+        # Fall back to functions in this module
+        if hasattr(globals(), function_name):
+            return globals()[function_name]
+        else:
+            raise ValueError(f"Test function {function_name} not found in either new or old structure")
 
 
 def _test_basic_node_creation_in_houdini() -> JsonObject:
