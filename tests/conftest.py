@@ -7,6 +7,8 @@ This version avoids importing anything that could trigger hou imports.
 from collections.abc import Generator
 from typing import Protocol
 from threading import RLock
+import inspect
+import os
 import pytest
 from pathlib import Path
 import sys
@@ -20,7 +22,7 @@ from zabob_houdini.utils import JsonValue, HoudiniResult, JsonObject
 class HythonSessionFn(Protocol):
     """A function that can be called to execute a function in the hython environment."""
     def __call__(self, test_func_name: str, *args: JsonValue,
-                 module: str = "houdini_test_functions") -> JsonObject: ...
+                 module: str = "") -> JsonObject: ...
 
 
 @pytest.fixture
@@ -32,8 +34,33 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
     Returns just the result data, handling success/error internally.
     """
     def run_houdini_test(test_func_name: str, *args: JsonValue,
-                         module: str = "houdini_test_functions") -> JsonObject:
+                         module: str = "") -> JsonObject:
         """Run a test function in hython and return the result data."""
+
+        # If no module specified, determine it from the calling pytest module
+        if not module:
+            frame = inspect.currentframe()
+            try:
+                # Walk up the stack to find the calling test module
+                if frame is not None:
+                    caller_frame = frame.f_back
+                    while caller_frame:
+                        caller_file = Path(caller_frame.f_code.co_filename)
+                        if caller_file.name.startswith('test_') and caller_file.suffix == '.py':
+                            # Convert test_foo.py to testing._foo
+                            pytest_module = caller_file.stem  # e.g., "test_houdini_integration"
+                            hython_module = f"testing._{pytest_module[5:]}"  # "testing._houdini_integration"
+                            module = hython_module
+                            break
+                        caller_frame = caller_frame.f_back
+
+                # Fallback - this shouldn't happen with proper test organization
+                if not module:
+                    raise ValueError(f"Could not determine module for test function {test_func_name}. "
+                                   "Make sure the test is called from a test_*.py file.")
+            finally:
+                del frame
+
         try:
             result = hython_session.call_function(test_func_name, *args,
                                             module=module)
@@ -88,6 +115,16 @@ class HythonSession:
             retries = 3
             for _ in range(retries):
                 try:
+                    # Set up environment with src directory in PYTHONPATH for testing modules
+                    env = os.environ.copy()
+                    project_root = Path(__file__).parent.parent
+                    src_path = str(project_root / "src")
+
+                    if "PYTHONPATH" in env:
+                        env["PYTHONPATH"] = f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
+                    else:
+                        env["PYTHONPATH"] = src_path
+
                     self.process = subprocess.Popen(
                         [hython_path, "-m", "zabob_houdini", "_batch_exec"],
                         stdin=subprocess.PIPE,
@@ -95,7 +132,8 @@ class HythonSession:
                         # Pass stderr through for transparency in case of errors
                         stderr=None,
                         text=True,
-                        bufsize=1  # Line buffered
+                        bufsize=1,  # Line buffered
+                        env=env
                     )
                     if (self.process.poll() is None
                         and self.process.stdout
@@ -109,14 +147,14 @@ class HythonSession:
                     pass # Ignore exceptions and retry
             return False
 
-    def call_function(self, func_name: str, *args, module: str = "houdini_test_functions") -> HoudiniResult:
+    def call_function(self, func_name: str, *args, module: str) -> HoudiniResult:
         """
         Call a function in the persistent hython process.
 
         Args:
             func_name: Name of the function to call in the specified module.
             args: Arguments to pass to the function.
-            module: Module name where the function is defined (default "houdini_test_functions").
+            module: Module name where the function is defined.
 
         Returns:
             A dictionary with the result of the function call, including success status and any returned data.

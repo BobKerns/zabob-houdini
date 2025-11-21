@@ -213,7 +213,11 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
     """
     try:
         # Import the specified module and call the requested function
-        houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
+        # Handle testing modules that are not under zabob_houdini package
+        if module_name.startswith("testing."):
+            houdini_module = __import__(module_name, fromlist=[module_name.split('.')[-1]])
+        else:
+            houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
         func = getattr(houdini_module, function_name)
 
         # Call function with arguments and capture result

@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Package Structure**: Internal test functions moved to optional `testing` subpackage
+- **Package Structure**: Internal test functions moved to separate `src/testing/` module
   - Normal installations (`pip install zabob-houdini`) no longer include internal Houdini test infrastructure
-  - Developers can install testing support with `pip install zabob-houdini[testing]` or `uv sync --extra testing`
+  - Testing functions remain available in source tree for development: `PYTHONPATH=src python`
   - Reduces package size for end users who don't need test functions
 
 ### Added
