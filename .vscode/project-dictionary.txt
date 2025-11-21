@@ -17,6 +17,7 @@ dataclasses
 debugpy
 diffable
 docstrings
+dophints
 dotenv
 ehthumbs
 fanout
@@ -87,6 +88,7 @@ sizex
 sizey
 sizez
 softprops
+startswith
 stype
 testbox
 testgeo

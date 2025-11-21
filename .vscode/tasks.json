@@ -1,0 +1,39 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "type": "npm",
+            "script": "list-hython-tests",
+            "problemMatcher": [],
+            "label": "npm: list-hython-tests"
+        },
+        {
+            "label": "Generate Test List",
+            "type": "shell",
+            "command": "npm run list-hython-tests 2>/dev/null | grep -E '^(test_|__exit__)' > .vscode/tmp/test-functions.txt",
+            "group": "build",
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            }
+        },
+        {
+            "label": "Generate Example List",
+            "type": "shell",
+            "command": "npm run list-examples 2>/dev/null | grep -v '^>' > .vscode/tmp/example-files.txt",
+            "group": "build",
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            }
+        }
+    ]
+}

@@ -65,10 +65,8 @@ venv.bak/
 *.swo
 *~
 
-# VS Code - ignore personal settings but keep project files
-.vscode/settings.json
-.vscode/launch.json
-# Keep: .vscode/settings.json.example, .vscode/project-dictionary.txt
+# VS Code - all configs are now tracked
+# Personal customizations can use .git/info/exclude if needed
 
 # Node.js (for cSpell)
 node_modules/

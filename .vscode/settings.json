@@ -42,6 +42,11 @@
         "MD022": false,
         "MD031": false,
         "MD032": false
+    },
+    "editor.defaultFormatter": "ms-python.flake8",
+    "flake8.enabled": false,
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
     }
 
     // === Add your personal settings below ===
