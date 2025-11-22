@@ -9,7 +9,7 @@ from platform import uname
 import json
 from pathlib import Path
 import re
-from typing import Any, Callable, Final, Literal, TypeAlias, TypedDict, cast
+from typing import Any, Callable, Final, Literal, TypeAlias, TypedDict, TypeVar, cast, ParamSpec
 import sys
 import time
 from datetime import datetime
@@ -22,6 +22,10 @@ from semver import Version
 from dotenv import load_dotenv
 
 from zabob_houdini.click_types import SemVerParamType
+
+
+T = TypeVar('T')
+Params = ParamSpec('Params')
 
 load_dotenv()  # Load from .env if available]
 
@@ -280,7 +284,7 @@ def get_version_ranges(
                     "Authentication failed. Please check your SIDEFX_USERNAME and SIDEFX_PASSWORD credentials.\n"
                     "Set them in a .env file or as environment variables."
                 )
-            raise RuntimeError(f"Failed to parse JSON response: {e}")
+            raise RuntimeError(f"Failed to parse JSON response: {e}") from e
 
         # Check in daily_builds_releases
         releases: list[SFXBuildInfo] = build_data.get("daily_builds_releases", [])
@@ -462,10 +466,10 @@ def download_houdini_installer(version: Version,
     print(f"Downloaded to: {output_file}", file=sys.stderr)
     return output_file
 
-def handle_credential_errors(func: Callable) -> Callable:
+def handle_credential_errors(func: Callable[Params, T]) -> Callable[Params, T]:
     """Decorator to handle ValueError and AuthenticationError with clean error messages."""
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> T:
         try:
             return func(*args, **kwargs)
         except (ValueError, AuthenticationError) as e:
@@ -645,28 +649,24 @@ def download_command(version: Version=HOUDINI_FALLBACK_VERSION,
     session = requests.Session()
     login_session(session)
 
-    try:
         # Rest of your download code...
-        installer_path = download_houdini_installer(
-            version=version,
-            arch=arch,
-            build_type=build_type,
-            session=session
-        )
+    installer_path = download_houdini_installer(
+        version=version,
+        arch=arch,
+        build_type=build_type,
+        session=session
+    )
 
-        # If output path is specified, copy there (for Docker build)
-        if output_path:
-            import shutil
-            output_path = Path(output_path)
-            output_path.parent.mkdir(exist_ok=True, parents=True)
-            shutil.copy2(installer_path, output_path)
-            print(f"Copied to: {output_path}", file=sys.stderr)
+    # If output path is specified, copy there (for Docker build)
+    if output_path:
+        import shutil
+        output_path = Path(output_path)
+        output_path.parent.mkdir(exist_ok=True, parents=True)
+        shutil.copy2(installer_path, output_path)
+        print(f"Copied to: {output_path}", file=sys.stderr)
 
-        # Print the path to stdout for capturing in scripts
-        print(installer_path)
-    except Exception as e:
-        print(f"Error downloading Houdini: {e}", file=sys.stderr)
-        sys.exit(1)
+    # Print the path to stdout for capturing in scripts
+    print(installer_path)
 
 
 @cli.command('show')

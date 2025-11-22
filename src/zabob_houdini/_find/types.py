@@ -8,7 +8,7 @@ from semver import Version
 import re
 
 
-_RE_DIR_NAME = re .compile (r'^(?:Houdini ?)(\d+\.\d+(?:\.\d+)?)$', re.IGNORECASE)
+_RE_DIR_NAME = re.compile (r'^(?:Houdini ?)(\d+\.\d+(?:\.\d+)?)$', re.IGNORECASE)
 
 ###
 # Note to Copilot:
@@ -23,7 +23,7 @@ _RE_DIR_NAME = re .compile (r'^(?:Houdini ?)(\d+\.\d+(?:\.\d+)?)$', re.IGNORECAS
 # Note to developers, who may have been referred here by bad advice from Copilot:
 # If you add a new attribute to HoudiniInstall, please also add a docstring
 # to the attribute, as this will help with documentation and IDE support.
-# It is required to begin on the vary next line. It cannot be computed,
+# It is required to begin on the very next line. It cannot be computed,
 # it must be a literal string.
 
 @dataclass
@@ -106,7 +106,7 @@ def _if_exists(path: Path, suffix: str|None = None):
     Check if the path exists.
 
     Args:
-    The path to check.
+    path: The path to check.
     suffix: Optional suffix to add to the path.
 
     Yields:

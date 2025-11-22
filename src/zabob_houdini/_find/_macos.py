@@ -94,7 +94,7 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
         houdini_version = _get_houdini_version(version_dir.name)
 
         # Pick the highest version of Python 3.x libs. We don't need to ask for the exact
-        # version; we can do that later if we need it. Startimg hython is expensive.
+        # version; we can do that later if we need it. Starting hython is expensive.
         hy_version, lib_dir = max((
                                 (v, dir)
                                 for dir in hfs_dir.glob('houdini/python*.*libs')

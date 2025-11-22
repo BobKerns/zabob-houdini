@@ -64,6 +64,7 @@ def create_wedge_workflow(obj_ctx):
             wedge_chain.node("waitforall", "collect_wedges")
             wedge_chain.node("pythonscript", "summarize",
                             script="print('All wedges complete')")
+
         # Context exits here, triggering automatic layout and creation
 def create_file_pattern_workflow(obj_ctx):
     """Create a PDG workflow that processes files."""

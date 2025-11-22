@@ -7,7 +7,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from semver import Version
-from zabob.common._find.types import (
+from zabob_houdini._find.types import (
     HoudiniInstall,
     _get_houdini_version, _group_by_major_minor,
     _parse_pyversion, _version,
@@ -45,7 +45,7 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
         # Extract version from directory name or hython
         # Try to extract version from directory or hython
         houdini_version = _get_houdini_version(hfs_dir.name)
-        if houdini_version == "unknown":
+        if houdini_version == Version(0):
             return
 
         # Find Python library directories using glob pattern
@@ -60,7 +60,7 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
 
         if py_version.major < 3:
             return
-        exec_prefix =version_dir / 'python'
+        exec_prefix = version_dir / 'python'
         py_release = f'{py_version.major}.{py_version.minor}'
         libname = f'python{py_release}libs'
         # Create the installation entry

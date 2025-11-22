@@ -62,7 +62,7 @@ def get_houdini(version: Version|str|None = None) -> HoudiniInstall:
             v = _version(version)
         case Version():
             # Already a semver.Version object
-            v = version
+            pass
         case _:
             raise ValueError("Version must be a string or semver.Version object")
     # installation includes both full version and major.minor versions
