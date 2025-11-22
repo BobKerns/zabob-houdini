@@ -112,15 +112,44 @@ uvx zabob-houdini validate
 
 The `install-package` command creates a Houdini package configuration that makes zabob-houdini available in Houdini's Python environment (shelf tools, Python nodes, HDAs, etc.).
 
+### Shell Completion
+
+Enable tab completion for the `zabob-houdini` command in your shell:
+
+**Bash:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=bash_source zabob-houdini > ~/.zabob-houdini-complete.bash
+echo 'source ~/.zabob-houdini-complete.bash' >> ~/.bashrc
+```
+
+**Zsh:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=zsh_source zabob-houdini > ~/.zabob-houdini-complete.zsh
+echo 'source ~/.zabob-houdini-complete.zsh' >> ~/.zshrc
+```
+
+**Fish:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=fish_source zabob-houdini > ~/.config/fish/completions/zabob-houdini.fish
+```
+
+Restart your shell or source the completion file to enable tab completion for all commands, options, and arguments.
+
 ### Running Examples
 
 You can run example files and save the resulting Houdini scene:
 
 ```bash
-# Run an example and save the HIP file
+# Run an example and automatically save with the script's name
+uvx zabob-houdini run examples/diamond_chain_demo.py --save
+
+# Run, save, and automatically open in Houdini
+uvx zabob-houdini run examples/diamond_chain_demo.py --open
+
+# Run and save to a specific file
 uvx zabob-houdini run examples/diamond_chain_demo.py --hipfile output.hip
 
-# Then open in Houdini to inspect the result
+# Then manually open in Houdini to inspect the result
 houdini output.hip
 ```
 

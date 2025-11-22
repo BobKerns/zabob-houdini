@@ -38,7 +38,7 @@
         {
             "label": "Run Houdini Example (Save HIP)",
             "type": "shell",
-            "command": "zabob-houdini run ${workspaceFolder}/examples/${input:exampleFile}.py --hipfile ${workspaceFolder}/examples/${input:exampleFile}.hip",
+            "command": "zabob-houdini run ${workspaceFolder}/examples/${input:exampleFile}.py --save",
             "group": "build",
             "presentation": {
                 "echo": true,

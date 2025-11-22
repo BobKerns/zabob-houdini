@@ -42,60 +42,6 @@ from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
-def simple_houdini_test() -> str:
-    """Simple test that creates a box node."""
-    # Get or create geometry node
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
-
-    # Create a box
-    box = geo.createNode("box", "test_box")
-
-    return f"Created box at: {box.path()}"
-
-
-def chain_creation_test() -> JsonObject:
-    """Test creating a chain using Zabob API in hython."""
-    # Get or create geometry node
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "chain_test_geo")
-
-    # Create chain using Zabob API
-    box_node = node(geo.path(), "box", name="source")
-    xform_node = node(geo.path(), "xform", name="transform")
-    subdivide_node = node(geo.path(), "subdivide", name="refine")
-
-    processing_chain = chain(box_node, xform_node, subdivide_node)
-
-    # Create the chain
-    created_nodes = processing_chain.create()
-
-    return {
-        "message": f"Created chain with {len(created_nodes)} nodes in {geo.path()}",
-        "node_count": len(created_nodes),
-        "parent_path": geo.path()
-    }
-
-
-def create_test_chain() -> str:
-    """Create a test processing chain for CLI testing."""
-    # Ensure we have a geometry node
-    geo = hou.node("/obj/geo1")
-    if not geo:
-        geo = hou_node("/obj").createNode("geo", "geo1")
-
-    # Create chain using Zabob API
-    box_node = node(geo.path(), "box", name="source")
-    xform_node = node(geo.path(), "xform", name="transform")
-    subdivide_node = node(geo.path(), "subdivide", name="refine")
-
-    processing_chain = chain(box_node, xform_node, subdivide_node)
-
-    # Create the chain
-    result = processing_chain.create()
-    return f"Chain created successfully: {len(result)} nodes"
-
-
 def get_houdini_info() -> JsonObject:
     """Get Houdini environment information."""
     try:
@@ -110,15 +56,21 @@ def get_houdini_info() -> JsonObject:
         return {'houdini_error': str(e)}
 
 
-def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, verbose: bool) -> None:
+def _run_in_hython(script_path: str, script_args: tuple[str, ...], hipfile: str | None, save: bool, verbose: bool) -> None:
     """
     Run a Python script in hython and optionally save the resulting hip file.
 
     This is the actual implementation that gets called by the @houdini_command decorator.
+    Note: open_app is handled in cli.py, not here.
     """
     import click
 
     script_path_obj = Path(script_path).resolve()
+
+    # Handle --save flag: use basename.hip in same directory as script if hipfile not specified
+    if save and not hipfile:
+        basename = script_path_obj.stem  # filename without extension
+        hipfile = str(script_path_obj.parent / f"{basename}.hip")
 
     if verbose:
         click.echo(f"Running script: {script_path_obj}")

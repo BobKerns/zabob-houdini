@@ -69,6 +69,7 @@ def _find_hython() -> Path:
     raise RuntimeError("hython executable not found. Please ensure Houdini is installed and hython is on the path")
 
 
+
 def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_functions") -> HoudiniResult:
     """
     Call a function from a houdini module, either directly or via hython subprocess.

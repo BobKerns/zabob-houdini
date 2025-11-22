@@ -29,6 +29,7 @@ geometryimport
 getitem
 hconfig
 hdanc
+hdso
 heightfield
 hengine
 hipfile
@@ -75,6 +76,7 @@ pyproject
 pytest
 Pythonic
 PYTHONPATH
+pythonscript
 radialmenus
 radx
 rady
@@ -95,6 +97,7 @@ sizey
 sizez
 softprops
 soppath
+startfile
 startswith
 stype
 testbox

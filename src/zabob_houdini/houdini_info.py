@@ -20,6 +20,9 @@ A JSON-serializable data type, which can be a string, number, boolean, null, arr
 This type is used for any data that can be returned from Houdini functions and sent to the
 '''
 
+# Available Houdini node categories (populated at module load time)
+HOUDINI_CATEGORIES = list(hou.nodeTypeCategories().keys())
+
 @dataclass
 class AnalysisDBItem:
     """
@@ -312,26 +315,55 @@ def get_name(d: Any) -> str:
         return f"{typename}_{id(d):x}"
 
 
-@click.group("info")
-def info():
+@click.group("houdini")
+def houdini():
     """
-    Commands for extracting information about the Houdini environment.
+    Commands for working with local Houdini installations and querying node information.
     """
     pass
 
 
-@info.command('categories')
+@houdini.command('categories')
 @click.argument('categories', nargs=-1, type=str)
 def categories(categories):
     """
     Analyze node categories in the current Houdini session and print the results.
     """
+    # Collect all category info
+    category_list = []
     for item in analyze_categories():
         if isinstance(item, NodeCategoryInfo):
-            click.echo(f"Category: {item.name} (Label: {item.label}, Has Subnetwork Type: {item.hasSubnetworkType})")
+            category_list.append(item)
+
+    if not category_list:
+        click.echo("No categories found.")
+        return
+
+    # Print header
+    click.echo("Houdini Node Categories:")
+    click.echo()
+
+    # Calculate column widths
+    max_name_width = max(len(cat.name) for cat in category_list)
+    max_label_width = max(len(cat.label) for cat in category_list)
+
+    name_width = max(12, max_name_width)
+    label_width = max(15, max_label_width)
+
+    # Print table header
+    header = f"{'NAME':<{name_width}} {'LABEL':<{label_width}} {'SUBNETWORK'}"
+    click.echo(header)
+    click.echo("-" * len(header))
+
+    # Print table rows
+    for cat in category_list:
+        subnet = "Yes" if cat.hasSubnetworkType else "No"
+        click.echo(f"{cat.name:<{name_width}} {cat.label:<{label_width}} {subnet}")
+
+    click.echo(f"\nTotal: {len(category_list)} categories")
 
 
-@info.command('types')
+@houdini.command('types')
 @click.argument('category', type=str, required=True)
 def types(category: str):
     """
@@ -352,7 +384,7 @@ def types(category: str):
             if item.category not in child_to_parent_categories[item.childCategory]:
                 child_to_parent_categories[item.childCategory].append(item.category)
 
-    # Second pass: collect node types for the requested category
+    # Second pass: collect node types for the requested category (case-insensitive)
     for item in analyze_categories():
         if isinstance(item, NodeCategoryInfo) and item.name.lower() == category.lower():
             found_category = True
@@ -365,7 +397,6 @@ def types(category: str):
         for item in analyze_categories():
             if isinstance(item, NodeCategoryInfo):
                 click.echo(f"  {item.name}")
-                break
         return
 
     # Print header

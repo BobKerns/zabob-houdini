@@ -767,6 +767,27 @@ with context(node("/obj", "geo", "processing")) as ctx:
 - **Sink Detection**: Automatically identifies and creates sink nodes for outputs
 - **Dependency Tracking**: Smart dependency resolution prevents conflicts and duplicates
 
+### Nested Contexts
+
+The `context()` method on `NodeContext` enables organizing related node hierarchies for layout purposes:
+
+```python
+# Organize multiple networks with nested contexts
+with context("/obj") as obj_ctx:
+    # Create multiple networks, each in its own logical group
+    with obj_ctx.context(node("/obj", "topnet", name="network1")) as top1:
+        top1.node("pythonscript", "task1")
+        top1.node("waitforall", "collect1")
+
+    with obj_ctx.context(node("/obj", "topnet", name="network2")) as top2:
+        top2.node("pythonscript", "task2")
+        top2.node("waitforall", "collect2")
+
+# All networks are laid out together at /obj level when outer context exits
+```
+
+This pattern is useful when you want multiple related node hierarchies to be laid out together at the parent level, while maintaining clear code organization.
+
 ### Diamond Pattern with Context
 Create nodes that share a common source using context organization:
 
