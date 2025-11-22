@@ -487,9 +487,9 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, sav
     if _is_in_houdini():
         # Already in houdini, call directly
         from zabob_houdini.houdini_functions import _run_in_hython
-        _run_in_hython(script_path, script_args, hipfile, save, verbose)
+        _run_in_hython(script_path, *script_args,
+                       hipfile=hipfile, save=save, verbose=verbose, open_app=open_app)
     else:
-        # Build hython command without --open flag
         hython_path = _find_hython()
         cmd = [str(hython_path), "-m", "zabob_houdini", "run", script_path]
         cmd.extend(script_args)
@@ -499,29 +499,22 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, sav
             cmd.append("--save")
         if verbose:
             cmd.append("--verbose")
+        if open_app:
+            cmd.append("--open")
 
-        subprocess.run(cmd, check=True)
+        # Run with minimal environment
+        minimal_env = {}
+        for key in ('PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP'):
+            if key in os.environ:
+                minimal_env[key] = os.environ[key]
 
-    # After hython exits, open the file if requested
-    if open_app and hipfile:
-        hipfile_name = Path(hipfile).name
-        click.echo(f"Opening {hipfile_name}...")
         try:
-            if sys.platform == "win32":
-                os.startfile(hipfile)
-            elif sys.platform == "darwin":
-                # Use -n/--new to open in a new instance, avoiding crashes when Houdini is already running
-                subprocess.Popen(["open", "-n", hipfile])
-            else:  # Linux
-                subprocess.Popen(["xdg-open", hipfile])
-        except Exception as e:
-            click.echo(f"Warning: Failed to open file: {e}", err=True)
+            subprocess.run(cmd, check=True, env=minimal_env)
+        except subprocess.CalledProcessError as e:
+            # Script failed - hython already printed the error, just exit with same code
+            sys.exit(e.returncode)
 
 
-@houdini_command
-def _run_in_hython_cmd(script_path: str, script_args: tuple[str, ...], hipfile: str | None, save: bool, verbose: bool) -> None:
-    """Helper function decorated with @houdini_command - not used directly, just for the decorator pattern."""
-    pass  # Implementation is in houdini_functions.py as '_run_in_hython'
 
 main.add_command(houdini)
 

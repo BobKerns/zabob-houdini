@@ -6,7 +6,7 @@ import json
 
 import pytest
 import subprocess
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, ANY
 from zabob_houdini.houdini_bridge import call_houdini_function, _is_in_houdini
 
 def message(msg: str) -> str:
@@ -43,7 +43,7 @@ def test_call_houdini_function_subprocess_logic():
         assert result['result']['message'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'houdini_functions', 'test_function', 'arg1', 'arg2'
-        ], check=True, capture_output=True, text=True)
+        ], check=True, capture_output=True, text=True, env=ANY)
 
 
 @pytest.mark.unit
@@ -87,7 +87,7 @@ def test_call_houdini_function_module_parameter():
         assert result['result']['message'] == "test result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'custom_module', 'test_func', 'arg1'
-        ], check=True, capture_output=True, text=True)
+        ], check=True, capture_output=True, text=True, env=ANY)
 
 
 @pytest.mark.unit
@@ -149,7 +149,7 @@ def test_call_houdini_function_subprocess():
         assert result['result']['message'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'houdini_functions', 'test_function', 'arg1', 'arg2'
-        ], check=True, capture_output=True, text=True)
+        ], check=True, capture_output=True, text=True, env=ANY)
 
 
 @pytest.mark.unit

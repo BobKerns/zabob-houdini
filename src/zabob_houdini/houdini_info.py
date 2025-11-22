@@ -5,8 +5,9 @@ Extract useful information about the Houdini environment.
 import builtins
 from collections import defaultdict
 from collections.abc import Callable, Hashable, MutableMapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+from re import subn
 from typing import Any, NotRequired, TypeAlias, TypeVar, TypedDict
 from weakref import WeakKeyDictionary
 import click
@@ -330,14 +331,12 @@ def categories(categories):
     Analyze node categories in the current Houdini session and print the results.
     """
     # Collect all category info
-    category_list = []
-    for item in analyze_categories():
-        if isinstance(item, NodeCategoryInfo):
-            category_list.append(item)
-
-    if not category_list:
-        click.echo("No categories found.")
-        return
+    category_list = [
+        item
+        for item in analyze_categories()
+        if isinstance(item, NodeCategoryInfo)
+        if not categories or item.name in categories
+    ]
 
     # Print header
     click.echo("Houdini Node Categories:")
@@ -386,11 +385,12 @@ def types(category: str):
 
     # Second pass: collect node types for the requested category (case-insensitive)
     for item in analyze_categories():
-        if isinstance(item, NodeCategoryInfo) and item.name.lower() == category.lower():
-            found_category = True
-            category_info = item
-        elif isinstance(item, NodeTypeInfo) and item.category.lower() == category.lower():
-            node_types.append(item)
+        match item:
+            case NodeCategoryInfo() if item.name.lower() == category.lower():
+                found_category = True
+                category_info = item
+            case NodeTypeInfo() if item.category.lower() == category.lower():
+                node_types.append(item)
 
     if not found_category:
         click.echo(f"Category '{category}' not found. Available categories:")

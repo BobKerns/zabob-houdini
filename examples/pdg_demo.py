@@ -58,7 +58,7 @@ def create_wedge_workflow(obj_ctx):
     with context(obj_ctx.node("topnet", name="wedge_demo")) as ctx:
         # Create wedge workflow
         with ctx.chain() as wedge_chain:
-            wedge_chain.node("wedge", "param_variation", wedgecount=5)
+            wedge_chain.node("labs::wedge::1.0", "param_variation", wedgecount=5)
             wedge_chain.node("pythonscript", "process_wedge",
                             script="print(f'Wedge {work_item.index}: param={work_item.attrib(\"wedge\")}')")
             wedge_chain.node("waitforall", "collect_wedges")
@@ -66,32 +66,18 @@ def create_wedge_workflow(obj_ctx):
                             script="print('All wedges complete')")
 
         # Context exits here, triggering automatic layout and creation
-def create_file_pattern_workflow(obj_ctx):
-    """Create a PDG workflow that processes files."""
+def create_filter_workflow(obj_ctx):
+    """Create a PDG workflow demonstrating filtering and partitioning."""
 
-    with context(obj_ctx.node("topnet", name="file_processing")) as ctx:
-        # File pattern processing
-        with ctx.chain() as file_chain:
-            file_chain.node("filepattern", "find_files",
-                           pattern="$HIP/geo/*.bgeo",
-                           resultdatatag="files")
-            file_chain.node("pythonscript", "process_file",
-                           script="print('Processing:', work_item.attrib('filename'))")
-            file_chain.node("waitforall", "wait_files")
-        # Context exits here, triggering automatic layout and creation
-
-
-def create_geometry_import_workflow(obj_ctx):
-    """Create a PDG workflow that imports geometry from SOPs."""
-
-    with context(obj_ctx.node("topnet", name="geo_import_demo")) as ctx:
-        # Import geometry from a SOP path
-        with ctx.chain() as geo_chain:
-            geo_chain.node("geometryimport", "import_geo",
-                          soppath="/obj/geo1/OUT")
-            geo_chain.node("pythonscript", "process_geo",
-                          script="print('Imported geometry:', work_item.attrib('geometry'))")
-            geo_chain.node("waitforall", "finish")
+    with context(obj_ctx.node("topnet", name="filter_demo")) as ctx:
+        # Filter and partition workflow
+        with ctx.chain() as filter_chain:
+            filter_chain.node("genericgenerator", "generate", itemcount=20)
+            filter_chain.node("filterbyrange", "filter_range",
+                            filterby=0, rangex=0, rangey=10)
+            filter_chain.node("pythonscript", "process_filtered",
+                           script="print('Filtered item:', work_item.index)")
+            filter_chain.node("waitforall", "collect")
         # Context exits here, triggering automatic layout and creation
 
 
@@ -115,17 +101,14 @@ if __name__ == "__main__":
         create_wedge_workflow(obj_ctx)
         print("   ✓ Wedge workflow created with automatic layout\n")
 
-        print("4. File Pattern Workflow:")
-        print("   Creating file processing workflow...")
-        create_file_pattern_workflow(obj_ctx)
-        print("   ✓ File processing workflow created with automatic layout\n")
+        print("4. Filter Workflow:")
+        print("   Creating filter and partition workflow...")
+        create_filter_workflow(obj_ctx)
+        print("   ✓ Filter workflow created with automatic layout\n")
 
-        print("5. Geometry Import Workflow:")
-        print("   Creating geometry import workflow...")
-        create_geometry_import_workflow(obj_ctx)
-        print("   ✓ Geometry import workflow created with automatic layout\n")
-
-    print("Summary:")
-    print("  All PDG networks created successfully!")
-    print("  Nodes are automatically laid out and created when context exits.")
-    print("  Open foo.hip in Houdini to see the generated TOP networks.")
+    print("""Summary:
+  All PDG networks created successfully!
+  Nodes are automatically laid out and created when context exits.
+  Run with zabob-houdini run pdg_demo.py --open
+  to open the generated hip file in Houdini.
+""")

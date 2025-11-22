@@ -4,6 +4,7 @@ Agentic
 argparse
 attribwrangle
 autofit
+autouse
 bakpac
 bclip
 bgeo
@@ -25,6 +26,8 @@ ehthumbs
 fanout
 filepattern
 fillvalue
+filterby
+filterbyrange
 fromlist
 genericgenerator
 geometryimport
@@ -93,6 +96,8 @@ radialmenus
 radx
 rady
 radz
+rangex
+rangey
 Referer
 regkey
 repr

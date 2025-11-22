@@ -489,7 +489,7 @@ class NodeInstance(NodeBase):
                     error_msg = error_msg.replace("The attempted operation failed.", "").strip()
                 if not error_msg:
                     error_msg = "Unknown error"
-                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{self.name}' in {parent_type} ({parent_path}): {error_msg}") from e
+                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{self.name}' in {parent_type} ({parent_path}): {error_msg}")
 
         # Set attributes/parameters
         if self.attributes:
@@ -815,13 +815,18 @@ class NodeContext:
     parent: NodeInstance
     _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
     _dependency_registry: weakref.WeakKeyDictionary[NodeInstance, list[NodeInstance]] = field(default_factory=weakref.WeakKeyDictionary, init=False)
+    _level: int = field(default=0, init=False)
 
     def __enter__(self) -> 'NodeContext':
         """Enter the context manager."""
+        self._level += 1
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit the context manager - apply layout and create sink nodes."""
+        self._level -= 1
+        if self._level > 0:
+            return
         if exc_type is None:  # Only if no exception occurred
             # Apply layout to position all nodes
             self.apply_layout()
@@ -991,7 +996,7 @@ class NodeContext:
             with global_ctx.context() as ctx:
                 # Creates nodes with logical grouping
                 ctx.node("topnet", "my_network")
-                
+
         Example with nested organization:
             with context("/obj") as obj_ctx:
                 with obj_ctx.context(node("/obj", "topnet", name="demo1")) as top_ctx:
