@@ -9,7 +9,7 @@ from platform import uname
 import json
 from pathlib import Path
 import re
-from typing import Any, Callable, Final, Literal, TypeAlias, TypedDict, cast
+from typing import Any, Callable, Final, Literal, TypeAlias, TypedDict, TypeVar, cast, ParamSpec
 import sys
 import time
 from datetime import datetime
@@ -22,6 +22,10 @@ from semver import Version
 from dotenv import load_dotenv
 
 from zabob_houdini.click_types import SemVerParamType
+
+
+T = TypeVar('T')
+Params = ParamSpec('Params')
 
 load_dotenv()  # Load from .env if available]
 
@@ -280,7 +284,7 @@ def get_version_ranges(
                     "Authentication failed. Please check your SIDEFX_USERNAME and SIDEFX_PASSWORD credentials.\n"
                     "Set them in a .env file or as environment variables."
                 )
-            raise RuntimeError(f"Failed to parse JSON response: {e}")
+            raise RuntimeError(f"Failed to parse JSON response: {e}") from e
 
         # Check in daily_builds_releases
         releases: list[SFXBuildInfo] = build_data.get("daily_builds_releases", [])
@@ -462,16 +466,16 @@ def download_houdini_installer(version: Version,
     print(f"Downloaded to: {output_file}", file=sys.stderr)
     return output_file
 
-def handle_credential_errors(func: Callable) -> Callable:
+def handle_credential_errors(func: Callable[Params, T]) -> Callable[Params, T]:
     """Decorator to handle ValueError and AuthenticationError with clean error messages."""
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> T:
         try:
             return func(*args, **kwargs)
         except (ValueError, AuthenticationError) as e:
             click.echo(str(e), err=True)
             raise SystemExit(1)
-    return wrapper
+    return wrapper  # type: ignore[return-value]
 
 
 def check_credentials() -> tuple[str, str]:

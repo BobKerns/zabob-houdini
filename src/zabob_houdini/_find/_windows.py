@@ -12,7 +12,7 @@ import os
 
 from semver import Version
 
-from zabob.common._find.types import (
+from zabob_houdini._find.types import (
     HoudiniInstall,
     _get_houdini_version, _group_by_major_minor, _if_exists, _parse_pyversion,
 )
@@ -36,8 +36,11 @@ def _by_regkey():
                             pass
                     i += 1
                 except OSError:
+                    # Skip registry keys don't have the 'InstallPath' value.
                     break
     except OSError:
+        # The registry key may not exist or be inaccessible;
+        # in that case, we simply yield nothing.
         pass
 
 def _by_directory():
@@ -61,9 +64,6 @@ def find_installations() -> dict[Version, HoudiniInstall]:
         for install in _process_installation(path)
     }
 
-    latest_builds = reduce(lambda a, i: (a[i.houdini_version].append(i), a)[1],
-                            installations.values(),
-                            defaultdict(list))
     latest_builds: dict[Version, list[HoudiniInstall]] = defaultdict(list)
     # Group installations by major.minor version
     for version, install in installations.items():
@@ -116,7 +116,7 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
 
         app_paths = {
             app_name: exe
-            for app_name, file in app_names.values()
+            for app_name, file in app_names.items()
             for exe in _if_exists(version_dir / file, '.exe')
         }
         py_release = f'{py_version.major}.{py_version.minor}'

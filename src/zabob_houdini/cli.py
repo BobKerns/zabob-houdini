@@ -483,7 +483,6 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, sav
 
     # Call hython to run the script (manually construct the subprocess call to exclude --open)
     from zabob_houdini.houdini_bridge import _find_hython, _is_in_houdini
-    import subprocess
 
     if _is_in_houdini():
         # Already in houdini, call directly
