@@ -475,7 +475,7 @@ def handle_credential_errors(func: Callable[Params, T]) -> Callable[Params, T]:
         except (ValueError, AuthenticationError) as e:
             click.echo(str(e), err=True)
             raise SystemExit(1)
-    return wrapper
+    return wrapper  # type: ignore[return-value]
 
 
 def check_credentials() -> tuple[str, str]:
