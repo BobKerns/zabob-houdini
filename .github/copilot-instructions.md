@@ -125,6 +125,22 @@ The project is in early development - the README describes the intended API, but
 - **Setup Script**: New contributors use `./.vscode/setup-vscode.sh` for automated setup
 - **Spell Checking**: Uses cSpell with project dictionary - add technical terms to `.vscode/project-dictionary.txt`
 
+## CRITICAL: Code Operation Vocabulary
+
+### Literal Operations
+- **"Move"**: Copy exact text from source to destination, add minimal imports, remove from source. Do not modify function bodies, logic, return values, or implementation details.
+- **"Copy"**: Duplicate exact text without modification (except imports if needed)
+- **"Replace"**: Substitute one exact piece of code with another exact piece of code
+
+### When NOT to Reimplement
+- If existing code is working, preserve it exactly
+- If tests are passing, don't modify test logic to "fix" perceived issues
+- If unclear whether code needs changes beyond the literal operation, ask first
+- Default assumption: working code should be preserved as-is
+
+### Key Principle
+**Don't reimplement unnecessarily; if unclear about scope of changes needed, ask before proceeding.**
+
 ## Communication Guidelines
 
 ### Avoid Sycophantic Language
@@ -143,6 +159,8 @@ These should only be used when:
 1. You genuinely understand the instruction and its reasoning
 2. The acknowledgment adds clarity about what you'll do next
 3. You're confirming understanding of a technical requirement or constraint
+
+
 
 ### Examples
 
