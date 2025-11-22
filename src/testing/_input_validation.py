@@ -173,7 +173,7 @@ def _test_invalid_input_types(input_type: str) -> JsonObject:
     elif input_type == "empty_string":
         # Empty string - test what happens (type: ignore for intentional type violation)
         try:
-            test_node = node(geo_node, "xform", "test", _input="")  # type: ignore
+            _test_node = node(geo_node, "xform", "test", _input="")  # type: ignore
             handled_appropriately = True
             error_occurred = False
         except Exception as e:
@@ -187,7 +187,7 @@ def _test_invalid_input_types(input_type: str) -> JsonObject:
     elif input_type == "number":
         # Number - test what happens (type: ignore for intentional type violation)
         try:
-            test_node = node(geo_node, "xform", "test", _input=123)  # type: ignore
+            _test_node = node(geo_node, "xform", "test", _input=123)  # type: ignore
             handled_appropriately = True
             error_occurred = False
         except Exception as e:
