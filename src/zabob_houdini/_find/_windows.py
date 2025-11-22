@@ -7,7 +7,6 @@ from collections.abc import Iterable
 from contextlib import suppress
 from pathlib import Path
 from itertools import chain
-from functools import reduce
 import os
 
 from semver import Version
@@ -33,6 +32,7 @@ def _by_regkey():
                             # Process the installation
                             yield install_path
                         except OSError:
+                            # The 'InstallPath' value may not exist or be inaccessible; skip this version.
                             pass
                     i += 1
                 except OSError:

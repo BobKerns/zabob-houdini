@@ -5,7 +5,7 @@ Extract useful information about the Houdini environment.
 import builtins
 from collections import defaultdict
 from collections.abc import Callable, Hashable, MutableMapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from re import subn
 from typing import Any, NotRequired, TypeAlias, TypeVar, TypedDict
@@ -343,8 +343,8 @@ def categories(categories):
     click.echo()
 
     # Calculate column widths
-    max_name_width = max(len(cat.name) for cat in category_list)
-    max_label_width = max(len(cat.label) for cat in category_list)
+    max_name_width = max((len(cat.name) for cat in category_list), default=1)
+    max_label_width = max((len(cat.label) for cat in category_list), default=1)
 
     name_width = max(12, max_name_width)
     label_width = max(15, max_label_width)

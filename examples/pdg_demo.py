@@ -66,6 +66,7 @@ def create_wedge_workflow(obj_ctx):
                             script="print('All wedges complete')")
 
         # Context exits here, triggering automatic layout and creation
+        
 def create_filter_workflow(obj_ctx):
     """Create a PDG workflow demonstrating filtering and partitioning."""
 

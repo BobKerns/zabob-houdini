@@ -44,7 +44,7 @@ import hou
 
 from zabob_houdini.utils import JsonObject
 
-from src.zabob_houdini.houdini_bridge import minimal_env
+from zabob_houdini.houdini_bridge import minimal_env
 
 
 def get_houdini_info() -> JsonObject:
@@ -207,4 +207,4 @@ def _run_with_more(*script_args: tuple[str, ...]) -> None:
 
     args = shlex.split(script_args[-1])
     script_args = ["-m", "zabob_houdini", *script_args[0:-1], *args]
-    os.execlpe(sys.executable, sys.executable, *script_args, minimal_env())
+    os.execlpe(sys.executable, sys.executable, *script_args, env=minimal_env())

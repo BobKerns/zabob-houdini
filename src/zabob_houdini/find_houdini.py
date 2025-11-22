@@ -57,16 +57,11 @@ def get_houdini(version: Version|str|None = None) -> HoudiniInstall:
         case None:
             # Return the latest version (last in sorted dictionary)
             return max(installations.values(), key=lambda x: x.houdini_version)
-        case str():
+        case str() | Version():
             # Convert string version to semver.Version
             v = _version(version)
-        case Version():
-            # Already a semver.Version object
-            pass
         case _:
             raise ValueError("Version must be a string or semver.Version object")
-    # installation includes both full version and major.minor versions
-    v = _version(version)
     if v in installations:
         return installations[v]
     raise FileNotFoundError(f"No Houdini installation matching version {v} found")

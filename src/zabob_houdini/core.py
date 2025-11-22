@@ -489,7 +489,8 @@ class NodeInstance(NodeBase):
                     error_msg = error_msg.replace("The attempted operation failed.", "").strip()
                 if not error_msg:
                     error_msg = "Unknown error"
-                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{self.name}' in {parent_type} ({parent_path}): {error_msg}")
+                name = self.name or f"<<{self.node_type}>>"
+                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{name}' in {parent_type} ({parent_path}): {error_msg}")
 
         # Set attributes/parameters
         if self.attributes:

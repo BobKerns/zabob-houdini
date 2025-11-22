@@ -5,7 +5,6 @@ This version avoids importing anything that could trigger hou imports.
 """
 
 from collections.abc import Generator
-from multiprocessing import context
 from typing import Protocol
 from threading import RLock
 import inspect

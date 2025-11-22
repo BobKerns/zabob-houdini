@@ -14,7 +14,7 @@ import os
 import subprocess
 import sys
 
-from zabob_houdini.houdini_bridge import call_houdini_function, houdini_command
+from zabob_houdini.houdini_bridge import call_houdini_function, houdini_command, minimal_env
 from zabob_houdini.utils import JsonValue
 from zabob_houdini.__version__ import __version__, __distribution__
 
@@ -503,13 +503,10 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, sav
             cmd.append("--open")
 
         # Run with minimal environment
-        minimal_env = {}
-        for key in ('PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP'):
-            if key in os.environ:
-                minimal_env[key] = os.environ[key]
+
 
         try:
-            subprocess.run(cmd, check=True, env=minimal_env)
+            subprocess.run(cmd, check=True, env=minimal_env())
         except subprocess.CalledProcessError as e:
             # Script failed - hython already printed the error, just exit with same code
             sys.exit(e.returncode)
