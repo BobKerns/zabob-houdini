@@ -917,16 +917,16 @@ class NodeContext:
 
     def _process_input(self, input_spec) -> 'InputNode':
         """
-        Process an input specification, converting unknown string names to ForwardReferences.
+        Process an input specification, converting string names to ForwardReferences.
 
         Args:
             input_spec: The input specification to process
 
         Returns:
-            Processed input spec with ForwardReferences for unknown string names
+            Processed input spec with ForwardReferences for string names
         """
-        if isinstance(input_spec, str) and input_spec not in self._nodes:
-            # Unknown string name - create a forward reference
+        if isinstance(input_spec, str):
+            # String name - create a forward reference for deferred resolution
             return ForwardReference(
                 resolution_type='context_lookup',
                 context=self,
