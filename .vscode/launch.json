@@ -26,7 +26,7 @@
             "name": "Debug Houdini Example",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/${input:Example File Name}",
+            "program": "${workspaceFolder}/examples/${input:Example File Name}.py",
             "python": "hython",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
@@ -69,7 +69,7 @@
             "args": {
                 "key": "exampleFile",
                 "description": "Select example file to run",
-                "default": "__exit__.py",
+                "default": "._exit",
                 "fileName": "${workspaceFolder}/.vscode/tmp/example-files.txt",
                 "pattern": {
                     "regexp": "^(.+)$",

@@ -21,8 +21,11 @@ dophints
 dotenv
 ehthumbs
 fanout
+filepattern
 fillvalue
 fromlist
+genericgenerator
+geometryimport
 getitem
 hconfig
 hdanc
@@ -38,6 +41,7 @@ htmlcov
 hython
 inputidx
 isinstance
+itemcount
 keepachangelog
 KHTML
 kwargs
@@ -52,6 +56,7 @@ networkitems
 Nodeinstances
 nodename
 nosetests
+numworkitems
 nurbs
 ocio
 oneline
@@ -76,6 +81,7 @@ rady
 radz
 Referer
 repr
+resultdatatag
 rtype
 sdist
 SIDEFX
@@ -88,6 +94,7 @@ sizex
 sizey
 sizez
 softprops
+soppath
 startswith
 stype
 testbox
@@ -96,9 +103,14 @@ testpaths
 TestPyPI
 timeclass
 timestep
+topnet
 undos
 venv
 vstr
+waitforall
+wedgecount
+worktree
+worktrees
 xform
 yourword
 zabob

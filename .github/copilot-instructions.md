@@ -24,6 +24,15 @@ Zabob-Houdini is a Python API for creating Houdini node graphs programmatically.
 
 ## Development Conventions
 
+### Terminal Environment Setup
+When first running terminal commands:
+1. **Check for virtual environment**: If `.venv/` exists, activate it
+2. **Create if missing**: If no `.venv/` exists, run `uv sync` to create and install dependencies
+3. **Activation command**: `source .venv/bin/activate` (macOS/Linux) or `.venv\Scripts\activate` (Windows)
+4. **Verify activation**: Check that the venv is active (prompt shows `(zabob-houdini)`)
+
+This ensures commands like `zabob-houdini` use the correct worktree's code, especially important when working with git worktrees.
+
 ### Response Guidelines
 - **Be concise and focused** in all responses to prevent context overflow
 - When performing code changes:
