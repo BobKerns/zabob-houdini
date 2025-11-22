@@ -1,24 +1,15 @@
-#!/usr/bin/env uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#     "click",
-#     "requests",
-#     "semver",
-#     "python-dotenv",
-#     "charset-normalizer<3.4.0",
-# ]
-# ///
-
+'''
+Code for locating and downloading houdini installers.
+'''
 
 from collections.abc import Mapping, Collection
-from functools import reduce
+from functools import reduce, wraps
 import os
 from platform import uname
 import json
 from pathlib import Path
 import re
-from typing import Any, Final, Literal, TypeAlias, TypedDict, cast
+from typing import Any, Callable, Final, Literal, TypeAlias, TypedDict, TypeVar, cast, ParamSpec
 import sys
 import time
 from datetime import datetime
@@ -26,12 +17,23 @@ from collections import defaultdict
 
 import requests
 import click
-from click import Parameter, Context
 from semver import Version
 # Add dotenv support
 from dotenv import load_dotenv
 
+from zabob_houdini.click_types import SemVerParamType
+
+
+T = TypeVar('T')
+Params = ParamSpec('Params')
+
 load_dotenv()  # Load from .env if available]
+
+
+class AuthenticationError(Exception):
+    """Raised when SideFX authentication fails."""
+    pass
+
 
 HOUDINI_FALLBACK_VERSION: Final[Version] = Version.parse(os.getenv("HOUDINI_FALLBACK_VERSION", "21.0.512"))
 HOUDINI_DEFAULT_MIN_VERSION: Final[Version] = Version(21, 0)
@@ -49,102 +51,6 @@ BuildType: TypeAlias = Literal['gcc9.3', 'gcc11.2', 'gcc12.2']|str
 
 _OS: Final[Platform] = cast(Platform, uname().system)
 _ARCH: Final[Architecture] = cast(Architecture, uname().machine)
-
-
-class SemVerParamType(click.ParamType):
-    """Provide a custom click type for semantic versions.
-
-    This custom click type provides validity checks for semantic versions.
-    """
-    name = 'semver'
-    _min_parts: int = 3
-    _max_parts: int = 3
-
-    _min_version: Version|None = None
-    _max_version: Version|None = None
-
-    def __init__(self,
-                 min_parts: int = 3,
-                 max_parts: int = 3,
-                 min_version: Version|None = None,
-                 max_version: Version|None = None,
-    ) -> None:
-        """
-        Initialize the SemVerParamType.
-
-        :param min_parts: If True, the minor version is optional.
-        :type min_parts: int
-        :param max_parts: If True, the patch version is optional.
-        :type max_parts: int
-        :param min_version: The minimum version allowed.
-        :type min_version: semver.Version|None
-        :param max_version: The maximum version allowed.
-        :type max_version: semver.Version|None
-        """
-        super().__init__()
-        self._min_parts = min(min_parts, max_parts)
-        self._max_parts = max(max_parts, min_parts)
-        self._min_version = min_version
-        self._max_version = max_version
-
-    def convert(self, value: str, param: Parameter|None, ctx: Context|None) -> Version:
-        """Converts the value from string into semver type.
-
-        This method takes a string and check if this string belongs to semantic version definition.
-        If the test is passed the value will be returned. If not a error message will be prompted.
-
-        :param value: the value passed
-        :type value: str
-        :param param: the parameter that we declared
-        :type param: str
-        :param ctx: context of the command
-        :type ctx: str
-        :return: the passed value as a checked semver
-        :rtype: str
-        """
-        parts = value.count('.') + 1
-        if parts > self._max_parts:
-            segments = ('major', 'minor', 'patch', 'prerelease', 'build')
-            expect = '.'.join(segments[:self._max_parts])
-            self.fail(f"Not a valid version, expected at most {expect}", param, ctx)
-        elif parts < self._min_parts:
-            segments = ('major', 'minor', 'patch', 'prerelease', 'build')
-            expect = '.'.join(segments[:self._min_parts])
-            self.fail(f"Not a valid version, expected at least {expect}", param, ctx)
-        else:
-            try:
-                result = _version(value)
-                if self._min_version and self._max_version:
-                    if result > self._max_version or result < self._min_version:
-                        self.fail(f"Version {result} is not in range {self._min_version} - {self._max_version}",
-                                  param,
-                                  ctx)
-                if self._min_version and result < self._min_version:
-                    self.fail(f"Version {result} is less than minimum version {self._min_version}",
-                              param,
-                              ctx)
-                if self._max_version and result > self._max_version:
-                    self.fail(f"Version {result} is greater than maximum version {self._max_version}",
-                              param,
-                              ctx)
-                return result
-            except ValueError as e:
-                self.fail('Not a valid version, {0}'.format(str(e)), param, ctx)
-
-
-def _version(version: Version|str) -> Version:
-    """
-    Convert a version to a semver.Version object.
-
-    Args:
-        version (Version|str): The version to convert.
-
-    Returns:
-        Version: The converted version.
-    """
-    if isinstance(version, Version):
-        return version
-    return Version.parse(version, optional_minor_and_patch=True)
 
 
 def platform_ui(name: PlatformSFX|Platform|PlatformUI=_OS) -> PlatformUI:
@@ -372,6 +278,12 @@ def get_version_ranges(
         try:
             build_data = build_resp.json()
         except json.JSONDecodeError as e:
+            # Check if this is an authentication failure (HTML response instead of JSON)
+            if "login" in build_resp.text.lower() or "<html" in build_resp.text.lower():
+                raise AuthenticationError(
+                    "Authentication failed. Please check your SIDEFX_USERNAME and SIDEFX_PASSWORD credentials.\n"
+                    "Set them in a .env file or as environment variables."
+                )
             raise RuntimeError(f"Failed to parse JSON response: {e}") from e
 
         # Check in daily_builds_releases
@@ -405,6 +317,9 @@ def get_version_ranges(
 
         return version_groups
 
+    except AuthenticationError:
+        # Re-raise authentication errors without wrapping
+        raise
     except Exception as e:
         raise RuntimeError(f"Error fetching versions: {e}") from e
 
@@ -551,14 +466,46 @@ def download_houdini_installer(version: Version,
     print(f"Downloaded to: {output_file}", file=sys.stderr)
     return output_file
 
-def login_session(session: requests.Session) -> requests.Session:
-    """Login to SideFX using environment credentials."""
-    # Get credentials from environment
+def handle_credential_errors(func: Callable[Params, T]) -> Callable[Params, T]:
+    """Decorator to handle ValueError and AuthenticationError with clean error messages."""
+    @wraps(func)
+    def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> T:
+        try:
+            return func(*args, **kwargs)
+        except (ValueError, AuthenticationError) as e:
+            click.echo(str(e), err=True)
+            raise SystemExit(1)
+    return wrapper  # type: ignore[return-value]
+
+
+def check_credentials() -> tuple[str, str]:
+    """Check for SideFX credentials and provide helpful error message."""
     username = os.environ.get("SIDEFX_USERNAME")
     password = os.environ.get("SIDEFX_PASSWORD")
 
     if not username or not password:
-        raise ValueError("SIDEFX_USERNAME and SIDEFX_PASSWORD must be set (via environment or .env file)")
+        raise ValueError(
+            "SideFX credentials not found.\n"
+            "\n"
+            "Please set SIDEFX_USERNAME and SIDEFX_PASSWORD:\n"
+            "  1. Create a .env file in your project root with:\n"
+            "       SIDEFX_USERNAME=your_email@example.com\n"
+            "       SIDEFX_PASSWORD=your_password\n"
+            "  2. Or set as environment variables:\n"
+            "       export SIDEFX_USERNAME=your_email@example.com\n"
+            "       export SIDEFX_PASSWORD=your_password\n"
+            "\n"
+            "Note: You need a SideFX account to download Houdini.\n"
+            "Sign up at https://www.sidefx.com/"
+        )
+
+    return username, password
+
+
+def login_session(session: requests.Session) -> requests.Session:
+    """Login to SideFX using environment credentials."""
+    # Get credentials from environment with helpful error message
+    username, password = check_credentials()
 
     # Common browser-like headers
     headers = {
@@ -605,7 +552,7 @@ def login_session(session: requests.Session) -> requests.Session:
 # Create a click group as the main entry point
 @click.group()
 def cli():
-    """Houdini version management tools."""
+    """SideFX download and version management tools."""
     pass
 
 # First subcommand - get versions
@@ -637,6 +584,7 @@ def cli():
               is_flag=True,
               default=False,
               help="Includes development versions.")
+@handle_credential_errors
 def versions_command(
         cache_dir: Path|str=HOUDINI_VERSIONS_CACHE,
         min_version: Version|None=None,
@@ -686,6 +634,7 @@ def versions_command(
 @click.option('--credentials',
             type=click.Path(exists=True, dir_okay=False),
             help='Path to .env file with SIDEFX_USERNAME and SIDEFX_PASSWORD')
+@handle_credential_errors
 def download_command(version: Version=HOUDINI_FALLBACK_VERSION,
                    arch: Architecture="arm64",
                    build_type: BuildType="",
@@ -693,34 +642,31 @@ def download_command(version: Version=HOUDINI_FALLBACK_VERSION,
                    credentials: Path|None=None,
                 ):
     """Download a Houdini installer."""
-    try:
-        # Load credentials file if provided
-        if credentials:
-            load_dotenv(dotenv_path=credentials, override=True)
+    # Load credentials file if provided
+    if credentials:
+        load_dotenv(dotenv_path=credentials, override=True)
 
-        session = requests.Session()
-        login_session(session)
+    session = requests.Session()
+    login_session(session)
+
         # Rest of your download code...
-        installer_path = download_houdini_installer(
-            version=version,
-            arch=arch,
-            build_type=build_type,
-            session=session
-        )
+    installer_path = download_houdini_installer(
+        version=version,
+        arch=arch,
+        build_type=build_type,
+        session=session
+    )
 
-        # If output path is specified, copy there (for Docker build)
-        if output_path:
-            import shutil
-            output_path = Path(output_path)
-            output_path.parent.mkdir(exist_ok=True, parents=True)
-            shutil.copy2(installer_path, output_path)
-            print(f"Copied to: {output_path}", file=sys.stderr)
+    # If output path is specified, copy there (for Docker build)
+    if output_path:
+        import shutil
+        output_path = Path(output_path)
+        output_path.parent.mkdir(exist_ok=True, parents=True)
+        shutil.copy2(installer_path, output_path)
+        print(f"Copied to: {output_path}", file=sys.stderr)
 
-        # Print the path to stdout for capturing in scripts
-        print(installer_path)
-    except Exception as e:
-        print(f"Error downloading Houdini: {e}", file=sys.stderr)
-        sys.exit(1)
+    # Print the path to stdout for capturing in scripts
+    print(installer_path)
 
 
 @cli.command('show')
@@ -736,6 +682,7 @@ def download_command(version: Version=HOUDINI_FALLBACK_VERSION,
 @click.option('--build-type',
               default=None,
               help='Build type (gcc9.3, gcc11.2, etc).')
+@handle_credential_errors
 def show_command(version: Version,
                  platform: PlatformUI=platform_ui(),
                  arch: Architecture=_ARCH,

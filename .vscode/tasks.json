@@ -10,7 +10,7 @@
         {
             "label": "Generate Test List",
             "type": "shell",
-            "command": "npm run list-hython-tests 2>/dev/null | grep -E '^(test_|__exit__)' > .vscode/tmp/test-functions.txt",
+            "command": "npm run list-hython-tests 2>/dev/null | grep -E '^(test_|\\._exit)' > .vscode/tmp/test-functions.txt",
             "group": "build",
             "presentation": {
                 "echo": false,
@@ -33,6 +33,40 @@
                 "panel": "shared",
                 "showReuseMessage": false,
                 "clear": false
+            }
+        },
+        {
+            "label": "Run Houdini Example (Save HIP)",
+            "type": "shell",
+            "command": "zabob-houdini run ${workspaceFolder}/examples/${input:exampleFile}.py --save",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "dependsOn": ["Generate Example List"],
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "exampleFile",
+            "type": "command",
+            "command": "extension.commandvariable.pickStringRemember",
+            "args": {
+                "key": "exampleFile",
+                "description": "Select example file to run",
+                "default": "._exit",
+                "fileName": "${workspaceFolder}/.vscode/tmp/example-files.txt",
+                "pattern": {
+                    "regexp": "^(.+)$",
+                    "label": "$1",
+                    "value": "$1"
+                }
             }
         }
     ]

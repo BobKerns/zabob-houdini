@@ -489,7 +489,8 @@ class NodeInstance(NodeBase):
                     error_msg = error_msg.replace("The attempted operation failed.", "").strip()
                 if not error_msg:
                     error_msg = "Unknown error"
-                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{self.name}' in {parent_type} ({parent_path}): {error_msg}") from e
+                name = self.name or f"<<{self.node_type}>>"
+                raise RuntimeError(f"Invalid node type '{self.node_type}' for node '{name}' in {parent_type} ({parent_path}): {error_msg}")
 
         # Set attributes/parameters
         if self.attributes:
@@ -815,13 +816,18 @@ class NodeContext:
     parent: NodeInstance
     _nodes: dict[str, NodeInstance] = field(default_factory=dict, init=False)
     _dependency_registry: weakref.WeakKeyDictionary[NodeInstance, list[NodeInstance]] = field(default_factory=weakref.WeakKeyDictionary, init=False)
+    _level: int = field(default=0, init=False)
 
     def __enter__(self) -> 'NodeContext':
         """Enter the context manager."""
+        self._level += 1
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit the context manager - apply layout and create sink nodes."""
+        self._level -= 1
+        if self._level > 0:
+            return
         if exc_type is None:  # Only if no exception occurred
             # Apply layout to position all nodes
             self.apply_layout()
@@ -969,6 +975,37 @@ class NodeContext:
             raise KeyError(f"No node named '{name}' found in this context")
         return self._nodes[name]
 
+    def context(self, node_or_path: NodeInstance | str | hou.Node | None = None) -> 'NodeContext':
+        """
+        Create a new context for layout purposes.
+
+        This method creates a logical grouping context for nodes. The exact behavior
+        is implementation-defined and may evolve in future versions (e.g., to support
+        network boxes, nested layouts, or other organizational features).
+
+        Current behavior: Returns self, meaning nodes are created in the same context
+        but the syntax allows for clearer organization of code that logically groups
+        related nodes.
+
+        Args:
+            node_or_path: Context specification (behavior is implementation-defined)
+
+        Returns:
+            A NodeContext for creating and organizing nodes (currently self)
+
+        Usage:
+            with global_ctx.context() as ctx:
+                # Creates nodes with logical grouping
+                ctx.node("topnet", "my_network")
+
+        Example with nested organization:
+            with context("/obj") as obj_ctx:
+                with obj_ctx.context(node("/obj", "topnet", name="demo1")) as top_ctx:
+                    # All nodes created here are organized under demo1
+                    top_ctx.node("pythonscript", "task1")
+        """
+        return self
+
     def chain(self, *, _input: 'InputNode | Sequence[InputNode] | None' = None, **attributes: Any) -> 'ChainBuilder':
         """
         Create a ChainBuilder context manager for building chains.
@@ -1084,6 +1121,33 @@ class NodeContext:
         """
         return [node for node in self._dependency_registry.keys() if not self.get_dependents(node)]
 
+    def _get_lowest_existing_node_position(self) -> float:
+        """Get the Y position to start layout below existing nodes in parent.
+
+        Returns:
+            Y offset to position new nodes below existing ones (0 if no existing nodes)
+        """
+        try:
+            # Ensure parent exists before checking for existing nodes
+            parent_hou_node = self.parent.create()
+            if parent_hou_node is None:
+                return 0.0
+
+            # Get all existing nodes in parent (including schedulers via allSubChildren)
+            existing_nodes = parent_hou_node.allSubChildren()
+            if not existing_nodes:
+                return 0.0
+
+            # Find the lowest Y position among existing nodes
+            lowest_y = min(node.position()[1] for node in existing_nodes)
+
+            # Start our nodes 3 units below the lowest existing node
+            return lowest_y - 3.0
+
+        except Exception:
+            # If anything fails, start at 0
+            return 0.0
+
     def layout_nodes(self, layer_height: float = 2.0, node_width: float = 2.0, min_spacing: float = 0.5) -> dict[NodeInstance, tuple[float, float]]:
         """Compute optimal layout positions for all nodes in the context.
 
@@ -1093,6 +1157,9 @@ class NodeContext:
         3. Center nodes between their inputs when possible
         4. Allocate space based on output fanout, propagating upward
         5. Resolve conflicts by adding space at each layer
+
+        For TOP networks, checks for existing nodes (like schedulers) and positions
+        our nodes below them to avoid conflicts.
 
         Args:
             layer_height: Vertical spacing between layers
@@ -1106,6 +1173,9 @@ class NodeContext:
         if not all_nodes:
             return {}
 
+        # Calculate Y offset once at the start for consistency
+        y_offset = self._get_lowest_existing_node_position()
+
         # Step 1: Compute topological layers
         layers = self._compute_layers(all_nodes)
 
@@ -1113,7 +1183,7 @@ class NodeContext:
         space_requirements = self._compute_space_requirements(layers, node_width, min_spacing)
 
         # Step 3: Position nodes within each layer
-        positions = self._position_nodes_in_layers(layers, space_requirements, layer_height, node_width, min_spacing)
+        positions = self._position_nodes_in_layers(layers, space_requirements, layer_height, node_width, min_spacing, y_offset)
 
         return positions
 
@@ -1225,8 +1295,17 @@ class NodeContext:
     def _position_nodes_in_layers(self, layers: dict[int, list[NodeInstance]],
                                  space_requirements: dict[NodeInstance, float],
                                  layer_height: float, node_width: float,
-                                 min_spacing: float) -> dict[NodeInstance, tuple[float, float]]:
-        """Position nodes using bidirectional layout algorithm."""
+                                 min_spacing: float, y_offset: float) -> dict[NodeInstance, tuple[float, float]]:
+        """Position nodes using bidirectional layout algorithm.
+
+        Args:
+            layers: Nodes organized by layer depth
+            space_requirements: Horizontal space needed for each node
+            layer_height: Vertical spacing between layers
+            node_width: Width of each node
+            min_spacing: Minimum horizontal spacing
+            y_offset: Vertical offset to position below existing nodes
+        """
 
         # Step 1: Upward pass - compute required horizontal space for each node
         # based on outputs that need to be positioned below it
@@ -1255,7 +1334,7 @@ class NodeContext:
         # Start with top layer (sources)
         min_layer = min(layers.keys())
         source_nodes = layers[min_layer]
-        y_pos = -min_layer * layer_height
+        y_pos = y_offset + (-min_layer * layer_height)
 
         # Position sources to use their required width
         total_width = sum(node_required_width[node] for node in source_nodes)
@@ -1270,7 +1349,7 @@ class NodeContext:
         # Position remaining layers
         for layer_idx in sorted(layers.keys())[1:]:
             layer_nodes = layers[layer_idx]
-            y_pos = -layer_idx * layer_height
+            y_pos = y_offset + (-layer_idx * layer_height)
 
             # Group nodes by their inputs to distribute within input spans
             input_groups: dict[tuple[NodeInstance, ...], list[NodeInstance]] = {}

@@ -241,3 +241,24 @@ def houdini_available() -> bool:
     """Check if we're running in hython environment."""
     executable = Path(sys.executable).name.lower()
     return 'hython' in executable or 'houdini' in executable
+
+
+@pytest.fixture(scope="session", autouse=True)
+def clean_houdini_environment():
+    """Clean environment for all tests to avoid Houdini startup noise."""
+    minimal_keys = {'PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP'}
+
+    # Store original env
+    original_env = os.environ.copy()
+
+    # Clear and set minimal env
+    os.environ.clear()
+    for key in minimal_keys:
+        if key in original_env:
+            os.environ[key] = original_env[key]
+
+    yield
+
+    # Restore (optional, since tests end anyway)
+    os.environ.clear()
+    os.environ.update(original_env)

@@ -133,20 +133,30 @@ uv run pytest -v
 
 Because most of the tests do their work in a `hython` subprocess, it is challenging to debug what happens during a test.
 
-#### VS Code Launch Configurations
+#### VS Code Launch Configurations and Tasks
 
-The project includes dynamic launch configurations for debugging hython-based tests directly:
+The project includes dynamic launch configurations and tasks for working with hython:
 
-1. **Debug Houdini Test Function**: Select from a dropdown of actual test functions and debug them directly in hython
+**Launch Configurations (Debug → Start Debugging or F5):**
+
+1. **Debug Houdini Test Function**: Select from a dropdown of test functions and debug them directly in hython
 2. **Debug Houdini Example**: Select and debug example files under hython
+3. **Hython Debugger: Current File**: Debug the currently open file in hython
+
+**Tasks (Terminal → Run Task):**
+
+1. **Run Houdini Example (Save HIP)**: Run an example file and save the resulting scene to `hip/<basename>.hip`
+   - Prompts for example selection from dropdown
+   - Uses `zabob-houdini run` command with `--hipfile` option
+   - Useful for generating HIP files to inspect results
 
 These configurations automatically refresh their dropdown options from the actual project files. To use them:
 
 1. Install the recommended Command Variable extension when prompted
-2. Press F5 or use Run → Start Debugging
-3. Choose "Debug Houdini Test Function"
-4. Select the test function from the dropdown
-5. Set breakpoints in the test function in `houdini_test_functions.py`
+2. For debugging: Press F5 or use Run → Start Debugging
+3. For running examples: Use Terminal → Run Task → "Run Houdini Example (Save HIP)"
+4. Select the test function or example file from the dropdown
+5. Set breakpoints in test functions in `houdini_test_functions.py`
 
 This allows direct stepping through the Houdini-side test code, which is much more effective than debugging the pytest wrapper.
 
@@ -345,35 +355,69 @@ Each example file contains common installation paths for that platform. Edit `.e
 
 ### Using with Houdini
 
-**Important:** Due to Houdini's architecture, `hython` has severe compatibility issues with virtual environments, UV, and modern Python tooling. The linked symbol requirements make it extremely difficult to use external Python packages reliably.
+**Development Workflow:**
 
-**Recommended approach for Houdini integration:**
+For development, install zabob-houdini as a Houdini package pointing to your worktree's `src/` directory:
 
-1. **Development and Testing:**
+```bash
+# Ensure virtual environment is active and correct
+source .venv/bin/activate  # or activate.bat on Windows
+
+# Install package pointing to current worktree's src/
+zabob-houdini install-package
+
+# Verify installation points to correct location
+zabob-houdini diagnose
+```
+
+This creates a Houdini package JSON that adds your worktree's `src/` directory to Houdini's PYTHONPATH, allowing you to:
+- Test changes immediately in Houdini without reinstalling
+- Debug code in your active worktree
+- Run examples and tests with `hython`
+
+**⚠️ Important for Git Worktrees:**
+
+Each worktree needs its own virtual environment. If you see the wrong code running:
+
+1. **Check with diagnostics:**
    ```bash
-   # Use regular Python for development
-   uv run zabob-houdini info
-   uv run python -c "from zabob_houdini import node; print('API works!')"
+   zabob-houdini diagnose
    ```
 
-2. **Production Use within Houdini:**
-   ```python
-   # Install in Houdini's Python environment
-   # Within Houdini's Python shell or scripts:
-   import sys
-   sys.path.append('/path/to/your/project/src')
-   from zabob_houdini import node, chain
-
-   # Create nodes within Houdini
-   geo_node = node("/obj", "geo", name="mygeometry")
-   result = geo_node.create()  # This works within Houdini
-   ```
-
-3. **Alternative Installation:**
+2. **If venv points to wrong worktree:**
    ```bash
-   # Install package directly in Houdini's Python
-   /path/to/houdini/hython -m pip install zabob-houdini
+   deactivate 2>/dev/null  # Exit venv if active
+   rm -rf .venv            # Remove incorrect venv
+   uv sync                 # Create new venv for this worktree
    ```
+
+3. **Reinstall package:**
+   ```bash
+   source .venv/bin/activate
+   zabob-houdini install-package  # Points to current worktree's src/
+   ```
+
+The package installation is global to Houdini but can be overwritten - just run `zabob-houdini install-package` from the worktree you want to use. No need to uninstall first.
+
+**Production Use:**
+
+For production use outside of development, use `uvx` to install and run zabob-houdini commands. This automatically handles virtual environment creation and other installation gotchas:
+
+```bash
+# Install and run zabob-houdini using uvx (recommended)
+uvx zabob-houdini install-package
+
+# Or use with any other zabob-houdini command
+uvx zabob-houdini diagnose
+uvx zabob-houdini run examples/diamond_chain_demo.py
+```
+
+Alternatively, you can install directly into Houdini's Python environment:
+
+```bash
+# Install into Houdini's Python (alternative method)
+/path/to/houdini/hython -m pip install zabob-houdini
+```
 
 **Where to use zabob-houdini in Houdini:**
 - **Python shelf tools**: Create custom shelf buttons with zabob-houdini code

@@ -1,11 +1,4 @@
-#!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#     "click>=8.0.0",
-#     "typing-extensions>=4.0.0",
-# ]
-# ///
+
 """
 Zabob-Houdini CLI - Simple utilities for development and testing.
 
@@ -18,11 +11,17 @@ within Houdini's Python shelf tools or HDA scripts.
 from typing import cast
 import click
 import os
+import subprocess
 import sys
 
-from zabob_houdini.houdini_bridge import call_houdini_function, houdini_command
+from zabob_houdini.houdini_bridge import call_houdini_function, houdini_command, minimal_env
 from zabob_houdini.utils import JsonValue
 from zabob_houdini.__version__ import __version__, __distribution__
+
+CATEGORIES = [
+    'Chop', 'Cop', 'Cop2', 'Cop2Net', 'CopNet', 'Director',
+    'Dop', 'Driver', 'Lop', 'Manager', 'Object', 'Shop',
+    'Sop', 'Top', 'Vop']
 
 def get_environment_info() -> dict[str, JsonValue]:
     """Get information about the current Python and Houdini environment."""
@@ -58,37 +57,6 @@ def main() -> None:
     Simple CLI for validating Houdini integration and listing node types.
     """
     pass
-
-
-
-@main.command()
-@click.option(
-    "--category", "-c",
-    type=click.Choice(["sop", "obj", "dop", "cop", "vop", "top"], case_sensitive=False),
-    help="Filter by node category"
-)
-def list_types(category: str | None) -> None:
-    """
-    List available Houdini node types.
-    """
-    try:
-        # TODO: Import your existing node enumeration code here
-        if category:
-            click.echo(f"Available {category.upper()} node types:")
-            # TODO: Call your enumeration function with category filter
-            click.echo("Node type enumeration not yet implemented")
-        else:
-            click.echo("Available node types:")
-            # TODO: Call your enumeration function for all types
-            click.echo("Node type enumeration not yet implemented")
-
-    except ImportError:
-        click.echo("✗ Cannot access Houdini module. Check your environment setup.")
-    except Exception as e:
-        click.echo(f"✗ Error listing node types: {e}")
-
-
-
 
 
 @main.command()
@@ -189,15 +157,198 @@ def validate() -> None:
         click.echo("✗ Houdini environment is not available")
         sys.exit(1)
 
-@click.group("info")
-def info():
+
+@main.command()
+def diagnose() -> None:
     """
-    Commands for extracting information about the Houdini environment.
+    Print diagnostic information for troubleshooting environment issues.
+
+    Shows Python executable paths, package installation locations, hython availability,
+    and Houdini package configuration. Useful for debugging worktree and virtual
+    environment issues.
+    """
+    import shutil
+    from pathlib import Path
+    from zabob_houdini.package_installer import get_houdini_package_dirs
+
+    click.echo("Zabob-Houdini Diagnostic Information")
+    click.echo("=" * 70)
+
+    # Python environment
+    click.echo("\n[Python Environment]")
+    click.echo(f"Python Version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    click.echo(f"Python Executable: {sys.executable}")
+
+    # Find zabob-houdini installation location
+    try:
+        import zabob_houdini
+        install_path = Path(zabob_houdini.__file__).parent.parent.resolve()
+        click.echo(f"Zabob Package Location: {install_path}")
+    except Exception as e:
+        click.echo(f"Zabob Package Location: Error - {e}")
+
+    # Check for zabob-houdini command in PATH
+    click.echo("\n[Command Locations]")
+    zabob_cmd = shutil.which("zabob-houdini")
+    if zabob_cmd:
+        click.echo(f"zabob-houdini command: {zabob_cmd}")
+        # Check if it's in a venv
+        if ".venv" in zabob_cmd:
+            click.echo("  ✓ Running from virtual environment")
+        elif "Library/Python" in zabob_cmd:
+            click.echo("  ⚠ Running from user site-packages (may conflict with venv)")
+    else:
+        click.echo("zabob-houdini command: Not found in PATH")
+
+    # hython availability
+    hython_path = shutil.which("hython")
+    hython_found = False
+    if hython_path:
+        click.echo(f"hython: {hython_path}")
+        hython_found = True
+        try:
+            result = subprocess.run(
+                [hython_path, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            version_output = result.stderr.strip() if result.stderr else result.stdout.strip()
+            if version_output:
+                click.echo(f"  Version: {version_output.split()[0] if version_output else 'Unknown'}")
+        except Exception as e:
+            click.echo(f"  Version: Error getting version - {e}")
+    else:
+        click.echo("hython: ⚠ Not found in PATH")
+        click.echo("  Houdini may not be installed or not in your PATH")
+
+    # Houdini package configuration
+    click.echo("\n[Houdini Package Configuration]")
+    package_dirs = get_houdini_package_dirs()
+    if package_dirs:
+        click.echo("Houdini package directories:")
+        for pkg_dir in package_dirs:
+            exists = "✓" if pkg_dir.exists() else "✗"
+            click.echo(f"  {exists} {pkg_dir}")
+
+            # Check for zabob_houdini.json
+            package_json = pkg_dir / "zabob_houdini.json"
+            if package_json.exists():
+                try:
+                    import json
+                    with open(package_json) as f:
+                        config = json.load(f)
+                    pythonpath = config.get("env", [{}])[0].get("PYTHONPATH", {}).get("value", "")
+                    click.echo(f"    Installed - points to: {pythonpath}")
+                except Exception as e:
+                    click.echo(f"    Installed - error reading: {e}")
+    else:
+        click.echo("No Houdini package directories found")
+
+    # Environment variables
+    click.echo("\n[Environment Variables]")
+    houdini_path = os.getenv("HOUDINI_PATH")
+    if houdini_path:
+        click.echo("HOUDINI_PATH:")
+        for p in houdini_path.split(os.pathsep):
+            click.echo(f"  {p}")
+    else:
+        click.echo("HOUDINI_PATH: Not set")
+
+    pythonpath = os.getenv("PYTHONPATH")
+    if pythonpath:
+        click.echo("PYTHONPATH:")
+        for p in pythonpath.split(os.pathsep):
+            click.echo(f"  {p}")
+    else:
+        click.echo("PYTHONPATH: Not set")
+
+    virtual_env = os.getenv("VIRTUAL_ENV")
+    if virtual_env:
+        click.echo(f"VIRTUAL_ENV: {virtual_env}")
+    else:
+        click.echo("VIRTUAL_ENV: Not set (no virtual environment active)")
+
+    # Worktree detection
+    click.echo("\n[Git Worktree Information]")
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            cwd=Path.cwd()
+        )
+        if result.returncode == 0:
+            repo_root = result.stdout.strip()
+            click.echo(f"Repository root: {repo_root}")
+
+            # Check if this is a worktree
+            git_dir = Path.cwd() / ".git"
+            if git_dir.is_file():
+                click.echo("  ✓ This is a git worktree")
+                with open(git_dir) as f:
+                    click.echo(f"  {f.read().strip()}")
+            else:
+                click.echo("  This is the main repository (not a worktree)")
+    except Exception:
+        click.echo("Not in a git repository")
+
+    # Virtual environment consistency check
+    click.echo("\n[Virtual Environment Consistency]")
+    venv_path = Path.cwd() / ".venv"
+    if venv_path.exists():
+        # Find the .pth file in site-packages
+        site_packages = list(venv_path.glob("lib/*/site-packages"))
+        if site_packages:
+            pth_file = site_packages[0] / "_zabob_houdini.pth"
+            if pth_file.exists():
+                try:
+                    with open(pth_file) as f:
+                        venv_points_to = f.read().strip()
+                    current_src = (Path.cwd() / "src").resolve()
+                    venv_src = Path(venv_points_to).resolve()
+
+                    if venv_src == current_src:
+                        click.echo(f"✓ Virtual environment points to current worktree")
+                        click.echo(f"  {venv_points_to}")
+                    else:
+                        click.echo(f"⚠ Virtual environment points to DIFFERENT location!")
+                        click.echo(f"  Expected: {current_src}")
+                        click.echo(f"  Actual:   {venv_src}")
+                        click.echo(f"  → Fix: deactivate 2>/dev/null; rm -rf .venv && uv sync")
+                except Exception as e:
+                    click.echo(f"Error reading .pth file: {e}")
+            else:
+                click.echo("⚠ No _zabob_houdini.pth found in site-packages")
+                click.echo("  → Run 'uv sync' to create it")
+        else:
+            click.echo("⚠ No site-packages directory found in .venv")
+    else:
+        click.echo("✗ No .venv directory found")
+        click.echo("  → Run 'uv sync' to create virtual environment")
+
+    click.echo("\n" + "=" * 70)
+    click.echo("Troubleshooting Tips:")
+    click.echo("• If zabob-houdini is not from .venv, run: source .venv/bin/activate")
+    click.echo("• If venv points to wrong worktree: deactivate; rm -rf .venv && uv sync")
+    click.echo("• After fixing venv, run: zabob-houdini install-package")
+    click.echo("  (This points Houdini to your current worktree's src/ directory)")
+    if hython_found:
+        click.echo("• For detailed Houdini installation info: zabob-houdini houdini show")
+    else:
+        click.echo("• To find Houdini installations: zabob-houdini houdini installations")
+    click.echo("• To download other versions from SideFX: zabob-houdini sidefx versions")
+    click.echo("=" * 70)
+
+@click.group("houdini")
+def houdini():
+    """
+    Commands for working with local Houdini installations and querying node information.
     """
     pass
 
 
-@info.command('categories')
+@houdini.command('categories')
 @houdini_command
 @click.argument('args', nargs=-1, type=str)
 def categories(args: tuple[str, ...]) -> None:
@@ -207,9 +358,9 @@ def categories(args: tuple[str, ...]) -> None:
     pass
 
 
-@info.command('types')
+@houdini.command('types')
 @houdini_command
-@click.argument('category', type=str)
+@click.argument('category', type=click.Choice(CATEGORIES, case_sensitive=False))
 def types(category: str) -> None:
     """
     List node types in the specified category with basic information.
@@ -219,15 +370,89 @@ def types(category: str) -> None:
     pass
 
 
+@houdini.command('installations')
+def installations() -> None:
+    """
+    List all installed Houdini versions on the system.
+    """
+    from zabob_houdini.find_houdini import find_houdini_installations
+
+    installs = find_houdini_installations()
+    if not installs:
+        click.echo("No Houdini installations found.")
+        return
+
+    click.echo("Installed Houdini Versions:")
+    click.echo()
+
+    for version, install in sorted(installs.items(), key=lambda x: x[0]):
+        if version.patch != 0:
+            # MM.nn.0 versions are generic, not specific builds
+            click.echo(f"{version}: (Python {install.python_version})")
+            click.echo(f"    {install.version_dir}")
+
+
+@houdini.command('show')
+@click.argument('version', type=str, required=False, default=None)
+def show(version: str | None = None) -> None:
+    """
+    Show detailed information about a Houdini installation.
+
+    VERSION: Specific version to show ("20.5" or "20.5.584"), or latest if omitted
+    """
+    from pathlib import Path
+    from zabob_houdini.find_houdini import get_houdini
+    from zabob_houdini._find.types import _version
+
+    try:
+        houdini_install = get_houdini(_version(version) if version else None)
+        click.echo(f"Found Houdini installation: {houdini_install}")
+        click.echo(f"Installed applications: {', '.join(houdini_install.app_paths.keys())}")
+        title = 'Python Version'
+        click.echo(f"  {title:>14s}: {houdini_install.python_version}")
+        title = 'Version Dir'
+        version_dir = houdini_install.version_dir
+        click.echo(f"  {title:>14s}: {version_dir}")
+        for key in (
+                    'exec_prefix',
+                    'bin_dir',
+                    'hython',
+                    'hfs_dir',
+                    'python_libs',
+                    'hdso_libs',
+                    'hh_dir',
+                    'config_dir',
+                    'toolkit_dir',
+                    'sbin_dir',
+                ):
+
+            title = key.replace('_', ' ').title()
+            title = title.replace('hfs', 'HFS')
+            click.echo(f"      {title:>14s}: {Path(getattr(houdini_install, key)).relative_to(version_dir)}")
+        click.echo("      PATH entries:")
+        for p in houdini_install.env_path:
+            click.echo(f"        {p.relative_to(version_dir)}")
+        click.echo("      Python library paths:")
+        for p in houdini_install.lib_paths:
+            click.echo(f"        {p.relative_to(version_dir)}")
+
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+
+
 @main.command()
-@houdini_command
 @click.argument('script_path', type=click.Path(exists=True, readable=True))
 @click.argument('script_args', nargs=-1, type=str)
 @click.option('--hipfile', '-o', type=click.Path(),
               help='Save the resulting Houdini scene to this file path')
+@click.option('--save', '-s', is_flag=True,
+              help='Save to <basename>.hip (shorthand for --hipfile <basename>.hip)')
+@click.option('--open', 'open_app', is_flag=True,
+              help='Open the saved HIP file in Houdini application (implies --save)')
 @click.option('--verbose', '-v', is_flag=True,
               help='Show verbose output from script execution')
-def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, verbose: bool) -> None:
+def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, save: bool, open_app: bool, verbose: bool) -> None:
     """
     Run a Python script in hython and optionally save the resulting hip file.
 
@@ -236,13 +461,59 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, ver
 
     Examples:
         zabob-houdini run examples/diamond_chain_demo.py
+        zabob-houdini run examples/diamond_chain_demo.py --save
         zabob-houdini run my_script.py --hipfile /tmp/result.hip
+        zabob-houdini run examples/diamond_chain_demo.py --save --open
         zabob-houdini run examples/diamond_chain_demo.py arg1 arg2 --hipfile scene.hip
     """
-    # This is just a stub - the real implementation is in houdini_functions.py
-    pass
+    from pathlib import Path
+    import subprocess
+    import sys
+    import os
 
-main.add_command(info)
+    # --open implies --save
+    if open_app:
+        save = True
+
+    # Calculate the hipfile path if --save is used
+    script_path_obj = Path(script_path).resolve()
+    if save and not hipfile:
+        basename = script_path_obj.stem
+        hipfile = str(script_path_obj.parent / f"{basename}.hip")
+
+    # Call hython to run the script (manually construct the subprocess call to exclude --open)
+    from zabob_houdini.houdini_bridge import _find_hython, _is_in_houdini
+
+    if _is_in_houdini():
+        # Already in houdini, call directly
+        from zabob_houdini.houdini_functions import _run_in_hython
+        _run_in_hython(script_path, *script_args,
+                       hipfile=hipfile, save=save, verbose=verbose, open_app=open_app)
+    else:
+        hython_path = _find_hython()
+        cmd = [str(hython_path), "-m", "zabob_houdini", "run", script_path]
+        cmd.extend(script_args)
+        if hipfile:
+            cmd.extend(["--hipfile", hipfile])
+        if save:
+            cmd.append("--save")
+        if verbose:
+            cmd.append("--verbose")
+        if open_app:
+            cmd.append("--open")
+
+        # Run with minimal environment
+
+
+        try:
+            subprocess.run(cmd, check=True, env=minimal_env())
+        except subprocess.CalledProcessError as e:
+            # Script failed - hython already printed the error, just exit with same code
+            sys.exit(e.returncode)
+
+
+
+main.add_command(houdini)
 
 if __name__ == "__main__":
     main()
