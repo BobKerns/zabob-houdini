@@ -1,6 +1,5 @@
 """Input validation test functions."""
 
-from typing import Any
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node, _merge_inputs
 from zabob_houdini.utils import JsonObject, JsonArray
@@ -8,8 +7,8 @@ from zabob_houdini.utils import JsonObject, JsonArray
 
 def _test_parameter_validation_comprehensive() -> JsonObject:
     """Test parameter validation in Houdini environment."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_validation")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_validation")
 
     # Create a valid chain to use for testing
     chain_A = chain(
@@ -50,8 +49,8 @@ def _test_parameter_validation_comprehensive() -> JsonObject:
 
 def _test_chain_rejects_input_parameter() -> JsonObject:
     """Test that chain() properly rejects the deprecated _input parameter."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_rejection")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_rejection")
 
     # Create test chain
     chain_A = chain(
@@ -92,8 +91,8 @@ def _test_chain_rejects_input_parameter() -> JsonObject:
 
 def _test_valid_input_patterns() -> JsonObject:
     """Test that valid input patterns work correctly."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_valid")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_valid")
 
     # Chain A: Create base geometry
     chain_A = chain(
@@ -125,8 +124,8 @@ def _test_node_input_validation() -> JsonObject:
     '''
     Test node input connections and validation.
     '''
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_node_inputs")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_node_inputs")
 
     # Create source
     source = node(geo_node, "box", "source")
@@ -162,8 +161,8 @@ def _test_node_input_validation() -> JsonObject:
 
 def _test_invalid_input_types(input_type: str) -> JsonObject:
     """Test that invalid input types are handled appropriately."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_invalid")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_invalid")
 
     if input_type == "none":
         # None should be filtered out and result in no inputs

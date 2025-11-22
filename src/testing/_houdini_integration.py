@@ -1,16 +1,15 @@
 """Houdini integration test functions."""
 
-from typing import Any
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node
-from zabob_houdini.utils import JsonObject, JsonArray
+from zabob_houdini.utils import JsonObject
 
 
 def _test_basic_node_creation_in_houdini() -> JsonObject:
     """Test basic node creation in Houdini."""
     # Create a geometry object
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a box node
     box = geo.createNode("box", "test_box")
@@ -24,15 +23,15 @@ def _test_basic_node_creation_in_houdini() -> JsonObject:
 def _test_zabob_chain_creation() -> JsonObject:
     """Test Zabob Chain creation in Houdini."""
     # Create a geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a chain of nodes
-    box_node = node(geo.path(), "box", name="chain_box")
-    xform_node = node(geo.path(), "xform", name="chain_xform")
-    subdivide_node = node(geo.path(), "subdivide", name="chain_subdivide")
+    _box_node = node(geo.path(), "box", name="chain_box")
+    _xform_node = node(geo.path(), "xform", name="chain_xform")
+    _subdivide_node = node(geo.path(), "subdivide", name="chain_subdivide")
 
-    processing_chain = chain(box_node, xform_node, subdivide_node)
+    processing_chain = chain(_box_node, _xform_node, _subdivide_node)
     created_nodes = processing_chain.create()
 
     # Get the paths from the created NodeInstance objects
@@ -47,8 +46,8 @@ def _test_zabob_chain_creation() -> JsonObject:
 def _test_zabob_node_creation() -> JsonObject:
     """Test Zabob NodeInstance creation in Houdini."""
     # Create a geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a Zabob node and execute it
     box_node = node(geo.path(), "box", name="zabob_box", sizex=2.0, sizey=2.0, sizez=2.0)
@@ -63,8 +62,8 @@ def _test_zabob_node_creation() -> JsonObject:
 def _test_node_input_connections() -> JsonObject:
     """Test node creation with input connections."""
     # Create a geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create source node
     box_node = node(geo.path(), "box", name="input_box")
@@ -89,8 +88,8 @@ def _test_node_input_connections() -> JsonObject:
 def _test_node_parentage() -> JsonObject:
     """Test that parentage is correctly handled in NodeInstance."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
     box = node(geo, 'test_box')
 
     return {

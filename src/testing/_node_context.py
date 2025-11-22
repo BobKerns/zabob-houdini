@@ -277,7 +277,7 @@ def _test_node_context_integration() -> JsonObject:
         }
 
 
-def _test_node_context_merge_method():
+def _test_node_context_merge_method() -> JsonObject:
     """Test context merge() method string argument lookup and basic functionality."""
 
     # Create parent and context
@@ -300,7 +300,7 @@ def _test_node_context_merge_method():
     }
 
 
-def _test_node_context_merge_registration():
+def _test_node_context_merge_registration() -> JsonObject:
     """Test that named merge nodes are registered in context and lookupable."""
 
     # Create parent and context

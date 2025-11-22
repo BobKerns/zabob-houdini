@@ -1,6 +1,5 @@
 """Core caching test functions."""
 
-from typing import Any
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node, NodeInstance
 from zabob_houdini.utils import JsonObject
@@ -9,8 +8,8 @@ from zabob_houdini.utils import JsonObject
 def _test_create_caches_result() -> JsonObject:
     """Test NodeInstance.create() caching behavior."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create NodeInstance and test caching
     box_node = node(geo.path(), "box", name="cache_test_box")
@@ -33,8 +32,8 @@ def _test_create_caches_result() -> JsonObject:
 def _test_create_different_instances_different_nodes() -> JsonObject:
     """Test different NodeInstance objects create different nodes."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create two different NodeInstance objects
     node1 = node(geo.path(), "box", name="box1")
@@ -57,8 +56,8 @@ def _test_create_different_instances_different_nodes() -> JsonObject:
 def _test_create_returns_tuple_of_node_instances() -> JsonObject:
     """Test Chain.create() returns tuple of NodeInstance copies."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a chain
     node1 = node(geo.path(), "box", name="chain_box")
@@ -90,8 +89,8 @@ def _test_create_returns_tuple_of_node_instances() -> JsonObject:
 def _test_copy_creates_independent_instance() -> JsonObject:
     """Test NodeInstance.copy() creates independent copies."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create original NodeInstance
     original = node(geo.path(), "box", name="original", sizex=2.0)
@@ -122,8 +121,8 @@ def _test_copy_creates_independent_instance() -> JsonObject:
 def _test_copy_with_chain_inputs() -> JsonObject:
     """Test NodeInstance.copy() with various input types."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a chain to use as input
     inner_node = node(geo, "sphere")
@@ -153,8 +152,8 @@ def _test_copy_with_chain_inputs() -> JsonObject:
 def _test_copy_creates_independent_chain() -> JsonObject:
     """Test Chain.copy() creates independent copy."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create original chain
     node1 = node(geo, "box")
@@ -187,8 +186,8 @@ def _test_copy_deep_copies_node_instances() -> JsonObject:
     from zabob_houdini.core import NodeInstance
 
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create original chain with attributed nodes
     node1 = node(geo, "box", sizex=1.0)
@@ -217,8 +216,8 @@ def _test_copy_deep_copies_node_instances() -> JsonObject:
 def _test_copy_deep_copies_nested_chains() -> JsonObject:
     """Test Chain.copy() recursively copies nested chains."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create nested structure
     inner_node = node(geo.path(), "box")
@@ -249,8 +248,8 @@ def _test_copy_deep_copies_nested_chains() -> JsonObject:
 def _test_copy_preserves_non_chain_inputs() -> JsonObject:
     """Test NodeInstance.copy() preserves non-Chain inputs as-is."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a NodeInstance to use as input
     input_node = node(geo.path(), "box", name="input_box")
@@ -276,8 +275,8 @@ def _test_copy_preserves_non_chain_inputs() -> JsonObject:
 def _test_create_empty_chain_returns_empty_tuple() -> JsonObject:
     """Test Chain.create() with empty chain returns empty tuple."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create empty chain
     test_chain = chain()  # Empty chain
@@ -295,8 +294,8 @@ def _test_create_empty_chain_returns_empty_tuple() -> JsonObject:
 def _test_convenience_methods_with_created_nodes() -> JsonObject:
     """Test Chain convenience methods for accessing created hou.Node instances."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a 3-node chain
     node1 = node(geo.path(), "box", name="first_box")
@@ -327,8 +326,8 @@ def _test_convenience_methods_with_created_nodes() -> JsonObject:
 def _test_convenience_methods_empty_chain() -> JsonObject:
     """Test methods on an empty Chain."""
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create empty chain
     test_chain = chain()
@@ -365,8 +364,8 @@ def _test_node_registry_functionality() -> JsonObject:
     from zabob_houdini.core import get_node_instance, wrap_node
 
     # Create geometry object for testing
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
 
     # Create a NodeInstance and get its hou.Node
     box_node = node(geo, "box", name="registry_test_box")
@@ -404,8 +403,8 @@ def _test_merge_inputs_sparse_handling() -> JsonObject:
     from zabob_houdini import Inputs
 
     # Create test nodes to use as inputs
-    obj = hou_node("/obj")
-    geo = obj.createNode("geo", "test_geo")
+    _obj = hou_node("/obj")
+    geo = _obj.createNode("geo", "test_geo")
     node1 = node(geo.path(), "box", name="box1")
     node2 = node(geo.path(), "sphere", name="sphere1")
     c1 = (node1, 0)

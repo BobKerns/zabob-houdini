@@ -10,8 +10,8 @@ def _test_layout_stress_test() -> JsonObject:
     """Run a built-in layout algorithm stress test and return statistics."""
     try:
         # Create a geometry object for testing
-        obj = hou_node("/obj")
-        geo = obj.createNode("geo", "layout_stress_test")
+        _obj = hou_node("/obj")
+        geo = _obj.createNode("geo", "layout_stress_test")
 
         with context(geo) as ctx:
             # Create a complex stress test graph directly here
@@ -97,8 +97,8 @@ def _test_simple_layout_demo() -> JsonObject:
     """Test a simple layout demo to verify basic functionality."""
     try:
         # Create a geometry object for testing
-        obj = hou_node("/obj")
-        geo = obj.createNode("geo", "simple_layout_test")
+        _obj = hou_node("/obj")
+        geo = _obj.createNode("geo", "simple_layout_test")
 
         with context(geo) as ctx:
             # Create a simple graph using only basic node types

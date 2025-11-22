@@ -76,6 +76,115 @@ def _wrap_hou_node(hou_node: hou.Node) -> 'NodeInstance':
 _generated_names: dict[str, int] = defaultdict(lambda: 1)
 
 
+@dataclass(frozen=True)
+class ForwardReference:
+    """
+    A forward reference to a node that may not exist yet.
+
+    This enables referencing nodes by string name before they're created,
+    and accessing chain properties (.first, .last) before chains are complete.
+    Resolution happens at create() time.
+    """
+    resolution_type: str  # 'context_lookup' or 'chain_property'
+    context: 'NodeContext | None' = None
+    name: str | None = None
+    chain_builder: 'ChainBuilder | None' = None
+    property_name: str | None = None  # 'first' or 'last'
+
+    def resolve(self) -> 'NodeInstance':
+        """Resolve the forward reference to an actual NodeInstance."""
+        match self.resolution_type:
+            case 'context_lookup':
+                if self.context is None or self.name is None:
+                    raise RuntimeError("Invalid context lookup forward reference")
+                if self.name not in self.context._nodes:
+                    raise RuntimeError(f"Forward reference failed: node '{self.name}' not found in context")
+                return self.context._nodes[self.name]
+
+            case 'chain_property':
+                if self.chain_builder is None or self.property_name is None:
+                    raise RuntimeError("Invalid chain property forward reference")
+
+                # Check if the chain has been completed (created_chain exists)
+                if hasattr(self.chain_builder, '_created_chain') and self.chain_builder._created_chain:
+                    chain = self.chain_builder._created_chain
+                    return getattr(chain, self.property_name)
+                else:
+                    # Chain not completed yet - this should not be resolved now
+                    raise RuntimeError(f"Forward reference failed: chain property '{self.property_name}' accessed before chain completion")
+
+            case _:
+                raise RuntimeError(f"Unknown forward reference type: {self.resolution_type}")
+
+    def __str__(self) -> str:
+        match self.resolution_type:
+            case 'context_lookup':
+                return f"ForwardRef(name='{self.name}')"
+            case 'chain_property':
+                return f"ForwardRef(chain.{self.property_name})"
+            case _:
+                return f"ForwardRef({self.resolution_type})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+@dataclass(frozen=True)
+class UnresolvedForwardReferenceNode:
+    """
+    A NodeInstance wrapper that defers ForwardReference resolution until create() time.
+
+    This is used when a ForwardReference cannot be resolved during input wrapping
+    (e.g., when accessing chain properties of incomplete chains).
+    """
+    forward_reference: ForwardReference
+
+    def create(self, *, as_type: type[T] | None = None) -> T:
+        """Resolve the ForwardReference and create the actual node."""
+        resolved_node = self.forward_reference.resolve()
+        return resolved_node.create(as_type=as_type)
+
+    def _create(self, *, _skip_chain: bool = False, as_type: type[T] | None = None) -> T:
+        """Internal create method that follows the same pattern as NodeInstance."""
+        return self.create(as_type=as_type)
+
+    # Make it behave like a NodeInstance for type checking
+    def __getattr__(self, name):
+        # Delegate attribute access to the resolved node when accessed
+        resolved = self.forward_reference.resolve()
+        return getattr(resolved, name)
+
+
+@dataclass(frozen=True)
+class DeferredChainPropertyReference(ForwardReference):
+    """
+    A ForwardReference that defers chain property access until the chain is complete.
+
+    This is returned when accessing .first/.last on an incomplete chain.
+    It will resolve to the actual node when the chain is completed and create() is called.
+    """
+
+    def resolve(self) -> 'NodeInstance':
+        """
+        Resolve the deferred chain property reference.
+
+        This should only be called when the chain is actually complete.
+        """
+        if self.chain_builder is None or self.property_name is None:
+            raise RuntimeError("Invalid deferred chain property reference")
+
+        # The chain should be complete by now
+        if hasattr(self.chain_builder, '_created_chain') and self.chain_builder._created_chain:
+            chain = self.chain_builder._created_chain
+            return getattr(chain, self.property_name)
+        else:
+            # If not complete, we need to force completion of the parent chain
+            # This can happen when accessing chain properties before the with block exits
+            raise RuntimeError(f"Cannot resolve chain property '{self.property_name}': parent chain not yet complete. This typically happens when accessing .first/.last on a chain that's still being built within a 'with' block.")
+
+    def __str__(self) -> str:
+        return f"DeferredChainRef(chain.{self.property_name})"
+
 
 def _generate_name(parent: str, type: str) -> str:
     """Generate a unique name with the given prefix."""
@@ -142,7 +251,14 @@ CreatableNode: TypeAlias = 'NodeInstance | Chain'
 ChainableNode: TypeAlias = 'NodeInstance | Chain'
 """A node or chain that can be used in a chain - includes existing hou.Node objects."""
 
-InputNodeSpec: TypeAlias = 'NodeInstance | Chain | hou.Node | str'
+LocalNodeName: TypeAlias = str
+"""String name of a node within a context, used for forward references."""
+
+ExistingNodeName: TypeAlias = 'str'
+"""String path to an existing node in the Houdini scene, to connect to existing nodes."""
+
+InputNodeSpec: TypeAlias = 'NodeInstance | Chain | ExistingNodeName | LocalNodeName | ForwardReference | hou.Node'
+"""Values that can be used as input nodes - either NodeInstance, Chain, hou.Node, string path, or ForwardReference."""
 
 InstanceNodeSpec: TypeAlias = 'tuple[InputNodeSpec, int] | InputNodeSpec'
 """A connection specification: either (<node>, <output_index>) tuple or just <node> (defaults to output 0)."""
@@ -152,7 +268,7 @@ InputNode: TypeAlias = 'InstanceNodeSpec | None'
 
 InputNodes: TypeAlias = 'Sequence[InputNode]'
 
-ResolvedConnection: TypeAlias = 'tuple[NodeInstance, int]'
+ResolvedConnection: TypeAlias = 'tuple[NodeInstance | ForwardReference, int]'
 """A resolved connection: (node, output_index)."""
 
 Inputs: TypeAlias = 'tuple[ResolvedConnection | None, ...]'
@@ -258,14 +374,45 @@ class NodeInstance(NodeBase):
         """Return the last node in this instance, which is itself."""
         return self
 
+
+
     @functools.cached_property
     def inputs(self) -> Inputs:
         """
         Return the input nodes for this node/chain.
 
         Each input will be either None or a ResolvedConnection tuple of (NodeInstance, output_index).
+        ForwardReferences will be returned as-is - they need to be resolved later.
         """
-        return tuple((_wrap_input(inp, 0) for inp in self._inputs))
+        # For ForwardReferences, we can't resolve them yet, so we create a dummy ResolvedConnection
+        # They will be properly resolved in _do_create via resolved_inputs
+        resolved = []
+        for inp in self._inputs:
+            if isinstance(inp, ForwardReference):
+                # Create a dummy NodeInstance that will be resolved later
+                # We'll identify these in _do_create and replace them
+                resolved.append(None)  # Mark as unresolved for now
+            else:
+                resolved.append(_wrap_input(inp, 0))
+        return tuple(resolved)
+
+    @functools.cached_property
+    def resolved_inputs(self) -> Inputs:
+        """
+        Return fully resolved inputs with ForwardReferences resolved.
+
+        This property resolves all ForwardReferences to their actual NodeInstances
+        and properly wraps them. Should be used during create() time when all
+        nodes are available.
+        """
+        resolved = []
+        for inp in self._inputs:
+            if isinstance(inp, ForwardReference):
+                resolved_input = inp.resolve()
+                resolved.append(_wrap_input(resolved_input, 0))
+            else:
+                resolved.append(_wrap_input(inp, 0))
+        return tuple(resolved)
 
     def create(self, as_type: type[T] | None = None) -> T:
         """
@@ -365,9 +512,10 @@ class NodeInstance(NodeBase):
                 case _:
                     print(f"Warning: Cannot set parameters on node type {created_node.type().name()} - skipping attributes")
 
-        # Connect inputs
-        if self.inputs:
-            for i, connection in enumerate(self.inputs):
+        # Connect inputs - resolve ForwardReferences at creation time
+        resolved_inputs = self.resolved_inputs
+        if resolved_inputs:
+            for i, connection in enumerate(resolved_inputs):
                 # Skip None inputs (for sparse input connections)
                 if connection is None:
                     continue
@@ -380,6 +528,10 @@ class NodeInstance(NodeBase):
                             # Input is a NodeInstance - create it first
                             # Pass _skip_chain=True to avoid recursion during chain creation
                             input_hou_node = node_instance._create(_skip_chain=True)
+                        case ForwardReference() as forward_ref:
+                            # Resolve ForwardReference at connection time
+                            resolved_node = forward_ref.resolve()
+                            input_hou_node = resolved_node._create(_skip_chain=True)
                         case _:
                             raise TypeError(
                                 f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
@@ -509,12 +661,13 @@ class NodeInstance(NodeBase):
         # Generate input names for display
         input_names = []
         for inp in self._inputs:
-            if inp is not None:
-                node, _ = inp
-                if node.name:
+            match inp:
+                case None:
+                    pass
+                case NodeInstance() | ForwardReference():
                     input_names.append(node.name)
-                else:
-                    input_names.append(f"<{node.node_type}>")
+                case _:
+                    input_names.append(f"<output {inp}>")
 
         inputs_str = f"[{', '.join(input_names)}]" if input_names else "[]"
 
@@ -540,16 +693,16 @@ class ChainBuilder:
             self._nodes.clear()
             return
         if exc_type is None and self._nodes:
-            # Create the final chain with proper input connections
+            # First, create the chain without inputs to mark it as complete
+            self._created_chain = chain(*self._nodes)
+
+            # Now process inputs - DeferredChainPropertyReferences can now resolve
             if self._input is not None:
-                # Apply input to the first node
+                # Apply input to the first node (ForwardReferences should resolve now)
                 first_node = self._nodes[0]._copy(_inputs=_wrap_inputs(self._input))
                 nodes_with_input = [first_node] + self._nodes[1:]
-            else:
-                nodes_with_input = self._nodes
-
-            # Create the chain using the global chain() function
-            self._created_chain = chain(*nodes_with_input)
+                # Recreate the chain with the connected input
+                self._created_chain = chain(*nodes_with_input)
 
             # Register all chain nodes in the context
             for node_instance in self._created_chain.nodes:
@@ -579,7 +732,7 @@ class ChainBuilder:
     def parent(self) -> NodeInstance:
         """Return the parent NodeInstance for this chain."""
         return self.context.parent
-    
+
     def node(self, node_type: NodeType, /, name: str | None = None, **attributes: Any) -> NodeInstance:
         """Add a node to this chain (not registered with context until chain completes)."""
         # Create node without registering it with the context
@@ -593,22 +746,32 @@ class ChainBuilder:
         return node_instance
 
     @property
-    def last(self) -> NodeInstance:
+    def last(self) -> 'NodeInstance | ForwardReference':
         """Return the last node that will be in this chain."""
         if hasattr(self, '_created_chain') and self._created_chain:
             return self._created_chain.last
         elif self._nodes:
-            return self._nodes[-1]
+            # During chain construction - return a deferred forward reference
+            return DeferredChainPropertyReference(
+                resolution_type='deferred_chain_property',
+                chain_builder=self,
+                property_name='last'
+            )
         else:
             raise RuntimeError("Chain is empty")
 
     @property
-    def first(self) -> NodeInstance:
+    def first(self) -> 'NodeInstance | ForwardReference':
         """Return the first node that will be in this chain."""
         if hasattr(self, '_created_chain') and self._created_chain:
             return self._created_chain.first
         elif self._nodes:
-            return self._nodes[0]
+            # During chain construction - return a deferred forward reference
+            return DeferredChainPropertyReference(
+                resolution_type='deferred_chain_property',
+                chain_builder=self,
+                property_name='first'
+            )
         else:
             raise RuntimeError("Chain is empty")
 
@@ -668,6 +831,14 @@ class NodeContext:
             for node in sink_nodes:
                 node.create()
 
+    def _create_forward_reference_for_name(self, name: str) -> ForwardReference:
+        """Create a ForwardReference for an unknown string name."""
+        return ForwardReference(
+            resolution_type='context_lookup',
+            context=self,
+            name=name
+        )
+
     def node(self,
              node_type: NodeType,
              /,
@@ -694,12 +865,15 @@ class NodeContext:
         Returns:
             NodeInstance that can be created with .create()
         """
+        # Process inputs to handle forward references
+        processed_input = self._process_inputs(_input)
+
         # Create the node using the global node() function
         node_instance = node(
             self.parent,
             node_type,
             name,
-            _input=_input,
+            _input=processed_input,
             _node=_node,
             _display=_display,
             _render=_render,
@@ -712,6 +886,13 @@ class NodeContext:
 
         # Register named nodes for lookup
         if name is not None:
+            # Check if there was a ForwardReference for this name that needs to be replaced
+            old_entry = self._nodes.get(name)
+            if isinstance(old_entry, ForwardReference):
+                # Replace the ForwardReference with the actual NodeInstance
+                # Also update any other references in the context that point to the ForwardReference
+                self._replace_forward_reference(old_entry, node_instance)
+
             self._nodes[name] = node_instance
 
         # Track dependencies for inputs
@@ -719,18 +900,68 @@ class NodeContext:
             inputs = _input if isinstance(_input, (list, tuple)) else [_input]
             for input_spec in inputs:
                 if input_spec is not None:
-                    # Resolve the input to a NodeInstance
+                    # Resolve the input to a NodeInstance or ForwardReference
                     if isinstance(input_spec, NodeInstance):
                         input_node = input_spec
                     elif isinstance(input_spec, Chain):
                         input_node = input_spec.last
+                    elif isinstance(input_spec, ForwardReference):
+                        input_node = input_spec
                     else:
                         continue  # Skip other types (hou.Node, str, tuples)
 
-                    # Track the dependency
+                    # Track the dependency (ForwardReferences are handled in _add_dependency)
                     self._add_dependency(input_node, node_instance)
 
         return node_instance
+
+    def _process_input(self, input_spec) -> 'InputNode':
+        """
+        Process an input specification, converting unknown string names to ForwardReferences.
+
+        Args:
+            input_spec: The input specification to process
+
+        Returns:
+            Processed input spec with ForwardReferences for unknown string names
+        """
+        if isinstance(input_spec, str) and input_spec not in self._nodes:
+            # Unknown string name - create a forward reference
+            return ForwardReference(
+                resolution_type='context_lookup',
+                context=self,
+                name=input_spec
+            )
+        return input_spec
+
+    def _process_inputs(self, _input):
+        """
+        Process input specifications, converting unknown string names to ForwardReferences.
+
+        Args:
+            _input: The input specification(s) to process
+
+        Returns:
+            Processed input specs with ForwardReferences for unknown string names
+        """
+        if _input is None:
+            return None
+
+        if isinstance(_input, (list, tuple)) and not isinstance(_input, str):
+            # Process each item in the sequence, but be careful about tuples that are (node, index) pairs
+            if (len(_input) == 2 and
+                not isinstance(_input[0], (list, tuple)) and
+                isinstance(_input[1], int)):
+                # This looks like a (node_spec, output_index) tuple
+                node_spec, output_idx = _input
+                processed_node_spec = self._process_input(node_spec)
+                return (processed_node_spec, output_idx)
+            else:
+                # This is a sequence of inputs
+                return [self._process_input(inp) for inp in _input]
+        else:
+            # Single input specification
+            return self._process_input(_input)
 
     def __getitem__(self, name: str) -> NodeInstance:
         """Look up a named node created in this context."""
@@ -759,94 +990,64 @@ class NodeContext:
             - After exiting the context, any named nodes in the result will be registered
             - Use the ChainBuilder.node() method to add nodes to the chain
         """
-        return ChainBuilder(self, _input)
+        # Process inputs to handle forward references
+        processed_input = self._process_inputs(_input)
+        return ChainBuilder(self, processed_input)
 
-    def merge(self, *inputs: 'NodeInstance | Chain | ChainBuilder | str', name: str | None = None, **attributes: Any) -> NodeInstance:
+    def merge(self, *inputs: InstanceNodeSpec,
+              name: str | None = None,
+              **attributes: Any) -> NodeInstance:
         """
-        Create a merge node with multiple inputs, with string arguments looked up in this context.
+        Create a merge node with multiple inputs.
 
         Args:
-            *inputs: NodeInstance, Chain, ChainBuilder objects, or string names to merge (must have same parent)
+            *inputs: Input nodes to merge
             name: Optional name for the merge node
             **attributes: Additional merge node parameters
 
         Returns:
             NodeInstance for the merge node
-
-        Raises:
-            ValueError: If no inputs provided or inputs have different parents
-            KeyError: If a string input name is not found in this context
-
-        Note:
-            - String arguments are looked up as node names in this context
-            - Chain/ChainBuilder arguments are automatically converted to their .last node
-            - If the merge node is named and not already in the context, it will be registered
-
-        Examples:
-            # Merge nodes by name
-            merged = ctx.merge("box", "sphere", name="combined")
-
-            # Mix string names and NodeInstance objects
-            merged = ctx.merge("box", external_sphere, name="mixed_merge")
         """
         if not inputs:
             raise ValueError("merge() requires at least one input")
 
-        # Resolve string arguments to actual nodes
-        resolved_inputs: list[NodeInstance] = []
-        for item in inputs:
-            if isinstance(item, str):
-                # Look up the named node in this context
-                resolved_inputs.append(self[item])
-            elif isinstance(item, NodeInstance):
-                resolved_inputs.append(item)
-            elif hasattr(item, 'last'):  # Chain or ChainBuilder object
-                resolved_inputs.append(item.last)
-            else:
-                raise TypeError(f"merge() inputs must be NodeInstance, Chain, ChainBuilder, or str, got {type(item).__name__}")
+        return self.node("merge", name, _input=list(inputs), **attributes)
 
-        # Validate that all resolved nodes have the same parent as this context
-        for i, resolved_node in enumerate(resolved_inputs):
-            if resolved_node.parent != self.parent:
-                raise ValueError(
-                    f"All merge inputs must have same parent as context. "
-                    f"Context parent is {self.parent}, but input {i} has parent {resolved_node.parent}"
-                )
+    def _replace_forward_reference(self,
+                                   forward_ref: ForwardReference,
+                                   actual_node: NodeInstance,
+                                   ) -> None:
+        """Replace all occurrences of a ForwardReference with the actual NodeInstance."""
+        # Check all nodes in the registry for inputs that reference the ForwardReference
+        for node in self._dependency_registry:
+            if hasattr(node, '_inputs'):
+                # Check if any inputs contain the ForwardReference and replace them
+                updated_inputs = []
+                needs_update = False
+                for inp in node._inputs:
+                    if inp is forward_ref:
+                        updated_inputs.append(actual_node)
+                        needs_update = True
+                    else:
+                        updated_inputs.append(inp)
 
-        # Create the merge using the global merge() function
-        created_merge = merge(*resolved_inputs, **attributes)
+                if needs_update:
+                    # Update the node's inputs - we need to create a new NodeInstance with updated inputs
+                    # This is tricky because NodeInstance is frozen, so we'd need to recreate it
+                    # For now, let's just note that this forward reference has been resolved
+                    pass
 
-        # If we have a name, update the merge node with the name
-        if name is not None:
-            created_merge = created_merge.copy(name=name)
+        # Note: The above is complex because NodeInstance is frozen.
+        # The key insight is that ForwardReferences should be resolved during create() time,
+        # not stored in the context permanently.
 
-        # Ensure merge node is registered in dependency registry
-        if created_merge not in self._dependency_registry:
-            self._dependency_registry[created_merge] = []
-
-        # Register external nodes that were passed in (not looked up from context)
-        for i, item in enumerate(inputs):
-            if isinstance(item, NodeInstance):
-                # Ensure external node is registered in dependency registry
-                if item not in self._dependency_registry:
-                    self._dependency_registry[item] = []
-                # Also register it by name if named and not already present
-                if (item.name is not None and
-                    item.name not in self._nodes):
-                    self._nodes[item.name] = item
-        # Register the merge node if it's named and not already in our context
-        if (created_merge.name is not None and
-            created_merge.name not in self._nodes):
-            self._nodes[created_merge.name] = created_merge
-
-        # Track dependencies: merge node depends on all its inputs
-        for resolved_input in resolved_inputs:
-            self._add_dependency(resolved_input, created_merge)
-
-        return created_merge
-
-    def _add_dependency(self, input_node: NodeInstance, dependent_node: NodeInstance) -> None:
+    def _add_dependency(self, input_node: 'NodeInstance | ForwardReference', dependent_node: NodeInstance) -> None:
         """Add a dependency relationship: dependent_node depends on input_node."""
+        if isinstance(input_node, ForwardReference):
+            # Skip dependency tracking for ForwardReferences at definition time
+            # Dependencies will be resolved and tracked at create time
+            return
+
         if input_node not in self._dependency_registry:
             self._dependency_registry[input_node] = []
         if dependent_node not in self._dependency_registry[input_node]:
@@ -960,7 +1161,14 @@ class NodeContext:
                     if inp is not None and inp[0] in all_nodes
                 ]
                 if input_nodes:
-                    max_input_depth = max(node_depths.get(inp, 0) for inp in input_nodes)
+                    # Resolve ForwardReferences for depth calculation
+                    resolved_nodes = []
+                    for inp in input_nodes:
+                        if isinstance(inp, ForwardReference):
+                            resolved_nodes.append(inp.resolve())
+                        else:
+                            resolved_nodes.append(inp)
+                    max_input_depth = max(node_depths.get(inp, 0) for inp in resolved_nodes)
                     node_depths[node] = max_input_depth + 1
                 else:
                     node_depths[node] = 0
@@ -1068,7 +1276,16 @@ class NodeContext:
             input_groups: dict[tuple[NodeInstance, ...], list[NodeInstance]] = {}
 
             for node in layer_nodes:
-                input_nodes = tuple(inp[0] for inp in node.inputs if inp is not None)
+                # Resolve ForwardReferences in inputs before grouping
+                resolved_inputs = []
+                for inp in node.inputs:
+                    if inp is not None:
+                        input_node = inp[0]
+                        if isinstance(input_node, ForwardReference):
+                            resolved_inputs.append(input_node.resolve())
+                        else:
+                            resolved_inputs.append(input_node)
+                input_nodes = tuple(resolved_inputs)
                 if input_nodes not in input_groups:
                     input_groups[input_nodes] = []
                 input_groups[input_nodes].append(node)
@@ -1081,8 +1298,16 @@ class NodeContext:
                     available_width = sum(node_required_width[node] for node in group_nodes)
                 else:
                     # Calculate span from leftmost to rightmost input
-                    input_positions = [positions[inp][0] for inp in input_nodes]
-                    input_widths = [node_required_width[inp] for inp in input_nodes]
+                    # Resolve ForwardReferences for layout calculations
+                    resolved_input_nodes = []
+                    for inp in input_nodes:
+                        if isinstance(inp, ForwardReference):
+                            resolved_inp = inp.resolve()
+                            resolved_input_nodes.append(resolved_inp)
+                        else:
+                            resolved_input_nodes.append(inp)
+                    input_positions = [positions[inp][0] for inp in resolved_input_nodes]
+                    input_widths = [node_required_width[inp] for inp in resolved_input_nodes]
 
                     # Find the allocated span
                     leftmost = min(pos - width/2 for pos, width in zip(input_positions, input_widths))
@@ -1498,7 +1723,7 @@ def chain(
     )
 
 
-def merge(*inputs: 'NodeInstance | Chain', **attributes: Any) -> NodeInstance:
+def merge(*inputs: 'NodeInstance | Chain | ForwardReference', **attributes: Any) -> NodeInstance:
     """
     Create a merge node with multiple inputs.
 
@@ -1532,14 +1757,30 @@ def merge(*inputs: 'NodeInstance | Chain', **attributes: Any) -> NodeInstance:
     # Convert Chain or ChainBuilder objects to their last NodeInstance
     node_inputs = []
     for inp in inputs:
-        if hasattr(inp, 'last'):  # Chain or ChainBuilder object
-            node_inputs.append(inp.last)
+        if isinstance(inp, ForwardReference):
+            node_inputs.append(inp)  # Pass ForwardReference through unchanged
+        elif hasattr(inp, 'last'):  # Chain or ChainBuilder object
+            last_item = inp.last
+            node_inputs.append(last_item)  # Could be NodeInstance or ForwardReference
         else:  # NodeInstance
             node_inputs.append(inp)
 
-    # Get parent from first input and verify all have same parent
-    first_parent = node_inputs[0].parent
-    for i, inp in enumerate(node_inputs[1:], 1):
+    # Get parent from first resolvable input and verify all have same parent
+    # (ForwardReferences will be validated at create time)
+    first_parent = None
+    for inp in node_inputs:
+        if not isinstance(inp, ForwardReference):
+            first_parent = inp.parent
+            break
+
+    if first_parent is None:
+        # All inputs are ForwardReferences - we can't validate parent until create time
+        # Use a placeholder (this will be resolved later)
+        first_parent = ROOT
+
+    for i, inp in enumerate(node_inputs):
+        if isinstance(inp, ForwardReference):
+            continue  # Skip validation for ForwardReferences
         if inp.parent != first_parent:
             raise ValueError(
                 f"All merge inputs must have same parent. "
@@ -1635,16 +1876,17 @@ def _wrap_inputs(inputs: Sequence[InputNode] | InputNode) -> Inputs:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
     match inputs:
-        case NodeInstance()|Chain()|hou.Node()|str() as input, int() as idx:
+        case NodeInstance()|Chain()|hou.Node()|str()|ForwardReference() as input, int() as idx:
             resolved = _wrap_input(input, idx)
             return (resolved,)
-        case NodeInstance()|Chain()|hou.Node()|str() as input:
+        case NodeInstance()|Chain()|hou.Node()|str()|ForwardReference() as input:
             resolved = _wrap_input(input, 0)
             return (resolved,)
         case None:
             return ()
         case _:
             return tuple(_wrap_input(inp, 0) for inp in inputs)
+
 
 
 # Copilot: There are no implicit returns in _wrap_input. (DO NOT REMOVE)
@@ -1659,7 +1901,7 @@ def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
     # Copilot: There are no implicit returns in _wrap_single_input. (DO NOT REMOVE)
-    def _wrap_single_input(input: InputNodeSpec) -> NodeInstance|None:
+    def _wrap_single_input(input: InputNodeSpec) -> NodeInstance|ForwardReference|None:
         """Wrap a single input node specification."""
         match input:
             case NodeInstance():
@@ -1668,12 +1910,18 @@ def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
                 return None
             case Chain():
                 return input.last
+            case ChainBuilder():
+                # Use .last - may return a ForwardReference if chain isn't complete
+                return input.last
             case hou.Node():
                 return wrap_node(input)
             case str():
                 return wrap_node(hou_node(input))
+            case ForwardReference():
+                # Don't resolve - just pass through as-is for later resolution
+                return input
             case _:
-                raise TypeError(f"Invalid input specification: {input}. Expected NodeInstance, Chain, hou.Node, or str.")
+                raise TypeError(f"Invalid input specification: {input}. Expected NodeInstance, Chain, ChainBuilder, hou.Node, str, or ForwardReference.")
 
     match input:
         case None:
@@ -1687,7 +1935,7 @@ def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
             return (wrapped, output_idx)
         case tuple():
             raise ValueError(f"Input tuple must have exactly 2 elements: (<node>, <output_index>)")
-        case NodeInstance() | Chain() | hou.Node() | str():
+        case NodeInstance() | Chain() | ChainBuilder() | hou.Node() | str() | ForwardReference():
             # Single node specification, default to output 0
             wrapped = _wrap_single_input(input)
             if wrapped is None:

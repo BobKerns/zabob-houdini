@@ -1,11 +1,10 @@
 """Enhanced copy test functions."""
 
-from typing import Any
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node
-from zabob_houdini.utils import JsonObject, JsonArray
+from zabob_houdini.utils import JsonObject
 
-def _test_enhanced_copy_integration():
+def _test_enhanced_copy_integration() -> JsonObject:
     """Collect data about enhanced copy functionality for test validation."""
     # Create a geometry container
     geo = node("/obj", "geo", name="test_geo")
@@ -75,7 +74,7 @@ def _test_enhanced_copy_integration():
         }
     }
 
-def _test_copy_signature_includes_args():
+def _test_copy_signature_includes_args() -> JsonObject:
     """Collect copy method signature information for validation."""
     import inspect
 

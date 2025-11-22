@@ -1,6 +1,5 @@
 """Node duplication test functions."""
 
-from typing import Any
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node
 from zabob_houdini.utils import JsonObject, JsonArray
@@ -8,8 +7,8 @@ from zabob_houdini.utils import JsonObject, JsonArray
 
 def _test_diamond_no_duplication() -> JsonObject:
     """Test that diamond pattern doesn't create duplicate nodes - this should expose the bug!"""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_diamond_duplication")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_diamond_duplication")
 
     # Chain A: Create base geometry (should be created once)
     chain_A = chain(
@@ -73,8 +72,8 @@ def _test_diamond_no_duplication() -> JsonObject:
 
 def _test_chain_reference_vs_copy() -> JsonObject:
     """Test that chains are referenced, not copied when used as inputs."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_reference_vs_copy")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_reference_vs_copy")
 
     # Create chain A
     chain_A = chain(
@@ -89,8 +88,8 @@ def _test_chain_reference_vs_copy() -> JsonObject:
 
     # Create everything
     chain_a_created = chain_A.create()
-    node_1_created = node_1.create()
-    node_2_created = node_2.create()
+    _node_1_created = node_1.create()
+    _node_2_created = node_2.create()
 
     # Count actual nodes in the scene
     all_children = geo_node.children()

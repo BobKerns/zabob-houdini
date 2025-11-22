@@ -8,8 +8,8 @@ from zabob_houdini.utils import JsonObject
 
 def _test_parameter_setting() -> JsonObject:
     '''Test setting and retrieving node parameters.'''
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_params")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_params")
 
     # Create node with parameters
     box_node = node(geo_node, "box", "param_box", sizex=2.0, sizey=3.0, sizez=4.0)
@@ -40,8 +40,8 @@ def _test_parameter_setting() -> JsonObject:
 
 def _test_geometry_creation(node_type: str) -> JsonObject:
     """Test creation of various geometry node types."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", f"test_{node_type}")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", f"test_{node_type}")
 
     # Create the specified node type
     test_node = node(geo_node, node_type, f"test_{node_type}_node")
@@ -59,8 +59,8 @@ def _test_diamond_pattern_creation() -> JsonObject:
     from zabob_houdini.utils import JsonArray
 
     # Create the container geometry node
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_diamond")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_diamond")
 
     # Chain A: Create base geometry (should be created once)
     chain_A = chain(
@@ -117,8 +117,8 @@ def _test_multiple_input_merge() -> JsonObject:
     """Test merge node with multiple inputs."""
     from zabob_houdini.core import chain
 
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_merge")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_merge")
 
     # Create two source chains
     chain1 = chain(node(geo_node, "box", "box1"))
@@ -149,8 +149,8 @@ def _test_chain_input_connections() -> JsonObject:
     """Test that chain input connections work correctly."""
     from zabob_houdini.core import chain
 
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_connections")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_connections")
 
     # Create source chain
     source_chain = chain(

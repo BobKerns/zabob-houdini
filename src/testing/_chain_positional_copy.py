@@ -1,12 +1,11 @@
 """Chain positional copy test functions."""
 
-from typing import Any
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node
-from zabob_houdini.utils import JsonObject, JsonArray
+from zabob_houdini.utils import JsonObject
 
 
-def _test_positional_reordering():
+def _test_positional_reordering() -> JsonObject:
     """Test Chain.copy() positional reordering functionality."""
     geo = node("/obj", "geo")
     # Create chain with named nodes
@@ -42,7 +41,7 @@ def _test_positional_reordering():
     }
 
 
-def _test_copy_signature_includes_args():
+def _test_copy_signature_includes_args() -> JsonObject:
     """Collect copy method signature information for validation."""
     import inspect
 

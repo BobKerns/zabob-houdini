@@ -1,15 +1,14 @@
 """Input connections test functions."""
 
-from typing import Any
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node
-from zabob_houdini.utils import JsonObject, JsonArray
+from zabob_houdini.utils import JsonObject
 
 
 def _test_input_connections_basic() -> JsonObject:
     """Test that input connections are set up correctly on nodes."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_connections")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_connections")
 
     # Chain A: Create base geometry (should be created once)
     chain_A = chain(
@@ -64,8 +63,8 @@ def _test_input_connections_basic() -> JsonObject:
 
 def _test_chain_input_delegation() -> JsonObject:
     """Test that Chain.inputs properly delegates to first node."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_delegation")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_delegation")
 
     # Chain with no inputs
     chain_no_input = chain(
@@ -95,8 +94,8 @@ def _test_chain_input_delegation() -> JsonObject:
 
 def _test_multiple_inputs_basic() -> JsonObject:
     """Test that nodes can accept multiple inputs correctly."""
-    obj = hou_node("/obj")
-    geo_node = obj.createNode("geo", "test_multi")
+    _obj = hou_node("/obj")
+    geo_node = _obj.createNode("geo", "test_multi")
 
     # Create two source chains
     source_1 = chain(node(geo_node, "box", "source_1"))
