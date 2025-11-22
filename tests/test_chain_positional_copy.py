@@ -13,7 +13,7 @@ class TestChainCopyPositional:
     @pytest.fixture
     def sample_chain(self, hython_test):
         """Create a sample chain for testing."""
-        return hython_test('test_chain_positional_reordering')
+        return hython_test('_test_positional_reordering')
 
     def test_positional_reordering(self, sample_chain):
         """Test that Chain.copy() can reorder nodes positionally."""
@@ -45,7 +45,7 @@ class TestChainCopyPositional:
 
     def test_copy_signature_includes_args(self, hython_test):
         """Test that Chain.copy() signature supports *args."""
-        data = hython_test('test_copy_signature_validation')
+        data = hython_test('_test_copy_signature_includes_args')
 
         # Chain.copy() should use *args for positional parameters
         assert data['chain_uses_args']

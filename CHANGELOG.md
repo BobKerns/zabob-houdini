@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Package Structure**: Internal test functions moved to separate `src/testing/` module
+  - Normal installations (`pip install zabob-houdini`) no longer include internal Houdini test infrastructure
+  - Testing functions remain available in source tree for development: `PYTHONPATH=src python`
+  - Reduces package size for end users who don't need test functions
+
 ### Added
 - New `NodeContext` class for organizing nodes under a specific parent
   - Context manager protocol for convenient use with `with` statements

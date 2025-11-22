@@ -59,15 +59,7 @@ def main() -> None:
     """
     pass
 
-@click.group("diagnostics")
-@click.version_option(version=__version__, prog_name=__distribution__)
-def diagnostics() -> None:
-    """
-    Diagnostic commands for checking Houdini environment and functionality.
-    """
-    pass
 
-main.add_command(diagnostics)
 
 @main.command()
 @click.option(
@@ -96,61 +88,7 @@ def list_types(category: str | None) -> None:
         click.echo(f"✗ Error listing node types: {e}")
 
 
-@diagnostics.command()
-def test_node() -> None:
-    """
-    Test creating a simple node (requires Houdini).
-    """
-    click.echo("Testing node creation via Houdini bridge...")
 
-    try:
-        result = call_houdini_function('test_zabob_node_creation',
-                                                     module='houdini_test_functions')
-
-        if result['success']:
-            click.echo("✓ Node creation test passed")
-            if 'result' in result:
-                result_data = result['result']
-                click.echo(f"  Created node: {result_data.get('node_path', 'N/A')}")
-                if 'node_type' in result_data:
-                    click.echo(f"  Node type: {result_data['node_type']}")
-        else:
-            error_msg = result.get('error', 'Unknown error')
-            click.echo(f"✗ Node creation test failed: {error_msg}")
-
-    except RuntimeError as e:
-        if "hython not found" in str(e):
-            click.echo("⚠  Hython not available")
-            click.echo("  For actual node creation, ensure Houdini is installed and hython is on PATH")
-        else:
-            click.echo(f"✗ Runtime error: {e}")
-    except Exception as e:
-        click.echo(f"✗ Test failed: {e}")
-
-
-@diagnostics.command()
-def test_chain():
-    """Test chain functionality."""
-    click.echo("Testing chain functionality...")
-
-    try:
-        result = call_houdini_function('test_zabob_chain_creation',
-                                                        module='houdini_test_functions')
-
-        if result['success']:
-            click.echo("✓ Chain functionality test passed")
-            click.echo("  Basic chain operations are available")
-        else:
-            error_msg = result.get('error', 'Unknown error')
-            click.echo(f"✗ Chain functionality test failed: {error_msg}")
-    except RuntimeError as e:
-        if "hython not found" in str(e):
-            click.echo("⚠  Hython not available")
-            click.echo("  For actual chain functionality, ensure Houdini is installed and hython is on PATH")
-        else:
-            click.echo(f"✗ Runtime error: {e}")
-    except Exception as e:
-        click.echo(f"✗ Test failed: {e}")
 
 
 @main.command()

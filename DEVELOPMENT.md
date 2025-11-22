@@ -133,34 +133,81 @@ uv run pytest -v
 
 Because most of the tests do their work in a `hython` subprocess, it is challenging to debug what happens during a test.
 
-If you have a directory named `hip/` in your working directory, the tests will write out hip files when they finish. This allows you to inspect the Houdini environment with the Houdini editor, or explore the final state interactively with the Houdini python shell. The directory to use can be overridden with the `TEST_HIP_DIR` environment variable, or suppressed by setting it to the empty string or a directory which does not exist. The `hip` directory does not exist in CI so it is not written in that context.
+#### VS Code Launch Configurations
 
-To debug in the debugger, first examine the test to find what function it runs in `hython` in [`houdini_test_functions.py`](src/zabob_houdini/houdini_test_functions.py).
+The project includes dynamic launch configurations for debugging hython-based tests directly:
 
-Then use a launch configuration like this:
-```json
-{
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
+1. **Debug Houdini Test Function**: Select from a dropdown of actual test functions and debug them directly in hython
+2. **Debug Houdini Example**: Select and debug example files under hython
 
-        {
-            "name": "Python Debugger: Module",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "zabob_houdini",
-            "args": [
-                "_exec", "houdini_test_functions", "test_chain_reference_vs_copy"
-            ],
-            "justMyCode": false,
-            "python": "/Applications/Houdini/Current/Frameworks/Houdini.framework/Versions/Current/Resources/bin/hython"
+These configurations automatically refresh their dropdown options from the actual project files. To use them:
 
-        }
-    ]
-}
+1. Install the recommended Command Variable extension when prompted
+2. Press F5 or use Run → Start Debugging
+3. Choose "Debug Houdini Test Function"
+4. Select the test function from the dropdown
+5. Set breakpoints in the test function in `houdini_test_functions.py`
+
+This allows direct stepping through the Houdini-side test code, which is much more effective than debugging the pytest wrapper.
+
+#### Pytest Stack Trace Integration
+
+When tests fail, pytest now includes the complete hython stack trace in the failure message, making it much easier to identify the exact cause of failures in Houdini subprocess calls.
+
+Example failure output:
+
+```text
+=================================== FAILURES ===================================
+______________ TestContextFunction.test_node_context_merge_method ______________
+tests/test_node_context.py:118: in test_node_context_merge_method
+    result = hython_test("test_node_context_merge_method")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:57: in run_houdini_test
+    pytest.fail(msg)
+E   Failed: hython test test_node_context_merge_method failed:
+E   Error executing houdini_test_functions.test_node_context_merge_method: Node at path 'my_box' does not exist.
+E
+E   ------Hython Error Traceback------
+E   Traceback (most recent call last):
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/houdini_test_functions.py", line 1749, in test_node_context_merge_method
+E       merge_node = ctx.merge("my_box", "my_sphere", name="test_merge")
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1014, in merge
+E       return self.node("merge", name, _input=list(inputs), **attributes)
+E              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 872, in node
+E       node_instance = node(
+E                       ^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1642, in node
+E       inputs = _wrap_inputs(_input)
+E                ^^^^^^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1888, in _wrap_inputs
+E       return tuple(_wrap_input(inp, 0) for inp in inputs)
+E              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1940, in _wrap_input
+E       wrapped = _wrap_single_input(input)
+E                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1919, in _wrap_single_input
+E       return wrap_node(hou_node(input))
+E                        ^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1823, in hou_node
+E       raise ValueError(f"Node at path '{path}' does not exist.")
+E   ValueError: Node at path 'my_box' does not exist.
+----------------------------- Captured stderr call -----------------------------
+[... Houdini startup noise ending with "Can't open dophints.cmd" ...]
+--------------------------- Captured stderr teardown ---------------------------
+Saved HIP file: hip/test_node_context_merge_method.hip
+=========================== short test summary info ============================
+FAILED tests/test_node_context.py::TestContextFunction::test_node_context_merge_method
+============================== 1 failed in 1.67s ===============================
+Finished running tests!
 ```
+
+The key improvement is the **"------Hython Error Traceback------"** section that shows the complete call stack from inside the hython subprocess, making it easy to identify exactly where and why the test failed.
+
+#### HIP File Inspection
+
+If you have a directory named `hip/` in your working directory, the tests will write out hip files when they finish. This allows you to inspect the Houdini environment with the Houdini editor, or explore the final state interactively with the Houdini python shell. The directory to use can be overridden with the `TEST_HIP_DIR` environment variable, or suppressed by setting it to the empty string or a directory which does not exist. The `hip` directory does not exist in CI so it is not written in that context.
 
 **CI/CD:**
 

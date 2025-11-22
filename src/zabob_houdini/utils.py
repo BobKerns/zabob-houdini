@@ -34,7 +34,7 @@ def error_result(message: str, with_traceback: bool = True) -> HoudiniResult:
             'error': message,
         }
     trace = traceback.format_exc().splitlines()
-    # Don't show the error handling code in the traceback
+    # Don't show the invoking code in the traceback
     trace = trace[0:1] + trace[4:]
     return {
         'success': False,
