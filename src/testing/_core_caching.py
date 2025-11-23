@@ -1,7 +1,12 @@
 """Core caching test functions."""
 
 import hou
-from zabob_houdini.core import ROOT, node, chain, hou_node, NodeInstance
+
+from zabob_houdini.core_node import (
+    node, hou_node, NodeInstance,
+    get_node_instance, wrap_node,
+)
+from zabob_houdini.core_chain import chain
 from zabob_houdini.utils import JsonObject
 
 
@@ -361,7 +366,6 @@ def _test_convenience_methods_empty_chain() -> JsonObject:
 
 def _test_node_registry_functionality() -> JsonObject:
     """Test NodeInstance registry functionality."""
-    from zabob_houdini.core import get_node_instance, wrap_node
 
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -399,7 +403,7 @@ def _test_node_registry_functionality() -> JsonObject:
 
 def _test_merge_inputs_sparse_handling() -> JsonObject:
     """Test _merge_inputs function with sparse (None) inputs."""
-    from zabob_houdini.core import _merge_inputs
+    from zabob_houdini.core_node import _merge_inputs
     from zabob_houdini import Inputs
 
     # Create test nodes to use as inputs

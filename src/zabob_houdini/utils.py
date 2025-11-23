@@ -3,9 +3,52 @@ Utility functions and types.
 '''
 
 from typing import NotRequired, TypeAlias, TypedDict, Any
+from types import MappingProxyType
 import json
 import sys
 import traceback
+
+
+class HashableMapping:
+    """
+    A hashable immutable mapping for use in frozen dataclasses.
+
+    Wraps a MappingProxyType and provides hash functionality.
+    """
+
+    def __init__(self, mapping: dict[str, Any] | None = None):
+        self._mapping = MappingProxyType(mapping or {})
+
+    def __hash__(self) -> int:
+        """Hash based on sorted items for consistent hashing."""
+        return hash(tuple(sorted(self._mapping.items())))
+
+    def __eq__(self, other: object) -> bool:
+        """Equality based on underlying mapping."""
+        if isinstance(other, HashableMapping):
+            return self._mapping == other._mapping
+        return self._mapping == other
+
+    def __getitem__(self, key: str) -> Any:
+        return self._mapping[key]
+
+    def __iter__(self):
+        return iter(self._mapping)
+
+    def __len__(self) -> int:
+        return len(self._mapping)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._mapping.get(key, default)
+
+    def items(self):
+        return self._mapping.items()
+
+    def keys(self):
+        return self._mapping.keys()
+
+    def values(self):
+        return self._mapping.values()
 
 
 JsonAtomicValue: TypeAlias = str | int | float | bool | None

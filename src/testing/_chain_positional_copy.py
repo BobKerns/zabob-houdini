@@ -2,7 +2,7 @@
 
 import hou
 from zabob_houdini.core import ROOT, node, chain, hou_node
-from zabob_houdini.utils import JsonObject
+from zabob_houdini.utils import JsonArray, JsonObject
 
 
 def _test_positional_reordering() -> JsonObject:
@@ -54,15 +54,16 @@ def _test_copy_signature_includes_args() -> JsonObject:
     params = sig.parameters
 
     # Collect signature information
-    param_names = list(params.keys())
-    keyword_only = [p.name for p in params.values() if p.kind == p.KEYWORD_ONLY]
+    param_names: JsonArray = list(params.keys())
+    keyword_only: JsonArray = [p.name for p in params.values() if p.kind == p.KEYWORD_ONLY]
 
     # Also test Chain signature
     chain_obj = chain(box)
     chain_sig = inspect.signature(chain_obj.copy)
-    chain_params = chain_sig.parameters
-    chain_param_names = list(chain_params.keys())
-
+    chain_params = list(chain_sig.parameters.values())
+    chain_uses_args: bool = any(p.kind == p.VAR_POSITIONAL for p in chain_params)
+    chain_param_names: JsonArray = [p.name for p in chain_params]
+    chain_uses_args = any(p.kind == p.VAR_POSITIONAL for p in chain_params)
     return {
         "node_all_parameters": param_names,
         "node_keyword_only_parameters": keyword_only,
@@ -73,5 +74,5 @@ def _test_copy_signature_includes_args() -> JsonObject:
         "node_has_display": "_display" in params,
         "node_has_render": "_render" in params,
         "chain_all_parameters": chain_param_names,
-        "chain_uses_args": any(p.kind == p.VAR_POSITIONAL for p in chain_params.values()),
+        "chain_uses_args": chain_uses_args,
     }

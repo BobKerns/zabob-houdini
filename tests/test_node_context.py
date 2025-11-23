@@ -122,7 +122,6 @@ class TestContextFunction:
         assert result['merge_has_correct_inputs'] is True
         assert result['merge_parent_correct'] is True
 
-    @pytest.mark.skip(reason="External node registration not yet implemented")
     def test_node_context_merge_registration(self, hython_test):
         """Test NodeContext.merge() registers named merge node in context."""
         result = hython_test("_test_node_context_merge_registration")
@@ -148,7 +147,6 @@ class TestContextFunction:
         assert result['error_contains_parent'] is True
         assert result['valid_merge_works'] is True
 
-    @pytest.mark.skip(reason="Test implementation incomplete")
     def test_node_context_parent_validation(self, hython_test):
         """Test NodeContext validates nodes have same parent as context."""
         result = hython_test("_test_node_context_parent_validation")

@@ -10,12 +10,16 @@ bclip
 bgeo
 bgeoc
 blosc
+cchain
+cctx
 chainbuilder
+cnode
 colorspace
 conftest
 dataclass
 dataclasses
 debugpy
+deque
 diffable
 docstrings
 dophints
@@ -79,6 +83,7 @@ Parms
 parmtemplate
 parmtemplates
 parmvalues
+popleft
 preexec
 prefs
 pycache

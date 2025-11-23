@@ -35,7 +35,7 @@ from importlib.metadata import version, PackageNotFoundError
 
 lazy_imports = (
     "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent",
-    "NodeBase", "CreatableNode", "ChainableNode", "InputNode",
+    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", "ChainBuilder",
     "InputNodes", "Inputs", "ChainCopyParam",
     "get_node_instance", "wrap_node", "hou_node", 'ROOT',
 )
@@ -75,7 +75,7 @@ def __getattr__(name: str):
 # Although these appear to be undefined to static analysis, they are actually defined at runtime.
 __all__ = ['__version__',
     "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent", # type: ignore
-    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", # type: ignore
+    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", "ChainBuilder", # type: ignore
     "InputNodes", "Inputs", "ChainCopyParam", # type: ignore
     "get_node_instance", "wrap_node", "hou_node", "ROOT", # type: ignore
     ]
