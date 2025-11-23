@@ -28,8 +28,6 @@ from zabob_houdini.core_types import (
     NodeType,
     CreatableNode,
     ChainableNode,
-    LocalNodeName,
-    ExistingNodeName,
     InputNodeSpec,
     InstanceNodeSpec,
     InputNode,

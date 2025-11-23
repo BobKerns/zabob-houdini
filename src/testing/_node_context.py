@@ -401,7 +401,7 @@ def _test_node_context_parent_validation() -> JsonObject:
     merge_error_mentions_context = False
     try:
         # This should fail because box_wrong_parent has different parent
-        bad_merge = ctx.merge("box_in_ctx", box_wrong_parent, name="bad_merge")
+        _bad_merge = ctx.merge("box_in_ctx", box_wrong_parent, name="bad_merge")
         merge_validation_works = False  # Should not reach here
     except Exception as e:
         merge_validation_works = True

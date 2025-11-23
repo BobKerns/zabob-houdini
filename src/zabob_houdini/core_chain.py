@@ -8,7 +8,6 @@ and the ChainBuilder class for building chains within a context manager interfac
 from __future__ import annotations
 
 import functools
-from dataclasses import dataclass, field
 from typing import Any, overload, TYPE_CHECKING
 from collections.abc import Iterator, Sequence
 

@@ -62,7 +62,6 @@ def _test_copy_signature_includes_args() -> JsonObject:
     chain_params = list(chain_sig.parameters.values())
     chain_uses_args: bool = any(p.kind == p.VAR_POSITIONAL for p in chain_params)
     chain_param_names: JsonArray = [p.name for p in chain_params]
-    chain_uses_args = any(p.kind == p.VAR_POSITIONAL for p in chain_params)
     return {
         "node_all_parameters": param_names,
         "node_keyword_only_parameters": keyword_only,
