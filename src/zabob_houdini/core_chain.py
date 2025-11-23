@@ -12,27 +12,28 @@ from dataclasses import dataclass, field
 from typing import Any, overload, TYPE_CHECKING
 from collections.abc import Iterator, Sequence
 
-if TYPE_CHECKING:
-    import hou
-    from zabob_houdini.core_types import (
-        NodeType,
-        InputNode,
-        Inputs,
-        ChainableNode,
-        ChainCopyParam,
-        InputNodes,
-    )
-    from zabob_houdini.core_context import NodeContext
+import hou
+
+from zabob_houdini.core_types import (
+    NodeType,
+    InputNode,
+    Inputs,
+    ChainableNode,
+    ChainCopyParam,
+    InputNodes,
+)
 
 # Import actual dependencies
 from zabob_houdini.utils import HashableMapping
-from zabob_houdini.core_node import (
-    NodeBase, NodeInstance, ROOT,
-    ForwardReference, DeferredChainPropertyReference, _merge_inputs, _wrap_inputs
-)
+import zabob_houdini.core_node as cnode
+if TYPE_CHECKING:
+    from zabob_houdini.core_node import (
+        NodeInstance,
+        ForwardReference, DeferredChainPropertyReference,
+    )
+    from zabob_houdini.core_context import NodeContext
 
-
-class Chain(NodeBase):
+class Chain(cnode.NodeBase):
     """
     Represents a chain of Houdini nodes that can be created.
 
@@ -62,8 +63,8 @@ class Chain(NodeBase):
     def parent(self) -> NodeInstance:
         match self.nodes:
             case ():
-                return ROOT
-            case NodeInstance() as n, *_:
+                return cnode.ROOT
+            case cnode.NodeInstance() as n, *_:
                 return n.parent
             case _:
                 raise RuntimeError(f"Invalid parent: {self.nodes[0]}")
@@ -249,7 +250,7 @@ class Chain(NodeBase):
         new_nodes: Sequence[NodeInstance] = (
             self.nodes if not copy_params
             else [
-                param if isinstance(param, NodeInstance) else self[param]
+                param if isinstance(param, cnode.NodeInstance) else self[param]
                 for param in copy_params
                 ]
         )
@@ -258,13 +259,13 @@ class Chain(NodeBase):
             raise ValueError("Chain copy must result in at least one node")
 
         # Handle inputs for first node
-        inputs = _wrap_inputs(_inputs)
+        inputs = cnode._wrap_inputs(_inputs)
         self_inputs: 'Inputs' = ()
         if self.nodes and new_nodes:
             if copy_params:
                 # Get inputs from the original first node being copied
                 first_param = copy_params[0]
-                if not isinstance(first_param, NodeInstance):
+                if not isinstance(first_param, cnode.NodeInstance):
                     # It's an int or str - get the original node's inputs
                     original_first = self[first_param]
                     self_inputs = original_first.inputs
@@ -272,7 +273,7 @@ class Chain(NodeBase):
                 # Default copy: preserve first node's inputs
                 self_inputs = self.nodes[0].inputs
 
-        merged_inputs = _merge_inputs(inputs, self_inputs)
+        merged_inputs = cnode._merge_inputs(inputs, self_inputs)
 
         # Copy first node with merged inputs
         first_node = new_nodes[0].copy(_inputs=merged_inputs)
@@ -311,7 +312,7 @@ class ChainBuilder:
             # Now process inputs - DeferredChainPropertyReferences can now resolve
             if self._input is not None:
                 # Apply input to the first node (ForwardReferences should resolve now)
-                first_node = self._nodes[0]._copy(_inputs=_wrap_inputs(self._input))
+                first_node = self._nodes[0]._copy(_inputs=cnode._wrap_inputs(self._input))
                 nodes_with_input = [first_node] + self._nodes[1:]
                 # Recreate the chain with the connected input
                 self._created_chain = Chain(nodes_with_input)
@@ -348,7 +349,7 @@ class ChainBuilder:
     def node(self, node_type: 'NodeType', /, name: str | None = None, **attributes: Any) -> NodeInstance:
         """Add a node to this chain (not registered with context until chain completes)."""
         # Create node without registering it with the context
-        node_instance = NodeInstance(
+        node_instance = cnode.NodeInstance(
             _parent=self.context.parent,  # Use the context's parent
             node_type=node_type,
             name=name,
@@ -443,7 +444,7 @@ def chain(
 
     def _handle_entry(item: 'Any') -> Iterator[NodeInstance]:
         match item:
-            case NodeInstance():
+            case cnode.NodeInstance():
                 yield item
             case Chain():
                 yield from item.nodes
@@ -460,7 +461,7 @@ def chain(
         for i, node in enumerate(flattened_nodes[1:], 1):
             if node.parent != first_parent:
                 raise ValueError(
-                    f"All chain nodes must have same parent. "
+                    f"All nodes in a context must have same parent. \n"
                     f"Node 0 has parent {first_parent}, node {i} has parent {node.parent}"
                 )
 

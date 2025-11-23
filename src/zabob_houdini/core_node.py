@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from itertools import zip_longest
-from typing import Any, TypeVar, TYPE_CHECKING
+from typing import Any, TypeVar, cast, TYPE_CHECKING
 import weakref
 
 import hou
@@ -24,10 +24,12 @@ from zabob_houdini.core_types import (
     InputNodes,
     ResolvedConnection,
 )
-from zabob_houdini.core_utils import _generate_name, hou_node
 from zabob_houdini.utils import HashableMapping
+from zabob_houdini.core_utils import _generate_name, hou_node
 import zabob_houdini.core_context as cctx
-import zabob_houdini.core_chain as cchain
+
+if TYPE_CHECKING:
+    from zabob_houdini.core_chain import ChainBuilder
 
 
 T = TypeVar('T', bound='hou.Node')
@@ -476,7 +478,7 @@ class ForwardReference:
     resolution_type: str  # 'context_lookup' or 'chain_property'
     context: 'cctx.NodeContext | None' = None
     name: str | None = None
-    chain_builder: 'cchain.ChainBuilder | None' = None
+    chain_builder: 'ChainBuilder | None' = None
     property_name: str | None = None  # 'first' or 'last'
 
     def resolve(self) -> 'NodeInstance':
@@ -612,6 +614,9 @@ def _wrap_inputs(inputs: Sequence[InputNode] | InputNode) -> Inputs:
     Returns:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
+
+    import zabob_houdini.core_chain as cchain
+
     match inputs:
         case (NodeInstance()|cchain.Chain()|hou.Node()|str()|ForwardReference() as input,
               int() as idx):
@@ -638,6 +643,7 @@ def _wrap_input(input: InputNode, idx: int) -> ResolvedConnection | None:
     Returns:
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
+    import zabob_houdini.core_chain as cchain
     # Copilot: There are no implicit returns in _wrap_single_input. (DO NOT REMOVE)
     def _wrap_single_input(input: InputNodeSpec) -> NodeInstance|ForwardReference|None:
         """Wrap a single input node specification."""
@@ -782,7 +788,7 @@ if TYPE_CHECKING:
 else:
     # Runtime initialization - only when hou is available
     _ROOT = hou_node('/')
-    ROOT = cnode.NodeInstance(
+    ROOT = NodeInstance(
         _parent=cast(NodeInstance, None),
         node_type='root',
         name='/',

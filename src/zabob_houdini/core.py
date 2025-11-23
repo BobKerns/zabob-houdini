@@ -7,10 +7,7 @@ This module assumes it's running in a Houdini environment (mediated by bridge or
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
-from typing import Any, TypeVar, cast, TYPE_CHECKING
-from itertools import zip_longest
-from collections.abc import Sequence
+from typing import Any, TypeVar, TYPE_CHECKING
 
 if "hou" not in sys.modules:
     # Avoids SIGSEGV when importing hou in non-Houdini environments
@@ -44,7 +41,7 @@ from zabob_houdini.core_types import (
 from zabob_houdini.core_utils import hou_node
 from zabob_houdini.core_node import (
     NodeBase, NodeInstance, node, ROOT,
-    ForwardReference, _node_registry, wrap_node
+    ForwardReference, wrap_node, get_node_instance
 )
 from zabob_houdini.core_chain import Chain, ChainBuilder, chain
 from zabob_houdini.core_context import NodeContext, context

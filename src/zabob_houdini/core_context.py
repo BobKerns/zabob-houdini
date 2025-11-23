@@ -8,7 +8,7 @@ interface for building node graphs with automatic layout and dependency tracking
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import weakref
 from collections.abc import Sequence
 
@@ -19,13 +19,11 @@ from zabob_houdini.core_types import (
     InputNode,
     InstanceNodeSpec,
 )
+import zabob_houdini.core_node as cnode
 
-# Import actual dependencies
-from zabob_houdini.core_node import (
-    NodeInstance, node, wrap_node,
-    ForwardReference,
-)
-from zabob_houdini.core_chain import ChainBuilder
+if TYPE_CHECKING:
+    from zabob_houdini.core_node import NodeInstance, ForwardReference
+    from zabob_houdini.core_chain import ChainBuilder
 
 
 @dataclass
@@ -96,11 +94,14 @@ class NodeContext:
         Returns:
             NodeInstance that can be created with .create()
         """
+
+        import zabob_houdini.core_node as cnode
+
         # Process inputs to handle forward references
         processed_input = self._process_inputs(_input)
 
         # Create the node using the global node() function
-        node_instance = node(
+        node_instance = cnode.node(
             self.parent,
             node_type,
             name,
@@ -119,7 +120,7 @@ class NodeContext:
         if name is not None:
             # Check if there was a ForwardReference for this name that needs to be replaced
             old_entry = self._nodes.get(name)
-            if isinstance(old_entry, ForwardReference):
+            if isinstance(old_entry, cnode.ForwardReference):
                 # Replace the ForwardReference with the actual NodeInstance
                 # Also update any other references in the context that point to the ForwardReference
                 self._replace_forward_reference(old_entry, node_instance)
@@ -132,7 +133,7 @@ class NodeContext:
             for input_spec in inputs:
                 if input_spec is not None:
                     # Resolve the input to a NodeInstance or ForwardReference
-                    if isinstance(input_spec, NodeInstance):
+                    if isinstance(input_spec, cnode.NodeInstance):
                         input_node = input_spec
                         # Auto-register named external NodeInstance objects in context
                         if input_spec.name is not None and input_spec.name not in self._nodes:
@@ -148,7 +149,7 @@ class NodeContext:
                             input_node = input_spec.last
                         else:
                             continue
-                    elif isinstance(input_spec, ForwardReference):
+                    elif isinstance(input_spec, cnode.ForwardReference):
                         input_node = input_spec
                     else:
                         continue  # Skip other types (hou.Node, str, tuples)
@@ -170,7 +171,7 @@ class NodeContext:
         """
         if isinstance(input_spec, str):
             # String name - create a forward reference for deferred resolution
-            return ForwardReference(
+            return cnode.ForwardReference(
                 resolution_type='context_lookup',
                 context=self,
                 name=input_spec
@@ -264,9 +265,11 @@ class NodeContext:
             - After exiting the context, any named nodes in the result will be registered
             - Use the ChainBuilder.node() method to add nodes to the chain
         """
+        import zabob_houdini.core_chain as cchain
+
         # Process inputs to handle forward references
         processed_input = self._process_inputs(_input)
-        return ChainBuilder(self, processed_input)
+        return cchain.ChainBuilder(self, processed_input)
 
     def merge(self, *inputs: 'InstanceNodeSpec',
               name: str | None = None,
@@ -317,7 +320,7 @@ class NodeContext:
 
     def _add_dependency(self, input_node: 'NodeInstance | ForwardReference', dependent_node: NodeInstance) -> None:
         """Add a dependency relationship: dependent_node depends on input_node."""
-        if isinstance(input_node, ForwardReference):
+        if isinstance(input_node, cnode.ForwardReference):
             # Skip dependency tracking for ForwardReferences at definition time
             # Dependencies will be resolved and tracked at create time
             return
@@ -471,7 +474,7 @@ class NodeContext:
                     # Resolve ForwardReferences for depth calculation
                     resolved_nodes = []
                     for inp in input_nodes:
-                        if isinstance(inp, ForwardReference):
+                        if isinstance(inp, cnode.ForwardReference):
                             resolved_nodes.append(inp.resolve())
                         else:
                             resolved_nodes.append(inp)
@@ -597,7 +600,7 @@ class NodeContext:
                 for inp in node.inputs:
                     if inp is not None:
                         input_node = inp[0]
-                        if isinstance(input_node, ForwardReference):
+                        if isinstance(input_node, cnode.ForwardReference):
                             resolved_inputs.append(input_node.resolve())
                         else:
                             resolved_inputs.append(input_node)
@@ -617,7 +620,7 @@ class NodeContext:
                     # Resolve ForwardReferences for layout calculations
                     resolved_input_nodes = []
                     for inp in input_nodes:
-                        if isinstance(inp, ForwardReference):
+                        if isinstance(inp, cnode.ForwardReference):
                             resolved_inp = inp.resolve()
                             resolved_input_nodes.append(resolved_inp)
                         else:
@@ -686,6 +689,11 @@ def context(parent: NodeParent) -> NodeContext:
             box = node(ctx.parent, "box")
             sphere = node(ctx.parent, "sphere")
     """
+    import zabob_houdini.core_node as cnode
     # Wrap the parent as a NodeInstance for consistent interface
-    parent_instance = wrap_node(parent) if not isinstance(parent, NodeInstance) else parent
+    parent_instance = (
+        cnode.wrap_node(parent)
+        if not isinstance(parent, cnode.NodeInstance)
+        else parent
+    )
     return NodeContext(parent=parent_instance)
