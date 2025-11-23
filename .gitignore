@@ -46,6 +46,7 @@ coverage.xml
 cover/
 *.backup
 test-results*.xml
+.mypy_cache/
 
 # Virtual environments
 .venv
@@ -102,6 +103,7 @@ sim/
 *.houdini_backup
 houdini.env.bak
 houdini*.env.bak
+hip/
 
 # Houdini temp/cache files
 *.tmp
