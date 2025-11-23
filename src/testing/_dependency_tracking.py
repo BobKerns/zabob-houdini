@@ -1,6 +1,5 @@
 """Dependency tracking test functions."""
 
-import hou
 from zabob_houdini.utils import JsonObject
 
 

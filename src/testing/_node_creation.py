@@ -2,7 +2,7 @@
 
 from typing import Any
 import hou
-from zabob_houdini.core import ROOT, node, hou_node
+from zabob_houdini.core import node, hou_node
 from zabob_houdini.utils import JsonObject
 
 

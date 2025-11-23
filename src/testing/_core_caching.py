@@ -1,7 +1,5 @@
 """Core caching test functions."""
 
-import hou
-
 from zabob_houdini.core_node import (
     node, hou_node, NodeInstance,
     get_node_instance, wrap_node,
