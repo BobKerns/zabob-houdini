@@ -109,6 +109,7 @@ repr
 resultdatatag
 rtype
 sdist
+segfaulting
 sesinetd
 SIDEFX
 signum
