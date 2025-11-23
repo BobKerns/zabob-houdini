@@ -13,6 +13,46 @@ pip install zabob-houdini
 python -m zabob_houdini install-package
 ```
 
+### Shell Completion
+
+Zabob-Houdini supports shell completion for all commands and options using Click's built-in completion system.
+
+**Bash:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=bash_source zabob-houdini > ~/.zabob-houdini-complete.bash
+echo 'source ~/.zabob-houdini-complete.bash' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Zsh:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=zsh_source zabob-houdini > ~/.zabob-houdini-complete.zsh
+echo 'source ~/.zabob-houdini-complete.zsh' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Fish:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=fish_source zabob-houdini > ~/.config/fish/completions/zabob-houdini.fish
+# Fish automatically loads completions from this directory
+```
+
+**Features:**
+- Tab completion for all commands (`run`, `info`, `houdini`, etc.)
+- Completion for command options (`--save`, `--open`, `--verbose`)
+- Context-aware argument completion (e.g., file paths for `run` command)
+- Subcommand completion (e.g., `houdini types` after typing `houdini`)
+
+**Using with uvx:**
+
+If you installed via `uvx`, you can still use completions by generating them once:
+```bash
+_ZABOB_HOUDINI_COMPLETE=bash_source uvx zabob-houdini > ~/.zabob-houdini-complete.bash
+echo 'source ~/.zabob-houdini-complete.bash' >> ~/.bashrc
+```
+
+The completion script works with both `zabob-houdini` and `uvx zabob-houdini` invocations.
+
 ## Global Options
 
 All commands support:
@@ -29,35 +69,62 @@ The CLI provides several command groups and individual commands for different as
 
 ## Command Groups
 
-### `info` - Houdini Environment Information
+### `houdini` - Local Houdini Information
 
-Extract detailed information about the Houdini environment and node types.
+Commands for working with local Houdini installations and querying node information.
 
 ```bash
-python -m zabob_houdini info [COMMAND]
+python -m zabob_houdini houdini [COMMAND]
 ```
 
-#### `info categories`
+#### `houdini installations`
+List all installed Houdini versions on the system.
+
+```bash
+python -m zabob_houdini houdini installations
+```
+
+**Usage:**
+- Scans system for installed Houdini versions
+- Shows version numbers, Python versions, and installation directories
+- Works without requiring Houdini to be running
+
+#### `houdini show [VERSION]`
+Show detailed information about a Houdini installation.
+
+```bash
+python -m zabob_houdini houdini show [VERSION]
+```
+
+**Arguments:**
+- `VERSION`: Specific version to show ("20.5" or "20.5.584"), or latest if omitted
+
+**Usage:**
+- Displays detailed paths and configuration for a Houdini installation
+- Shows executable paths, library paths, and environment settings
+- Useful for debugging installation issues
+
+#### `houdini categories`
 Analyze node categories in the current Houdini session.
 
 ```bash
-python -m zabob_houdini info categories [ARGS...]
+python -m zabob_houdini houdini categories
 ```
 
 **Usage:**
 - Analyzes all available node categories in Houdini
-- Outputs category hierarchy and relationships
+- Displays table with category names, labels, and subnetwork support
 - Requires Houdini environment (automatically uses `hython`)
 
-#### `info types CATEGORY`
+#### `houdini types CATEGORY`
 List node types in the specified category with detailed information.
 
 ```bash
-python -m zabob_houdini info types CATEGORY
+python -m zabob_houdini houdini types CATEGORY
 ```
 
 **Arguments:**
-- `CATEGORY`: The name of the node category to analyze (e.g., 'sop', 'object', 'dop')
+- `CATEGORY`: The name of the node category to analyze (e.g., 'Sop', 'Object', 'Dop')
 
 **Example Output:**
 ```text
@@ -80,19 +147,19 @@ box                     Box                      0        1        -            
 
 ---
 
-### `houdini` - Houdini Version Management
+### `sidefx` - SideFX Download and Version Management
 
-Tools for managing Houdini installations and versions.
+Tools for downloading Houdini installers and querying available versions from SideFX.
 
 ```bash
-python -m zabob_houdini houdini [COMMAND]
+python -m zabob_houdini sidefx [COMMAND]
 ```
 
-#### `houdini versions`
-Get available Houdini versions for testing and development.
+#### `sidefx versions`
+Get available Houdini versions from SideFX for download and installation.
 
 ```bash
-python -m zabob_houdini houdini versions [OPTIONS]
+python -m zabob_houdini sidefx versions [OPTIONS]
 ```
 
 **Options:**
@@ -110,11 +177,11 @@ python -m zabob_houdini houdini versions [OPTIONS]
 - `HOUDINI_PRODUCTS`: Comma-separated list of products
 - `HOUDINI_ARCHITECTURES`: Comma-separated list of architectures
 
-#### `houdini download VERSION`
-Download a Houdini installer.
+#### `sidefx download VERSION`
+Download a Houdini installer from SideFX.
 
 ```bash
-python -m zabob_houdini houdini download VERSION [OPTIONS]
+python -m zabob_houdini sidefx download VERSION [OPTIONS]
 ```
 
 **Arguments:**
@@ -131,11 +198,11 @@ python -m zabob_houdini houdini download VERSION [OPTIONS]
 - `HOUDINI_ARCH`: Default architecture
 - `HOUDINI_BUILD_TYPE`: Default build type
 
-#### `houdini show VERSION`
-Show detailed information about a specific Houdini build.
+#### `sidefx show VERSION`
+Show detailed information about a specific Houdini build available from SideFX.
 
 ```bash
-python -m zabob_houdini houdini show VERSION [OPTIONS]
+python -m zabob_houdini sidefx show VERSION [OPTIONS]
 ```
 
 **Arguments:**
@@ -255,7 +322,57 @@ python -m zabob_houdini list-types [OPTIONS]
 **Options:**
 - `--category, -c [sop|obj|dop|cop|vop|top]`: Filter by node category
 
-**Note:** This is a legacy command. Use `info types` for enhanced formatting and features.
+**Note:** This is a legacy command. Use `houdini types` for enhanced formatting and features.
+
+### `run`
+Run a Python script in Houdini's Python environment (hython).
+
+```bash
+zabob-houdini run SCRIPT_PATH [SCRIPT_ARGS...] [OPTIONS]
+```
+
+**Arguments:**
+- `SCRIPT_PATH`: Path to the Python script to execute in hython
+- `SCRIPT_ARGS`: Additional arguments to pass to the script (optional)
+
+**Options:**
+- `--hipfile, -o PATH`: Save the resulting Houdini scene to this file path
+- `--save, -s`: Save to `<basename>.hip` in the script's directory
+- `--open`: Open the saved HIP file in Houdini application (implies `--save`)
+- `--verbose, -v`: Show verbose output from script execution
+
+**Features:**
+- Executes Python scripts in Houdini's Python environment with access to `hou` module
+- Optionally saves the resulting scene to a HIP file
+- Can automatically open the saved file in Houdini
+- Passes command-line arguments to the script
+- Automatically determines HIP filename from script name when using `--save`
+
+**Examples:**
+```bash
+# Run a script
+zabob-houdini run examples/diamond_chain_demo.py
+
+# Run and save to auto-named HIP file
+zabob-houdini run examples/diamond_chain_demo.py --save
+
+# Run, save, and open in Houdini
+zabob-houdini run examples/diamond_chain_demo.py --open
+
+# Save to specific file
+zabob-houdini run my_script.py --hipfile /tmp/result.hip
+
+# Pass arguments to script
+zabob-houdini run my_script.py arg1 arg2 --verbose
+
+# Run, save to custom location, and open
+zabob-houdini run my_script.py --hipfile scene.hip --open
+```
+
+**Cross-Platform Support:**
+- **Windows**: Uses `os.startfile()` to open HIP files
+- **macOS**: Uses `open` command
+- **Linux**: Uses `xdg-open` command
 
 ### `install-package`
 Install zabob-houdini as a Houdini package.
@@ -320,7 +437,7 @@ The CLI uses a sophisticated bridge architecture that automatically dispatches c
 python -m zabob_houdini validate
 
 # Check available Houdini versions
-python -m zabob_houdini houdini versions --min-version 21.0
+python -m zabob_houdini sidefx versions --min-version 21.0
 
 # Test functionality
 python -m zabob_houdini diagnostics test-node
@@ -335,20 +452,20 @@ python -m zabob_houdini environment
 python -m zabob_houdini install-package
 
 # Explore node types
-python -m zabob_houdini info types sop
-python -m zabob_houdini info categories
+python -m zabob_houdini houdini types sop
+python -m zabob_houdini houdini categories
 ```
 
 **Version Management:**
 ```bash
 # List available versions
-python -m zabob_houdini houdini versions --dev
+python -m zabob_houdini sidefx versions --dev
 
 # Download specific version
-python -m zabob_houdini houdini download 21.0.512 --arch arm64
+python -m zabob_houdini sidefx download 21.0.512 --arch arm64
 
 # Show build information
-python -m zabob_houdini houdini show 21.0.512
+python -m zabob_houdini sidefx show 21.0.512
 ```
 
 ## Exit Codes

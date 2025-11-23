@@ -5,6 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "zabob-houdini",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "hython",
+            "module": "zabob_houdini",
+            "args": [
+                "_exec",
+                "houdini_functions",
+                "_run_with_more",
+                "${input:additionalArgs}"
+            ]
+        },
+        {
             "name": "Debug Houdini Test Function",
             "type": "debugpy",
             "request": "launch",
@@ -18,6 +31,7 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
+            "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
             "justMyCode": true,
             "preLaunchTask": "Generate Test List"
@@ -26,7 +40,7 @@
             "name": "Debug Houdini Example",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/${input:Example File Name}",
+            "program": "${workspaceFolder}/examples/${input:Example File Name}.py",
             "python": "hython",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
@@ -44,7 +58,6 @@
             "console": "integratedTerminal"
         }
     ],
-
     "inputs": [
         {
             "id": "Test Function Name",
@@ -69,7 +82,7 @@
             "args": {
                 "key": "exampleFile",
                 "description": "Select example file to run",
-                "default": "__exit__.py",
+                "default": "._exit",
                 "fileName": "${workspaceFolder}/.vscode/tmp/example-files.txt",
                 "pattern": {
                     "regexp": "^(.+)$",
@@ -77,6 +90,12 @@
                     "value": "$1"
                 }
             }
+        },
+        {
+            "id": "additionalArgs",
+            "type": "promptString",
+            "description": "Additional arguments (e.g. --verbose --save)",
+            "default": ""
         }
     ]
 }

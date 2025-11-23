@@ -7,7 +7,7 @@ import json
 import sys
 
 
-from zabob_houdini.cli import main as dev_main, info
+from zabob_houdini.cli import main as dev_main, houdini
 from zabob_houdini.__version__ import __version__, __distribution__
 from zabob_houdini.houdini_bridge import invoke_houdini_function
 from zabob_houdini.utils import write_error_result, write_response
@@ -87,15 +87,15 @@ if IN_HOUDINI:
     # Add the hidden commands to the existing CLI when module is imported
     main.add_command(_exec)
     main.add_command(_batch_exec)
-    from zabob_houdini.houdini_info import info as houdini_info
-    main.add_command(houdini_info, "info")
+    from zabob_houdini.houdini_info import houdini as houdini_info
+    main.add_command(houdini_info, "houdini")
 else:
     # Don't load houdini_versions in hython.
     # It is not needed, and depends on dotenv, which is not installed
     # by default.
-    from zabob_houdini.houdini_versions import cli as houdini_cli
-    main.add_command(houdini_cli, "houdini")
-    main.add_command(info, "info")
+    from zabob_houdini.houdini_versions import cli as sidefx_cli
+    main.add_command(sidefx_cli, "sidefx")
+    main.add_command(houdini, "houdini")
 
 for cmd in dev_main.commands.values():
     if not isinstance(cmd, click.Group):

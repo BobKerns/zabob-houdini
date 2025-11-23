@@ -7,7 +7,7 @@
     "spell-check-files": "cspell \"**/*.{py,md,txt,json}\" --show-context",
     "spell-check-verbose": "cspell \"**/*.{py,md,txt,json}\" --verbose",
     "list-hython-tests": "hython -c \"import zabob_houdini.houdini_test_functions as htf; fns=(sym for sym in dir(htf) if sym.startswith('test_')); print('\\n'.join(fns))\"",
-    "list-examples": "find examples -name '*.py' -not -path 'examples/__pycache__/*' | sed 's|^examples/||' | sort"
+    "list-examples": "find examples -name '*.py' -not -path 'examples/__pycache__/*' -not -name '._*' | sed 's|^examples/||' | sed 's|\\.py$||' | sort"
   },
   "devDependencies": {
     "cspell": "^9.3.0"

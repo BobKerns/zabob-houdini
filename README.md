@@ -73,37 +73,84 @@ with context(node("/obj", "geo", "mygeometry")) as ctx:
 
 For complete examples including multi-output connections, chain indexing, type narrowing, and advanced patterns, see the **[API Documentation](API.md)**.
 
-### Installation from PyPI
+## Installation
 
-Once published, users can install with:
+### Prerequisites
+
+**UV Package Manager** - Install UV first:
+
+**macOS and Linux:**
 
 ```bash
-# First ensure hython is on your path.
-# This is a requirement for all usage.
-# Then:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-mkdir zabob-houdini
-cd zabob-houdini
+**Windows (PowerShell):**
 
-# Using uv (recommended)
-uv venv .venv
-source .venv/bin/activate  # macOS/Linux
-# .venv\Scripts\activate   # Windows (Command Prompt)
-# .venv\Scripts\Activate.ps1  # Windows (PowerShell)
-uv add zabob-houdini
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
-# Using pip
-python -m venv .venv
-source .venv/bin/activate  # macOS/Linux
-# .venv\Scripts\activate   # Windows (Command Prompt)
-# .venv\Scripts\Activate.ps1  # Windows (PowerShell)
-pip install zabob-houdini
+**Alternative installation methods:** See the [UV installation guide](https://docs.astral.sh/uv/getting-started/installation/)
 
-# Install into Houdini:
-zabob-houdini install-package
+**Houdini** - Ensure `hython` is on your PATH. This is required for all Houdini integration features.
 
-# Validate:
-zabob-houdini validate
+### Install Zabob-Houdini
+
+Use `uvx` to install and run zabob-houdini commands. This automatically handles virtual environment creation:
+
+```bash
+# Install zabob-houdini as a Houdini package
+uvx zabob-houdini install-package
+
+# Verify installation
+uvx zabob-houdini diagnose
+
+# Validate Houdini integration
+uvx zabob-houdini validate
+```
+
+The `install-package` command creates a Houdini package configuration that makes zabob-houdini available in Houdini's Python environment (shelf tools, Python nodes, HDAs, etc.).
+
+### Shell Completion
+
+Enable tab completion for the `zabob-houdini` command in your shell:
+
+**Bash:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=bash_source zabob-houdini > ~/.zabob-houdini-complete.bash
+echo 'source ~/.zabob-houdini-complete.bash' >> ~/.bashrc
+```
+
+**Zsh:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=zsh_source zabob-houdini > ~/.zabob-houdini-complete.zsh
+echo 'source ~/.zabob-houdini-complete.zsh' >> ~/.zshrc
+```
+
+**Fish:**
+```bash
+_ZABOB_HOUDINI_COMPLETE=fish_source zabob-houdini > ~/.config/fish/completions/zabob-houdini.fish
+```
+
+Restart your shell or source the completion file to enable tab completion for all commands, options, and arguments.
+
+### Running Examples
+
+You can run example files and save the resulting Houdini scene:
+
+```bash
+# Run an example and automatically save with the script's name
+uvx zabob-houdini run examples/diamond_chain_demo.py --save
+
+# Run, save, and automatically open in Houdini
+uvx zabob-houdini run examples/diamond_chain_demo.py --open
+
+# Run and save to a specific file
+uvx zabob-houdini run examples/diamond_chain_demo.py --hipfile output.hip
+
+# Then manually open in Houdini to inspect the result
+houdini output.hip
 ```
 
 ### For Houdini Integration

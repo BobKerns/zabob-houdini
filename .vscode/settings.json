@@ -47,6 +47,9 @@
     "flake8.enabled": false,
     "[jsonc]": {
         "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
     }
 
     // === Add your personal settings below ===

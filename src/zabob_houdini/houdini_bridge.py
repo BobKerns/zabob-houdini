@@ -53,6 +53,12 @@ from zabob_houdini.utils import (
 
 P = ParamSpec('P')
 
+def minimal_env() -> dict[str, str]:
+    """Return a minimal environment for subprocess calls, with only necessary variables."""
+    return {
+        key: os.getenv(key, "") # Be sure they're at least empty strings.
+        for key in ('PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP')
+    }
 
 def _is_in_houdini() -> bool:
     """Check if we're currently running in Houdini Python environment."""
@@ -67,6 +73,7 @@ def _find_hython() -> Path:
     if loc is not None:
         return Path(loc)
     raise RuntimeError("hython executable not found. Please ensure Houdini is installed and hython is on the path")
+
 
 
 def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_functions") -> HoudiniResult:
@@ -112,7 +119,7 @@ def _run_function_via_subprocess(func_name: str, args: tuple,
 
     cmd = [str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True, env=minimal_env())
         return result.stdout
     except subprocess.CalledProcessError as e:
         cmdline_args = ' '.join(str_args)
@@ -131,7 +138,7 @@ def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
 
     cmd = [str(hython_path), "-m", "zabob_houdini", *str_args]
     try:
-        result = subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL)
+        subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL, env=minimal_env())
         return
     except subprocess.CalledProcessError as e:
         # Return code 1 might be due to SIGPIPE on some systems
