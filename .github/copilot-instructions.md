@@ -24,6 +24,13 @@ Zabob-Houdini is a Python API for creating Houdini node graphs programmatically.
 
 ## Development Conventions
 
+### Git Workflow Assumptions
+- **When user says "commit"**: User has already staged files (`git add`). Only run `git commit`.
+- **When user says "push"**: User has already committed changes. Only run `git push`.
+- **Don't auto-stage or auto-commit**: User manages staging and commits themselves.
+- Only perform the exact git operation requested.
+- **When creating a PR**: After successful PR creation, provide the PR URL as a clickable link in the response.
+
 ### Terminal Environment Setup
 When first running terminal commands:
 1. **Check for virtual environment**: If `.venv/` exists, activate it
@@ -106,6 +113,18 @@ The project is in early development - the README describes the intended API, but
 - core.py imports hou at module level - this is correct for Houdini environment
 - Unit tests should avoid importing core directly if it causes hou import issues
 - Integration tests run in Houdini via hython_test fixture
+
+### Houdini Environment Execution
+- **When running files that import `hou` directly or indirectly, use `hython` instead of `python`**
+- Examples of files requiring hython:
+  - Files importing from `zabob_houdini.core`
+  - Files importing `NodeInstance`, `Chain`, `NodeContext`, or the `node()`, `chain()` functions
+  - Integration test modules
+- The `hou` module can only be imported in a Houdini Python environment
+- Use regular `python` only for:
+  - Unit tests that don't import core
+  - CLI commands that use the bridge layer
+  - Type checking and linting
 
 ### Context Overflow Prevention
 - **Be extremely concise** - this project has hit context limits multiple times

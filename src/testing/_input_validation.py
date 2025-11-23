@@ -1,8 +1,7 @@
 """Input validation test functions."""
 
-import hou
-from zabob_houdini.core import ROOT, node, chain, hou_node, _merge_inputs
-from zabob_houdini.utils import JsonObject, JsonArray
+from zabob_houdini.core import node, chain, hou_node
+from zabob_houdini.utils import JsonObject
 
 
 def _test_parameter_validation_comprehensive() -> JsonObject:

@@ -1,9 +1,7 @@
 """Node context test functions."""
 
-from typing import Any
-import hou
-from zabob_houdini.core import ROOT, node, chain, hou_node, context, NodeContext, merge, NodeInstance
-from zabob_houdini.utils import JsonObject, JsonArray
+from zabob_houdini.core import node, chain, context, merge, NodeInstance
+from zabob_houdini.utils import JsonObject
 
 
 def _test_node_context_dataclass() -> JsonObject:
@@ -386,10 +384,37 @@ def _test_node_context_parent_validation() -> JsonObject:
         validation_failed = True
         error_message = f"Wrong exception: {type(e).__name__}: {e}"
 
+    # Test chain validation with wrong parent
+    chain_validation_works = False
+    chain_error_mentions_context = False
+    try:
+        # This should fail - box_wrong_parent has different parent than context
+        bad_chain = chain(box_in_ctx, box_wrong_parent)
+        bad_chain.create()  # This should raise an error due to parent mismatch
+        chain_validation_works = False  # Should not reach here
+    except Exception as e:
+        chain_validation_works = True
+        chain_error_mentions_context = "context" in str(e).lower()
+
+    # Test merge validation with wrong parent
+    merge_validation_works = False
+    merge_error_mentions_context = False
+    try:
+        # This should fail because box_wrong_parent has different parent
+        _bad_merge = ctx.merge("box_in_ctx", box_wrong_parent, name="bad_merge")
+        merge_validation_works = False  # Should not reach here
+    except Exception as e:
+        merge_validation_works = True
+        merge_error_mentions_context = "context" in str(e).lower()
+
     return {
         'validation_works': not validation_failed,
         'box_in_ctx_correct': box_in_ctx.parent == geo1,
-        'error_message': error_message
+        'error_message': error_message,
+        'chain_validation_works': chain_validation_works,
+        'merge_validation_works': merge_validation_works,
+        'chain_error_mentions_context': chain_error_mentions_context,
+        'merge_error_mentions_context': merge_error_mentions_context
     }
 
 

@@ -70,7 +70,7 @@ def with_argv(*args: str):
     finally:
         sys.argv = original_argv
 
-def save_hipfile(hipfile: str, open_app: bool=False) -> None:
+def save_hipfile(hipfile: str | None = None, open_app: bool=False) -> None:
     import click
     if hipfile:
         hipfile_path = Path(hipfile)
@@ -95,7 +95,7 @@ def save_hipfile(hipfile: str, open_app: bool=False) -> None:
             click.echo(f"Warning: Failed to open file: {e}", err=True)
 
 
-def _run_in_hython(script_path: str, *script_args: tuple[str, ...],
+def _run_in_hython(script_path: str, *script_args: str,
                    hipfile: str | None = None,
                    save: bool = False,
                    verbose: bool = False,
@@ -197,7 +197,7 @@ def _run_in_hython(script_path: str, *script_args: tuple[str, ...],
             traceback.print_exc()
         sys.exit(1)
 
-def _run_with_more(*script_args: tuple[str, ...]) -> None:
+def _run_with_more(*script_args: str) -> None:
     """
     Run a Python script in hython with more verbose error reporting and optionally save the resulting hip file.
 
@@ -206,5 +206,5 @@ def _run_with_more(*script_args: tuple[str, ...]) -> None:
     import shlex
 
     args = shlex.split(script_args[-1])
-    script_args = ["-m", "zabob_houdini", *script_args[0:-1], *args]
-    os.execlpe(sys.executable, sys.executable, *script_args, env=minimal_env())
+    new_args = ["-m", "zabob_houdini", *script_args[0:-1], *args]
+    os.execlpe(sys.executable, sys.executable, *new_args, minimal_env())

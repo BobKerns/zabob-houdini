@@ -59,7 +59,7 @@ if IN_HOUDINI:
         Outputs one JSON result per line to stdout.
         """
         import hou
-        from zabob_houdini.core import _node_registry
+        from zabob_houdini.core_node import _node_registry
         for line in sys.stdin:
             line = line.strip()
             if not line:

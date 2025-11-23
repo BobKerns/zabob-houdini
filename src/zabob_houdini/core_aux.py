@@ -1,0 +1,3 @@
+'''
+Auxiliary core functions.
+'''
