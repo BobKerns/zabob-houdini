@@ -29,6 +29,7 @@ Zabob-Houdini is a Python API for creating Houdini node graphs programmatically.
 - **When user says "push"**: User has already committed changes. Only run `git push`.
 - **Don't auto-stage or auto-commit**: User manages staging and commits themselves.
 - Only perform the exact git operation requested.
+- **When creating a PR**: After successful PR creation, provide the PR URL as a clickable link in the response.
 
 ### Terminal Environment Setup
 When first running terminal commands:
