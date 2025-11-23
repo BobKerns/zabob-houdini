@@ -204,7 +204,7 @@ E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1823, in
 E       raise ValueError(f"Node at path '{path}' does not exist.")
 E   ValueError: Node at path 'my_box' does not exist.
 ----------------------------- Captured stderr call -----------------------------
-[... Houdini startup noise ending with "Can't open dophints.cmd" ...]
+...
 --------------------------- Captured stderr teardown ---------------------------
 Saved HIP file: hip/test_node_context_merge_method.hip
 =========================== short test summary info ============================
