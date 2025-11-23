@@ -55,7 +55,21 @@
     },
     "python.analysis.include": [
         "stubs/**/*.pyi"
-    ]
+    ],
+    "explorer.autoRevealExclude": {
+        "**/.mypy_cache": true,
+        "**/.pytest_cache": true,
+        "**/.venv": true,
+        "dist/": true
+    },
+    "explorer.fileNesting.patterns": {
+        "pyproject.toml": "uv.lock",
+        ".env": ".env.example.*",
+        ".python-version": ".python-version-houdini",
+        "DEVELOPMENT.md": "API.md,TODO.md,FORWARD_REFERENCES.md",
+        "README.md": "SECURITY.md,CHANGELOG.md,CODE_OF_CONDUCT.md,LICENSE,CONTRIBUTING.md"
+    },
+    "explorer.fileNesting.enabled": true
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,
