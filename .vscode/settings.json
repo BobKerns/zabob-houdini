@@ -18,7 +18,9 @@
 
     // Houdini integration for IntelliSense
     "python.analysis.extraPaths": [
-        "${env:HOUDINI_PATH}/houdini/python3.11libs"
+        "${env:_HOUDINI_PATH}/houdini/python3.11libs",
+        "${env:_HOUDINI_PATH)",
+        "stubs/"
     ],
     "python.analysis.autoImportCompletions": true,
 
@@ -50,7 +52,10 @@
     },
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
-    }
+    },
+    "python.analysis.include": [
+        "stubs/**/*.pyi"
+    ]
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,
