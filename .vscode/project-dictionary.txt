@@ -38,6 +38,7 @@ destimage
 diffable
 docstrings
 dophints
+dopnet
 dotenv
 drawables
 dsolib
