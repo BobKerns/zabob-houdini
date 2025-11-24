@@ -125,6 +125,7 @@ parmtemplate
 parmtemplates
 parmvalues
 Partitioner
+Perlin
 playbar
 pointpattern
 popleft
@@ -166,6 +167,9 @@ sdist
 segfaulting
 selectionrule
 sesinetd
+shearx
+sheary
+shearz
 SIDEFX
 signum
 SIGPIPE
@@ -175,6 +179,7 @@ simdata
 sizex
 sizey
 sizez
+slerp
 softprops
 sopnode
 soppath
@@ -203,6 +208,7 @@ wirestyle
 worktree
 worktrees
 xform
+xforms
 xres
 XYWH
 XYZW
