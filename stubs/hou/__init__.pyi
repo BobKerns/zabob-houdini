@@ -3713,179 +3713,799 @@ class ProgressBar:
     def update(self, progress: float, message: str = "") -> None: ...
     def setLabel(self, label: str) -> None: ...
 
+# Additional node access functions
+def nodes(node_paths: tuple[str, ...]) -> tuple[Node|None, ...]:
+    """Get multiple nodes by paths. Returns None for paths that don't exist."""
+    ...
+
+def items(item_paths: tuple[str, ...]) -> tuple[NetworkMovableItem|None, ...]:
+    """Get multiple network items by paths. Returns None for paths that don't exist."""
+    ...
+
+def item(item_path: str) -> NetworkMovableItem|None:
+    """Get network item by path. Returns None if path doesn't exist."""
+    ...
+
+def setPwd(node: Node) -> None:
+    """Set current working directory node."""
+    ...
+
+def parent() -> Node:
+    """Get parent of current node."""
+    ...
+
+def nodeBySessionId(session_id: int) -> Node|None:
+    """Get node by session ID."""
+    ...
+
+def itemBySessionId(session_id: int) -> NetworkMovableItem|None:
+    """Get network item by session ID."""
+    ...
+
+def networkBoxBySessionId(session_id: int) -> NetworkBox|None:
+    """Get network box by session ID."""
+    ...
+
+def stickyNoteBySessionId(session_id: int) -> StickyNote|None:
+    """Get sticky note by session ID."""
+    ...
+
+def networkDotBySessionId(session_id: int) -> NetworkDot|None:
+    """Get network dot by session ID."""
+    ...
+
+def subnetIndirectInputBySessionId(session_id: int) -> IndirectInput|None:
+    """Get subnet indirect input by session ID."""
+    ...
+
+def nodeConnectionBySessionId(session_id: int) -> NodeConnection|None:
+    """Get node connection by session ID."""
+    ...
+
+# Selection functions
+def selectedItems() -> tuple[NetworkMovableItem, ...]:
+    """Get all selected network items."""
+    ...
+
+def selectedConnections() -> tuple[NodeConnection, ...]:
+    """Get all selected node connections."""
+    ...
+
+# Node operations
+def copyNodesTo(nodes: tuple[Node, ...], destination: Node) -> tuple[Node, ...]:
+    """Copy nodes to new location."""
+    ...
+
+def moveNodesTo(nodes: tuple[Node, ...], destination: Node) -> None:
+    """Move nodes to new location."""
+    ...
+
+def copyNodesToClipboard(nodes: tuple[Node, ...]) -> None:
+    """Copy nodes to clipboard."""
+    ...
+
+def pasteNodesFromClipboard(destination: Node|None = None) -> tuple[Node, ...]:
+    """Paste nodes from clipboard."""
+    ...
+
+def sortedNodes(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
+    """Sort nodes by input/output order."""
+    ...
+
+def sortedNodePaths(node_paths: tuple[str, ...]) -> tuple[str, ...]:
+    """Sort node paths by input/output order."""
+    ...
+
+def preferredNodeType(category: str|NodeTypeCategory, name: str) -> NodeType|None:
+    """Get preferred node type, evaluating aliases."""
+    ...
+
+# Parameter access functions
+def parm(parm_path: str) -> Parm|None:
+    """Get parameter by path."""
+    ...
+
+def parmTuple(parm_path: str) -> ParmTuple|None:
+    """Get parameter tuple by path."""
+    ...
+
+def evalParm(parm_path: str) -> int|float|str:
+    """Evaluate parameter by path."""
+    ...
+
+def evalParmTuple(parm_path: str) -> tuple[int|float|str, ...]:
+    """Evaluate parameter tuple by path."""
+    ...
+
+def ch(parm_path: str) -> float:
+    """Evaluate parameter (backward compatibility)."""
+    ...
+
+def chsop(parm_path: str) -> str:
+    """Evaluate node reference parameter."""
+    ...
+
+def chsoplist(parm_path: str) -> tuple[str, ...]:
+    """Evaluate node list parameter."""
+    ...
+
+def evaluatingParm() -> Parm|None:
+    """Get currently evaluating parameter."""
+    ...
+
+def lvar(variable_name: str) -> Any:
+    """Get local variable value."""
+    ...
+
+def parmClipboardContents() -> tuple[Parm, ...]:
+    """Get parameter clipboard contents."""
+    ...
+
+# File I/O functions
+def findFile(filename: str) -> str|None:
+    """Find file in Houdini path."""
+    ...
+
+def findFiles(pattern: str) -> tuple[str, ...]:
+    """Find all matching files in Houdini path."""
+    ...
+
+def findDirectory(dirname: str) -> str|None:
+    """Find directory in Houdini path."""
+    ...
+
+def findDirectories(pattern: str) -> tuple[str, ...]:
+    """Find all matching directories in Houdini path."""
+    ...
+
+def findFilesWithExtension(extension: str, directories: tuple[str, ...] = ...) -> tuple[str, ...]:
+    """Find files by extension."""
+    ...
+
+def readFile(filename: str) -> str:
+    """Read file contents as string."""
+    ...
+
+def readBinaryFile(filename: str) -> bytes:
+    """Read file contents as bytes."""
+    ...
+
+def homeHoudiniDirectory() -> str:
+    """Get home Houdini directory."""
+    ...
+
+def houdiniPath() -> tuple[str, ...]:
+    """Get Houdini path as tuple of directories."""
+    ...
+
+def fileReferences() -> tuple[tuple[Parm, str], ...]:
+    """Get file references in scene."""
+    ...
+
+# Scripting functions
+def hscript(command: str) -> str:
+    """Execute HScript command and return output."""
+    ...
+
+def hscriptExpression(expression: str) -> Any:
+    """Evaluate HScript expression."""
+    ...
+
+def hscriptFloatExpression(expression: str) -> float:
+    """Evaluate HScript float expression."""
+    ...
+
+def hscriptStringExpression(expression: str) -> str:
+    """Evaluate HScript string expression."""
+    ...
+
+def hscriptVectorExpression(expression: str) -> tuple[float, ...]:
+    """Evaluate HScript vector expression."""
+    ...
+
+def hscriptMatrixExpression(expression: str) -> Matrix4:
+    """Evaluate HScript matrix expression."""
+    ...
+
+def hscriptCommandHelp(command: str) -> str:
+    """Get HScript command help."""
+    ...
+
+def expandString(string: str) -> str:
+    """Expand variables/expressions in string."""
+    ...
+
+def expandStringAtFrame(string: str, frame: float) -> str:
+    """Expand variables/expressions at specific frame."""
+    ...
+
+def encode(string: str) -> str:
+    """Encode string for use as attribute name."""
+    ...
+
+def decode(string: str) -> str:
+    """Decode attribute name back to string."""
+    ...
+
+def incrementNumberedString(string: str) -> str:
+    """Increment number in string (e.g., 'node1' -> 'node2')."""
+    ...
+
+def expressionGlobals() -> dict[str, Any]:
+    """Get expression globals dictionary."""
+    ...
+
+# Environment functions
+def getenv(var_name: str, default: str = "") -> str:
+    """Get environment variable."""
+    ...
+
+def putenv(var_name: str, value: str) -> None:
+    """Set environment variable."""
+    ...
+
+def unsetenv(var_name: str) -> None:
+    """Unset environment variable."""
+    ...
+
+def allowEnvironmentToOverwriteVariable(var_name: str, allow: bool) -> None:
+    """Allow environment to overwrite variable."""
+    ...
+
+# Application info functions
+def applicationCompilationDate() -> str:
+    """Get application compilation date."""
+    ...
+
+def applicationPlatformInfo() -> str:
+    """Get platform information."""
+    ...
+
+def isApprentice() -> bool:
+    """Check if running apprentice version."""
+    ...
+
+def licenseCategory() -> str:
+    """Get license category."""
+    ...
+
+def hdkAPIVersion() -> str:
+    """Get HDK API version."""
+    ...
+
+def exit(exit_code: int = 0, suppress_save_prompt: bool = False) -> None:
+    """Exit Houdini."""
+    ...
+
+def machineName() -> str:
+    """Get machine name."""
+    ...
+
+def userName() -> str:
+    """Get user name."""
+    ...
+
+def maxThreads() -> int:
+    """Get maximum thread count."""
+    ...
+
+def setMaxThreads(count: int) -> None:
+    """Set maximum thread count."""
+    ...
+
+def releaseLicense() -> None:
+    """Release Houdini license."""
+    ...
+
+def helpServerUrl() -> str:
+    """Get help server base URL."""
+    ...
+
+def hipExtension() -> str:
+    """Get hip file extension for current license."""
+    ...
+
+# Cooking functions
+def updateModeSetting() -> str:
+    """Get update mode setting (Auto Update, Manual, etc.)."""
+    ...
+
+def setUpdateMode(mode: str) -> None:
+    """Set update mode."""
+    ...
+
+# Utilities
+def almostEqual(a: float, b: float, tolerance: float = 0.00001) -> bool:
+    """Compare floats with tolerance."""
+    ...
+
+def patternMatch(pattern: str, string: str) -> bool:
+    """Pattern matching."""
+    ...
+
+def scaleFromMKS(value: float, unit_type: str) -> float:
+    """Scale value from MKS units."""
+    ...
+
+def scaleToMKS(value: float, unit_type: str) -> float:
+    """Scale value to MKS units."""
+    ...
+
+def assertTrue(condition: bool, message: str = "") -> None:
+    """Assert condition is true."""
+    ...
+
+# Image functions
+def imageResolution(filename: str) -> tuple[int, int]:
+    """Get image resolution."""
+    ...
+
+def saveImageDataToFile(data: bytes, filename: str, width: int, height: int, format: str = "png") -> None:
+    """Save image data to file."""
+    ...
+
+# Bundle functions
+def addNodeBundle(name: str) -> 'NodeBundle':
+    """Create a node bundle."""
+    ...
+
+def nodeBundle(name: str) -> 'NodeBundle|None':
+    """Get node bundle by name."""
+    ...
+
+def nodeBundles() -> tuple['NodeBundle', ...]:
+    """Get all node bundles."""
+    ...
+
+class NodeBundle:
+    """Named collection of nodes."""
+    def __init__(self) -> None: ...
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def nodes(self) -> tuple[Node, ...]: ...
+    def addNode(self, node: Node) -> None: ...
+    def removeNode(self, node: Node) -> None: ...
+    def clear(self) -> None: ...
+    def destroy(self) -> None: ...
+
+# Session module
+class session:
+    """Container for session-specific functions and variables."""
+    ...
+
+def sessionModuleSource() -> str:
+    """Get session module source code."""
+    ...
+
+def setSessionModuleSource(source: str) -> None:
+    """Set session module source code."""
+    ...
+
+def appendSessionModuleSource(source: str) -> None:
+    """Append to session module source code."""
+    ...
+
+# Context options
+def contextOption(name: str) -> Any:
+    """Get context option value."""
+    ...
+
+def setContextOption(name: str, value: Any) -> None:
+    """Set context option value."""
+    ...
+
+def hasContextOption(name: str) -> bool:
+    """Check if context option exists."""
+    ...
+
+def removeContextOption(name: str) -> None:
+    """Remove context option."""
+    ...
+
+def contextOptions() -> tuple[str, ...]:
+    """Get all context option names."""
+    ...
+
+# DOP functions
+def currentDopNet() -> DopNode|None:
+    """Get current DOP network."""
+    ...
+
+def setCurrentDopNet(dopnet: DopNode|None) -> None:
+    """Set current DOP network."""
+    ...
+
+def simulationEnabled() -> bool:
+    """Check if simulation is enabled."""
+    ...
+
+def setSimulationEnabled(enabled: bool) -> None:
+    """Enable or disable simulation."""
+    ...
+
+# Colors
+def defaultColor(category: str|NodeTypeCategory) -> Color:
+    """Get default node color for category."""
+    ...
+
+def setDefaultColor(category: str|NodeTypeCategory, color: Color) -> None:
+    """Set default node color for category."""
+    ...
+
+# VEX functions
+def runVex(vex_code: str, geometry: Geometry|None = None, precision: str = "32") -> dict[str, Any]:
+    """Run VEX code and return results."""
+    ...
+
+def vexContextForNodeTypeCategory(category: NodeTypeCategory) -> str:
+    """Get VEX context name for node type category."""
+    ...
+
+def vexContextForShaderType(shader_type: str) -> str:
+    """Get VEX context name for shader type."""
+    ...
+
+def vexContexts() -> tuple[str, ...]:
+    """Get all VEX context names."""
+    ...
+
+# Preferences
+def getPreference(name: str) -> Any:
+    """Get preference value."""
+    ...
+
+def setPreference(name: str, value: Any) -> None:
+    """Set preference value."""
+    ...
+
+def hasPreference(name: str) -> bool:
+    """Check if preference exists."""
+    ...
+
+def removePreference(name: str) -> None:
+    """Remove preference."""
+    ...
+
+def preferences() -> tuple[str, ...]:
+    """Get all preference names."""
+    ...
+
+# Animation
+def animationClips() -> tuple['AnimationClip', ...]:
+    """Get all animation clips."""
+    ...
+
+def animationClip(name: str) -> 'AnimationClip|None':
+    """Get animation clip by name."""
+    ...
+
+def addAnimationClip(name: str) -> 'AnimationClip':
+    """Create animation clip."""
+    ...
+
+def animationLayers() -> tuple['AnimationLayer', ...]:
+    """Get all animation layers."""
+    ...
+
+def animationLayer(name: str) -> 'AnimationLayer|None':
+    """Get animation layer by name."""
+    ...
+
+def addAnimationLayer(name: str) -> 'AnimationLayer':
+    """Create animation layer."""
+    ...
+
+class AnimationClip:
+    """Animation clip."""
+    def __init__(self) -> None: ...
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def startTime(self) -> float: ...
+    def endTime(self) -> float: ...
+    def setTimeRange(self, start: float, end: float) -> None: ...
+    def destroy(self) -> None: ...
+
+class AnimationLayer:
+    """Animation layer."""
+    def __init__(self) -> None: ...
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def weight(self) -> float: ...
+    def setWeight(self, weight: float) -> None: ...
+    def destroy(self) -> None: ...
+
+# APEX functions
+def apexNodeByPath(path: str) -> 'ApexNode|None':
+    """Get APEX node by path."""
+    ...
+
+def apexNodes() -> tuple[ApexNode, ...]:
+    """Get all APEX nodes."""
+    ...
+
+# Additional utility functions
+def isValidNodeName(name: str) -> bool:
+    """Check if string is valid node name."""
+    ...
+
+def isValidParameterName(name: str) -> bool:
+    """Check if string is valid parameter name."""
+    ...
+
+def severityString(severity: int) -> str:
+    """Convert severity number to string."""
+    ...
+
+# Third-party library versions
+def thirdPartyLibraryVersions() -> dict[str, str]:
+    """Get versions of third-party libraries."""
+    ...
+
+def vdbVersionInfo() -> dict[str, Any]:
+    """Get OpenVDB version information."""
+    ...
+
+def videoEncoders() -> tuple[str, ...]:
+    """Get available video encoder names."""
+    ...
+
+# Additional node bundle function
+def selectedNodeBundles() -> tuple[NodeBundle, ...]:
+    """Get all selected node bundles."""
+    ...
+
+# Additional file functions (CPIO and index data)
+def loadCPIO(filename: str) -> dict[str, bytes]:
+    """Load CPIO archive."""
+    ...
+
+def saveCPIO(data: dict[str, bytes], filename: str) -> None:
+    """Save CPIO archive."""
+    ...
+
+def indexDataFromFile(filename: str) -> bytes:
+    """Load index data from file."""
+    ...
+
+def saveIndexDataToFile(data: bytes, filename: str) -> None:
+    """Save index data to file."""
+    ...
+
+# Hip file module functions
 class hipFile:
-    """Hip file management module (hou.hipFile).
+    """HIP file operations."""
 
-    Functions for working with the current scene (.hip) file.
-    Note: Houdini inherits the "current directory" from the environment where you run it.
-    """
-    # File path functions
     @staticmethod
-    def basename() -> str:
-        """Return the filename portion of the current scene's path (including the .hip extension)."""
+    def load(filename: str, suppress_save_prompt: bool = False, ignore_load_warnings: bool = False) -> None:
+        """Load HIP file."""
         ...
 
     @staticmethod
-    def name() -> str:
-        """Return the path of the current hip file relative to the current directory."""
-        ...
-
-    @staticmethod
-    def path() -> str:
-        """Return the absolute file path of the current scene file."""
-        ...
-
-    # File state queries
-    @staticmethod
-    def hasUnsavedChanges() -> bool:
-        """Returns whether the current Houdini session has been modified since it was last saved."""
-        ...
-
-    @staticmethod
-    def isNewFile() -> bool:
-        """Returns whether the current Houdini file is a new file or is a previously loaded file."""
-        ...
-
-    @staticmethod
-    def isLoadingHipFile() -> bool:
-        """Returns True if Houdini is currently loading a scene file."""
-        ...
-
-    @staticmethod
-    def isShuttingDown() -> bool:
-        """Returns True if Houdini is currently exiting."""
-        ...
-
-    # File operations
-    @staticmethod
-    def load(file_name: str, suppress_save_prompt: bool = False, ignore_load_warnings: bool = False) -> None:
-        """Loads a new scene (.hip) file."""
-        ...
-
-    @staticmethod
-    def save(file_name: str | None = None, save_to_recent_files: bool = True) -> None:
-        """Saves the current scene to a .hip file."""
-        ...
-
-    @staticmethod
-    def setName(file_name: str) -> None:
-        """Sets the in-memory path of the current scene file."""
+    def save(filename: str|None = None, save_to_recent_files: bool = True) -> None:
+        """Save HIP file."""
         ...
 
     @staticmethod
     def saveAndIncrementFileName() -> None:
-        """Saves the scene to its current path (same as File ▸ Save), but increments a number at the end of the filename."""
+        """Save HIP file and increment version number in filename."""
         ...
 
     @staticmethod
-    def saveAndBackup() -> str:
-        """Saves the current scene but first creates a backup of the previous saved state to a backup file in $HOUDINI_BACKUP_DIR with _bak and an increasing number added before the .hip extension."""
+    def saveAsBackup() -> None:
+        """Save as backup file."""
         ...
 
     @staticmethod
-    def saveAsBackup() -> str:
-        """Saves the current scene to a new file in $HOUDINI_BACKUP_DIR with _bak and an increasing number added before the .hip extension."""
+    def clear(suppress_save_prompt: bool = False) -> None:
+        """Clear HIP file (new scene)."""
         ...
 
     @staticmethod
-    def clear(suppress_save_prompt: bool = False) -> bool:
-        """Clears the contents of the current scene file, starting a new unsaved file."""
+    def merge(filename: str, node_pattern: str = "*", overwrite_existing: bool = False, ignore_load_warnings: bool = False) -> None:
+        """Merge nodes from HIP file."""
         ...
 
     @staticmethod
-    def merge(
-        file_name: str,
-        node_pattern: str = "*",
-        overwrite_on_conflict: bool = False,
-        ignore_load_warnings: bool = False
-    ) -> None:
-        """Imports the contents of the file at path file_name into the current scene."""
+    def collisionNodesIfMerged(filename: str, node_pattern: str = "*") -> tuple[str, ...]:
+        """Get node paths that would collide if file were merged."""
         ...
 
     @staticmethod
-    def collisionNodesIfMerged(file_name: str, node_pattern: str = "*") -> tuple[Any, ...]:
-        """Returns a sequence of hou.OpNode objects representing the nodes that would have conflicts if you tried to merge the given file with hou.hipFile.merge."""
-        ...
-
-    # Save mode
-    @staticmethod
-    def saveMode() -> Any:  # Returns hou.saveMode enum
-        """Return the save mode of the current scene, either hou.saveMode.Binary or hou.saveMode.Text."""
+    def name() -> str:
+        """Get current HIP file name."""
         ...
 
     @staticmethod
-    def setSaveMode(save_mode: Any) -> None:  # Accepts hou.saveMode enum
-        """Set the save mode of the current scene to either hou.saveMode.Binary or hou.saveMode.Text."""
-        ...
-
-    # Group colors
-    @staticmethod
-    def groupColorTable() -> dict[str, Any]:  # dict of str to hou.Color
-        """Returns a dictionary of color overrides for the viewport group list."""
+    def path() -> str:
+        """Get current HIP file path."""
         ...
 
     @staticmethod
-    def setGroupColorTable(color_table: dict[str, Any]) -> None:
-        """Sets a dictionary of color overrides for the viewport group list."""
-        ...
-
-    # FBX import
-    @staticmethod
-    def importFBX(
-        file_name: str,
-        suppress_save_prompt: bool = False,
-        merge_into_scene: bool = True,
-        import_cameras: bool = True,
-        import_joints_and_skin: bool = True,
-        import_geometry: bool = True,
-        import_lights: bool = True,
-        import_animation: bool = True,
-        import_materials: bool = True,
-        resample_animation: bool = False,
-        resample_interval: float = 1.0,
-        override_framerate: bool = False,
-        framerate: float = -1,
-        hide_joints_attached_to_skin: bool = True,
-        convert_joints_to_zyx_rotation_order: bool = False,
-        material_mode: Any = None,  # hou.fbxMaterialMode
-        compatibility_mode: Any = None,  # hou.fbxCompatibilityMode
-        single_precision_vertex_caches: bool = False,
-        triangulate_nurbs: bool = False,
-        triangulate_patches: bool = False,
-        import_global_ambient_light: bool = False,
-        import_blend_deformers_as_blend_sops: bool = False,
-        segment_scale_already_baked_in: bool = True,
-        convert_file_paths_to_relative: bool = True,
-        unlock_geometry: bool = False,
-        unlock_deformations: bool = False,
-        import_nulls_as_subnets: bool = False,
-        import_into_object_subnet: bool = True,
-        convert_into_y_up_coordinate_system: bool = False,
-        create_sibling_bones: bool = True,
-        override_scene_frame_range: bool = False,
-        convert_units: bool = False
-    ) -> tuple[Any, str]:  # Returns (hou.ObjNode, str)
-        """Imports the contents of an FBX file into the scene, like when the user chooses File ▸ Import ▸ FBX."""
-        ...
-
-    # Event callbacks
-    @staticmethod
-    def addEventCallback(callback: Any) -> None:
-        """Register a Python callback to be called whenever a .hip file event occurs (for example, file load, file save)."""
+    def basename() -> str:
+        """Get current HIP file basename (without directory)."""
         ...
 
     @staticmethod
-    def removeEventCallback(callback: Any) -> None:
-        """Removes a Python callback that was previously registered with hou.hipFile.addEventCallback."""
+    def isLoadingHipFile() -> bool:
+        """Check if HIP file is currently loading."""
         ...
 
     @staticmethod
-    def clearEventCallbacks() -> None:
-        """This method is deprecated in favor of hou.hipFile.removeEventCallback."""
+    def isShuttingDown() -> bool:
+        """Check if Houdini is shutting down."""
         ...
 
     @staticmethod
-    def eventCallbacks() -> tuple[Any, ...]:
-        """Returns a tuple of all the callback functions that have been registered with hou.hipFile.addEventCallback."""
+    def hasUnsavedChanges() -> bool:
+        """Check if HIP file has unsaved changes."""
         ...
+
+    @staticmethod
+    def setName(filename: str) -> None:
+        """Set HIP file name (without saving)."""
+        ...
+
+    @staticmethod
+    def isNewFile() -> bool:
+        """Check if this is a new unsaved file."""
+        ...
+
+# Additional environment function
+def getEnvConfigValue(name: str) -> Any:
+    """Get environment config value."""
+    ...
+
+# Additional context option functions
+def contextOptionNames() -> tuple[str, ...]:
+    """Get all context option names (alias for contextOptions())."""
+    ...
+
+def contextOptionConfig(name: str) -> dict[str, Any]:
+    """Get context option configuration."""
+    ...
+
+def setContextOptionConfig(name: str, config: dict[str, Any]) -> None:
+    """Set context option configuration."""
+    ...
+
+def isAutoContextOption(name: str) -> bool:
+    """Check if context option is automatically set."""
+    ...
+
+def isAutoContextOptionOverridden(name: str) -> bool:
+    """Check if auto context option is overridden."""
+    ...
+
+def addContextOptionChangeCallback(callback: Any) -> int:
+    """Add callback for context option changes. Returns callback ID."""
+    ...
+
+def removeContextOptionChangeCallback(callback_id: int) -> None:
+    """Remove context option change callback."""
+    ...
+
+def removeAllContextOptionChangeCallbacks() -> None:
+    """Remove all context option change callbacks."""
+    ...
+
+def contextOptionChangeCallbacks() -> tuple[int, ...]:
+    """Get all context option change callback IDs."""
+    ...
+
+# Additional utility functions
+def updateProgressAndCheckForInterrupt(message: str = "", percentage: float = -1) -> None:
+    """Update progress and check if user interrupted."""
+    ...
+
+def refreshStartupPathCacheDirectory() -> None:
+    """Refresh startup path cache directory."""
+    ...
+
+def registerOpdefPath(path: str) -> None:
+    """Register operator definition path."""
+    ...
+
+def startHoudiniEngineDebugger() -> None:
+    """Start Houdini Engine debugger."""
+    ...
+
+def chopExportConflictResolutionPattern() -> str:
+    """Get CHOP export conflict resolution pattern."""
+    ...
+
+def setChopExportConflictResolutionPattern(pattern: str) -> None:
+    """Set CHOP export conflict resolution pattern."""
+    ...
+
+# Additional APEX functions
+def apexNodeBySessionId(session_id: int) -> ApexNode|None:
+    """Get APEX node by session ID."""
+    ...
+
+def apexNodeConnectionBySessionId(session_id: int) -> 'ApexNodeConnection|None':
+    """Get APEX node connection by session ID."""
+    ...
+
+def apexStickyNoteBySessionId(session_id: int) -> StickyNote|None:
+    """Get APEX sticky note by session ID."""
+    ...
+
+def createApexRootNode(name: str = "apex") -> ApexNode:
+    """Create APEX root node."""
+    ...
+
+# Additional preference functions
+def addPreference(name: str, default_value: Any) -> None:
+    """Add new preference."""
+    ...
+
+def getPreferenceNames() -> tuple[str, ...]:
+    """Get all preference names (alias for preferences())."""
+    ...
+
+def loadPreferences(filename: str) -> None:
+    """Load preferences from file."""
+    ...
+
+def savePreferences(filename: str) -> None:
+    """Save preferences to file."""
+    ...
+
+def refreshPreferences() -> None:
+    """Refresh preferences from disk."""
+    ...
+
+def createPreferenceRegistry() -> None:
+    """Create preference registry."""
+    ...
+
+def refreshPreferenceRegistry() -> None:
+    """Refresh preference registry."""
+    ...
+
+# Additional animation functions
+def removeAnimationLayer(layer: AnimationLayer) -> None:
+    """Remove animation layer."""
+    ...
+
+def createAnimationClip(name: str, start_time: float, end_time: float) -> AnimationClip:
+    """Create animation clip with time range."""
+    ...
+
+def createAnimationLayers(count: int) -> tuple[AnimationLayer, ...]:
+    """Create multiple animation layers."""
+    ...
+
+def clipInfo(clip: AnimationClip) -> dict[str, Any]:
+    """Get clip information dictionary."""
+    ...
+
+def convertClipData(data: bytes, from_format: str, to_format: str) -> bytes:
+    """Convert clip data between formats."""
+    ...
+
+def convertKeyframesToClipData(keyframes: dict[str, Any]) -> bytes:
+    """Convert keyframes to clip data."""
+    ...
+
+def commitPendingKeyframes() -> None:
+    """Commit pending keyframes to animation."""
+    ...
+
+# Additional file I/O functions
+def loadCPIODataFromString(data: str) -> dict[str, bytes]:
+    """Load CPIO data from string."""
+    ...
+
+def loadIndexDataFromString(data: str) -> bytes:
+    """Load index data from string."""
+    ...
+
+def saveCPIODataToString(data: dict[str, bytes]) -> str:
+    """Save CPIO data to string."""
+    ...
+
+def saveIndexDataToString(data: bytes) -> str:
+    """Save index data to string."""
+    ...
 
