@@ -162,10 +162,12 @@ def _node_type_info(name: str, node_type: hou.NodeType):
     if name == "bend" and node_type.category().name() == "Cop":
         return
     deprecationInfo: dict[str, Any] = node_type.deprecationInfo()
+    cat = node_type.childTypeCategory()
+    cat_name = cat.name() if cat else None
     yield NodeTypeInfo(
         name=name,
         category=node_type.category().name(),
-        childCategory=node_type.childTypeCategory().name() if node_type.childTypeCategory() else None,
+        childCategory=cat_name,
         description=node_type.description(),
         helpUrl=node_type.helpUrl(),
         minNumInputs=node_type.minNumInputs(),
