@@ -4509,3 +4509,255 @@ def saveIndexDataToString(data: bytes) -> str:
     """Save index data to string."""
     ...
 
+# ==============================================================================
+# SUBMODULES
+# ==============================================================================
+
+class hmath:
+    """3D math functions for transforms, rotations, and geometric operations."""
+
+    # Transform building functions
+    @staticmethod
+    def buildTranslate(tx: float, ty: float, tz: float) -> Matrix4:
+        """Build translation matrix."""
+        ...
+
+    @staticmethod
+    def buildRotate(rx: float, ry: float, rz: float, order: str = "xyz") -> Matrix4:
+        """Build rotation matrix from Euler angles (degrees)."""
+        ...
+
+    @staticmethod
+    def buildRotateAboutAxis(axis: Vector3, angle_in_deg: float) -> Matrix4:
+        """Build rotation matrix about arbitrary axis."""
+        ...
+
+    @staticmethod
+    def buildRotateZToAxis(axis: Vector3) -> Matrix4:
+        """Build rotation matrix that rotates Z axis to target axis."""
+        ...
+
+    @staticmethod
+    def buildRotateLookAt(from_pos: Vector3, to_pos: Vector3, up: Vector3) -> Matrix4:
+        """Build rotation matrix for look-at transform."""
+        ...
+
+    @staticmethod
+    def buildScale(sx: float, sy: float, sz: float) -> Matrix4:
+        """Build scale matrix."""
+        ...
+
+    @staticmethod
+    def buildShear(shearx: float, sheary: float, shearz: float) -> Matrix4:
+        """Build shear matrix."""
+        ...
+
+    @staticmethod
+    def buildTransform(values: dict[str, Any], transform_order: str = "srt", rotate_order: str = "xyz") -> Matrix4:
+        """Build transform matrix from parameter dictionary."""
+        ...
+
+    @staticmethod
+    def combineLocalTransform(local: Matrix4, world: Matrix4, parent_local: Matrix4 | None = None, mode: Any = ...) -> Matrix4:
+        """Combine local transform with parent world transform."""
+        ...
+
+    @staticmethod
+    def extractLocalTransform(world: Matrix4, parent_world: Matrix4, parent_local: Matrix4, mode: Any = ...) -> Matrix4:
+        """Extract local transform from world transforms."""
+        ...
+
+    @staticmethod
+    def identityTransform() -> Matrix4:
+        """Return identity transform matrix."""
+        ...
+
+    # Angle conversion
+    @staticmethod
+    def degToRad(degrees: float) -> float:
+        """Convert degrees to radians."""
+        ...
+
+    @staticmethod
+    def radToDeg(radians: float) -> float:
+        """Convert radians to degrees."""
+        ...
+
+    # Math utilities
+    @staticmethod
+    def clamp(value: float, min_val: float, max_val: float) -> float:
+        """Clamp value to range."""
+        ...
+
+    @staticmethod
+    def wrap(value: float, min_val: float, max_val: float) -> float:
+        """Wrap value within range."""
+        ...
+
+    @staticmethod
+    def sign(value: float) -> int:
+        """Return sign of value (-1, 0, or 1)."""
+        ...
+
+    @staticmethod
+    def smooth(value: float, min_val: float, max_val: float) -> float:
+        """Smooth step interpolation."""
+        ...
+
+    @staticmethod
+    def fit(value: float, old_min: float, old_max: float, new_min: float, new_max: float) -> float:
+        """Fit value from one range to another."""
+        ...
+
+    @staticmethod
+    def fit01(value: float, new_min: float, new_max: float) -> float:
+        """Fit value from 0-1 range to new range."""
+        ...
+
+    @staticmethod
+    def fit10(value: float, new_min: float, new_max: float) -> float:
+        """Fit value from 1-0 range to new range."""
+        ...
+
+    @staticmethod
+    def fit11(value: float, new_min: float, new_max: float) -> float:
+        """Fit value from -1 to 1 range to new range."""
+        ...
+
+    # Random and noise
+    @staticmethod
+    def rand(seed: float) -> float:
+        """Generate random float from seed."""
+        ...
+
+    @staticmethod
+    def noise1d(pos: float) -> float:
+        """Generate 1D Perlin noise."""
+        ...
+
+    @staticmethod
+    def noise3d(pos: Vector3) -> Vector3:
+        """Generate 3D Perlin noise vector."""
+        ...
+
+    # Geometric tests
+    @staticmethod
+    def orient2d(pa: Vector2, pb: Vector2, point: Vector2) -> float:
+        """Test point orientation relative to 2D line."""
+        ...
+
+    @staticmethod
+    def orient3d(pa: Vector3, pb: Vector3, pc: Vector3, point: Vector3) -> float:
+        """Test point orientation relative to 3D plane."""
+        ...
+
+    @staticmethod
+    def inCircle(pa: Vector2, pb: Vector2, pc: Vector2, point: Vector2) -> float:
+        """Test if point is inside circle defined by three points."""
+        ...
+
+    @staticmethod
+    def inSphere(pa: Vector3, pb: Vector3, pc: Vector3, pd: Vector3, point: Vector3) -> float:
+        """Test if point is inside sphere defined by four points."""
+        ...
+
+    @staticmethod
+    def intersectPlane(plane_point: Vector3, plane_normal: Vector3, line_origin: Vector3, line_dir: Vector3) -> Vector3:
+        """Compute line-plane intersection point."""
+        ...
+
+    # Advanced transforms
+    @staticmethod
+    def slerpTransforms(xforms: list[Matrix4], input_weights: list[float], normalize_weights: bool, slerp_method: Any, slerp_flip_method: Any) -> Matrix4:
+        """Spherical linear interpolation of transforms."""
+        ...
+
+class dop:
+    """DOP (Dynamics) related functions for Python script solver context."""
+
+    @staticmethod
+    def isScriptSolverRunning() -> bool:
+        """Check if currently executing in a script solver."""
+        ...
+
+    @staticmethod
+    def scriptSolverData() -> DopData:
+        """Get the solver data for the current script solver."""
+        ...
+
+    @staticmethod
+    def scriptSolverNetwork() -> OpNode | None:
+        """Get the DOP network containing the current script solver."""
+        ...
+
+    @staticmethod
+    def scriptSolverSimulation() -> DopSimulation | None:
+        """Get the simulation containing the current script solver."""
+        ...
+
+    @staticmethod
+    def scriptSolverObjects() -> tuple[DopObject, ...]:
+        """Get all DOP objects being solved by the current script solver."""
+        ...
+
+    @staticmethod
+    def scriptSolverNewObjects() -> tuple[DopObject, ...]:
+        """Get newly-created DOP objects in the current script solver timestep."""
+        ...
+
+    @staticmethod
+    def scriptSolverTimestepSize() -> float:
+        """Get the timestep size for the current script solver."""
+        ...
+
+class logging:
+    """Logging module for warnings and errors with sources and sinks system."""
+
+    # Classes (forward references - defined elsewhere in hou module)
+    # FileSink, LogEntry, MemorySink, Sink
+
+    @staticmethod
+    def createSource(source_name: str) -> None:
+        """Create a new logging source that can send log entries."""
+        ...
+
+    @staticmethod
+    def defaultFileSink() -> Any | None:  # Returns FileSink or None
+        """Return shared file sink for the current Houdini session."""
+        ...
+
+    @staticmethod
+    def defaultSink(force_create: bool = False) -> Any | None:  # Returns MemorySink or None
+        """Return shared memory sink for the current Houdini session."""
+        ...
+
+    @staticmethod
+    def loadLogsFromFile(filepath: str) -> tuple[Any, ...]:  # tuple of LogEntry
+        """Load tuple of LogEntry objects from JSON file."""
+        ...
+
+    @staticmethod
+    def log(entry: Any, source_name: str | None = None) -> None:  # entry is LogEntry
+        """Send LogEntry to all sinks connected to a logging source."""
+        ...
+
+    @staticmethod
+    def renderLogVerbosity() -> int:
+        """Return Karma logging verbosity level (0-9)."""
+        ...
+
+    @staticmethod
+    def saveLogsToFile(logs: Any, filepath: str) -> None:  # logs is Iterable[LogEntry]
+        """Save tuple of LogEntry objects to JSON file."""
+        ...
+
+    @staticmethod
+    def setRenderLogVerbosity(verbosity: int) -> None:
+        """Set Karma logging verbosity level (0-9)."""
+        ...
+
+    @staticmethod
+    def sources() -> tuple[str, ...]:
+        """Return tuple of all available log source names."""
+        ...
+
