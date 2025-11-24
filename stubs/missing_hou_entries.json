@@ -1,0 +1,560 @@
+{
+  "metadata": {
+    "description": "Missing package-level entries from hou module not yet in hou.pyi",
+    "date_analyzed": "2025-11-24",
+    "current_stub_stats": {
+      "total_lines": 3017,
+      "classes": 68,
+      "enums": 18,
+      "estimated_methods": 1025
+    },
+    "missing_count": {
+      "classes": 150,
+      "functions": 150,
+      "modules": 25,
+      "total": 325
+    }
+  },
+  "categories": {
+    "shelf_ui_scripting": {
+      "purpose": "Scripting shelf tools, tabs, and sets",
+      "classes": [
+        "Shelf",
+        "ShelfSet",
+        "ShelfDock",
+        "ShelfElement",
+        "Tool"
+      ],
+      "modules": ["shelves"]
+    },
+    "ui_desktop_panes": {
+      "purpose": "Desktop layouts, panes, floating panels, dialogs",
+      "classes": [
+        "Desktop",
+        "FloatingPanel",
+        "Pane",
+        "PaneTab",
+        "Dialog",
+        "NetworkEditor",
+        "SceneViewer",
+        "GeometryViewport",
+        "ParameterEditor",
+        "PerformanceMonitor",
+        "DataTree",
+        "CompositorViewer",
+        "HelpBrowser",
+        "PythonPanel",
+        "PythonPanelInterface",
+        "RenderGallery",
+        "GeometrySpreadsheet",
+        "SceneGraphTree",
+        "ChannelEditorPane",
+        "ContextViewer",
+        "IPRViewer"
+      ]
+    },
+    "viewer_states_handles": {
+      "purpose": "Custom viewer states and handles",
+      "classes": [
+        "ViewerState",
+        "ViewerStateTemplate",
+        "ViewerStateContext",
+        "ViewerStateDragger",
+        "ViewerStateMenu",
+        "Handle",
+        "ViewerHandleTemplate",
+        "ViewerHandleContext",
+        "ViewerHandleDragger",
+        "Selector",
+        "ViewerDragger"
+      ]
+    },
+    "viewport_display": {
+      "purpose": "Viewport settings, drawables, visualization",
+      "classes": [
+        "GeometryViewportSettings",
+        "GeometryViewportDisplaySet",
+        "GeometryViewportBackground",
+        "GeometryViewportCamera",
+        "ConstructionPlane",
+        "ReferencePlane",
+        "FlipbookSettings",
+        "Drawable",
+        "AdvancedDrawable",
+        "Drawable2D",
+        "SimpleDrawable",
+        "GeometryDrawable",
+        "GeometryDrawableGroup",
+        "GadgetDrawable",
+        "TextDrawable",
+        "NetworkShape",
+        "NetworkShapeBox",
+        "NetworkShapeConnection",
+        "NetworkShapeLine",
+        "NetworkShapeNodeShape",
+        "NetworkImage",
+        "NetworkFootprint",
+        "NetworkAnimValue",
+        "ViewportVisualizer",
+        "ViewportVisualizerType"
+      ]
+    },
+    "ui_events": {
+      "purpose": "User interface event handling",
+      "classes": [
+        "UIEvent",
+        "UIEventDevice",
+        "ViewerEvent",
+        "CompositorViewerEvent",
+        "GeometrySelection",
+        "Viewport2D",
+        "GadgetContext"
+      ]
+    },
+    "animation_playbar": {
+      "purpose": "Animation, keyframes, playback control",
+      "classes": [
+        "BaseKeyframe",
+        "Keyframe",
+        "StringKeyframe",
+        "Bookmark",
+        "AnimBar",
+        "ChannelGraph",
+        "ChannelGraphSelection",
+        "ChannelList",
+        "ChannelPrim"
+      ],
+      "functions": {
+        "management": [
+          "addAnimationLayer",
+          "removeAnimationLayer",
+          "createAnimationClip",
+          "createAnimationLayers",
+          "clipInfo",
+          "convertClipData",
+          "convertKeyframesToClipData",
+          "commitPendingKeyframes"
+        ],
+        "interpolation": [
+          "bezier",
+          "constant",
+          "cubic",
+          "cycle",
+          "cycleoffset",
+          "cycleoffsett",
+          "cyclet",
+          "ease",
+          "easein",
+          "easeinp",
+          "easeout",
+          "easeoutp",
+          "easep",
+          "linear",
+          "match",
+          "matchin",
+          "matchout",
+          "qlinear",
+          "quintic",
+          "repeat",
+          "repeatt",
+          "spline",
+          "vmatch",
+          "vmatchin",
+          "vmatchout"
+        ],
+        "playbar": [
+          "fps",
+          "frame",
+          "intFrame",
+          "time",
+          "setFps",
+          "setFrame",
+          "setTime",
+          "frameToTime",
+          "timeToFrame"
+        ]
+      }
+    },
+    "digital_assets": {
+      "purpose": "HDA definition, sections, options",
+      "classes": [
+        "HDADefinition",
+        "HDAOptions",
+        "HDASection"
+      ],
+      "functions": ["hdaDefinition"],
+      "modules": ["hda"]
+    },
+    "shading_galleries": {
+      "purpose": "Shaders, materials, galleries, style sheets",
+      "classes": [
+        "ShopNode",
+        "VopNode",
+        "VopNetNode",
+        "Gallery",
+        "GalleryEntry",
+        "StyleSheet"
+      ],
+      "modules": ["galleries", "styles", "properties"]
+    },
+    "vex_contexts": {
+      "purpose": "VEX execution and contexts",
+      "classes": ["VexContext"],
+      "functions": [
+        "runVex",
+        "vexContextForNodeTypeCategory",
+        "vexContextForShaderType",
+        "vexContexts"
+      ]
+    },
+    "crowds_agents": {
+      "purpose": "Crowd simulation and agent primitives",
+      "classes": [
+        "Agent",
+        "AgentClip",
+        "AgentDefinition",
+        "AgentLayer",
+        "AgentMetadata",
+        "AgentRig",
+        "AgentShape",
+        "AgentShapeBinding",
+        "AgentShapeDeformer",
+        "AgentShapeLibrary",
+        "AgentTransformGroup"
+      ],
+      "modules": ["crowds"]
+    },
+    "solaris_usd": {
+      "purpose": "USD/Solaris (LOP) functionality",
+      "classes": [
+        "LopExpansionState",
+        "LopInstanceIdRule",
+        "LopLockedStage",
+        "LopPostLayer",
+        "LopSelectionRule",
+        "LopViewportLoadMasks",
+        "LopViewportOverrides",
+        "lopTraversalDemands"
+      ],
+      "modules": ["lop"]
+    },
+    "copernicus_images": {
+      "purpose": "Compositing and image handling",
+      "classes": [
+        "Cop2Node",
+        "CopCableStructure",
+        "CopVerb",
+        "ImageLayer",
+        "NanoVDB"
+      ],
+      "functions": [
+        "imageResolution",
+        "saveImageDataToFile"
+      ]
+    },
+    "geometry_primitives": {
+      "purpose": "Additional geometry primitive types",
+      "classes": [
+        "Quadric",
+        "VDB",
+        "PackedPrim",
+        "PackedGeometry",
+        "PackedFragment",
+        "PointGroup",
+        "PrimGroup",
+        "EdgeGroup",
+        "VertexGroup",
+        "Edge",
+        "AttribDataId",
+        "GeometryRayCache",
+        "IndexPairPropertyTable"
+      ]
+    },
+    "apex": {
+      "purpose": "APEX node graphs",
+      "classes": [
+        "ApexNode",
+        "ApexNodeConnection",
+        "ApexNodeType",
+        "ApexStickyNote"
+      ],
+      "functions": [
+        "apexNodeBySessionId",
+        "apexNodeConnectionBySessionId",
+        "apexStickyNoteBySessionId",
+        "createApexRootNode"
+      ]
+    },
+    "organization_bundles": {
+      "purpose": "Node organization, bundles, network boxes",
+      "classes": [
+        "NodeBundle",
+        "OpNetworkBox",
+        "OpStickyNote",
+        "OpIndirectInput",
+        "OpSubnetIndirectInput",
+        "OpNetworkDot"
+      ],
+      "functions": [
+        "addNodeBundle",
+        "nodeBundle",
+        "nodeBundles",
+        "selectedNodeBundles"
+      ]
+    },
+    "node_connections": {
+      "purpose": "Node connection types",
+      "classes": [
+        "OpNodeConnection",
+        "SubnetIndirectInput"
+      ]
+    },
+    "takes": {
+      "purpose": "Takes management",
+      "classes": ["Take"],
+      "modules": ["takes"]
+    },
+    "radial_menus": {
+      "purpose": "Radial menu system",
+      "classes": [
+        "RadialMenu",
+        "RadialItem",
+        "RadialScriptItem",
+        "RadialSubmenu"
+      ]
+    },
+    "performance_monitoring": {
+      "purpose": "Performance profiling",
+      "classes": [
+        "PerfMonEvent",
+        "PerfMonProfile",
+        "PerfMonRecordOptions"
+      ],
+      "modules": ["perfMon"]
+    },
+    "preferences": {
+      "purpose": "User preferences management",
+      "functions": [
+        "addPreference",
+        "getPreference",
+        "setPreference",
+        "removePreference",
+        "getPreferenceNames",
+        "loadPreferences",
+        "savePreferences",
+        "refreshPreferences",
+        "createPreferenceRegistry",
+        "refreshPreferenceRegistry"
+      ]
+    },
+    "hotkeys": {
+      "purpose": "Hotkey management",
+      "classes": ["PluginHotkeyDefinitions"],
+      "modules": ["hotkeys"]
+    },
+    "utilities": {
+      "purpose": "Utility classes and modules",
+      "classes": [
+        "OrientedBoundingRect",
+        "InterruptableOperation",
+        "RedrawBlock",
+        "ScriptEvalContext",
+        "ShellIO",
+        "AssetGalleryDataSource"
+      ]
+    },
+    "logging_data": {
+      "purpose": "Logging, data handling, file system",
+      "modules": [
+        "logging",
+        "data",
+        "fs",
+        "text"
+      ]
+    },
+    "submodules": {
+      "purpose": "Organized submodules for specific domains",
+      "modules": [
+        "anim",
+        "audio",
+        "clone",
+        "dop",
+        "hda",
+        "hipFile",
+        "hmath",
+        "ik",
+        "playbar",
+        "pypanel",
+        "qt",
+        "ui",
+        "undos",
+        "viewportVisualizers",
+        "webServer"
+      ]
+    },
+    "package_functions": {
+      "purpose": "Package-level utility functions",
+      "groups": {
+        "node_item_access": [
+          "node",
+          "nodes",
+          "item",
+          "items",
+          "cd",
+          "pwd",
+          "setPwd",
+          "parent",
+          "root",
+          "nodeBySessionId",
+          "itemBySessionId",
+          "networkBoxBySessionId",
+          "stickyNoteBySessionId",
+          "networkDotBySessionId",
+          "subnetIndirectInputBySessionId",
+          "nodeConnectionBySessionId"
+        ],
+        "selection": [
+          "selectedNodes",
+          "selectedItems",
+          "selectedConnections",
+          "clearAllSelected",
+          "selectedNodeBundles"
+        ],
+        "node_operations": [
+          "copyNodesTo",
+          "moveNodesTo",
+          "copyNodesToClipboard",
+          "pasteNodesFromClipboard",
+          "sortedNodes",
+          "sortedNodePaths",
+          "nodeType",
+          "preferredNodeType"
+        ],
+        "parameter_access": [
+          "parm",
+          "parmTuple",
+          "evalParm",
+          "evalParmTuple",
+          "ch",
+          "chsop",
+          "chsoplist",
+          "evaluatingParm",
+          "lvar",
+          "parmClipboardContents"
+        ],
+        "file_io": [
+          "findFile",
+          "findFiles",
+          "findDirectory",
+          "findDirectories",
+          "findFilesWithExtension",
+          "readFile",
+          "readBinaryFile",
+          "homeHoudiniDirectory",
+          "houdiniPath",
+          "fileReferences",
+          "loadCPIODataFromString",
+          "loadIndexDataFromFile",
+          "loadIndexDataFromString",
+          "saveCPIODataToString",
+          "saveIndexDataToFile",
+          "saveIndexDataToString"
+        ],
+        "scripting": [
+          "hscript",
+          "hscriptExpression",
+          "hscriptFloatExpression",
+          "hscriptStringExpression",
+          "hscriptVectorExpression",
+          "hscriptMatrixExpression",
+          "hscriptCommandHelp",
+          "expandString",
+          "expandStringAtFrame",
+          "encode",
+          "decode",
+          "incrementNumberedString",
+          "expressionGlobals"
+        ],
+        "environment": [
+          "getenv",
+          "putenv",
+          "unsetenv",
+          "allowEnvironmentToOverwriteVariable",
+          "getEnvConfigValue"
+        ],
+        "application_info": [
+          "applicationName",
+          "applicationVersion",
+          "applicationVersionString",
+          "applicationCompilationDate",
+          "applicationPlatformInfo",
+          "isApprentice",
+          "licenseCategory",
+          "hdkAPIVersion",
+          "exit",
+          "machineName",
+          "userName",
+          "maxThreads",
+          "setMaxThreads",
+          "releaseLicense",
+          "helpServerUrl",
+          "hipExtension",
+          "thirdPartyLibraryVersions",
+          "vdbVersionInfo",
+          "videoEncoders"
+        ],
+        "session": [
+          "session",
+          "sessionModuleSource",
+          "setSessionModuleSource",
+          "appendSessionModuleSource"
+        ],
+        "context_options": [
+          "contextOption",
+          "setContextOption",
+          "removeContextOption",
+          "hasContextOption",
+          "contextOptionNames",
+          "contextOptionConfig",
+          "setContextOptionConfig",
+          "isAutoContextOption",
+          "isAutoContextOptionOverridden",
+          "addContextOptionChangeCallback",
+          "removeContextOptionChangeCallback",
+          "removeAllContextOptionChangeCallbacks",
+          "contextOptionChangeCallbacks"
+        ],
+        "cooking": [
+          "updateModeSetting",
+          "setUpdateMode"
+        ],
+        "dop": [
+          "currentDopNet",
+          "setCurrentDopNet",
+          "simulationEnabled",
+          "setSimulationEnabled"
+        ],
+        "colors": [
+          "defaultColor",
+          "setDefaultColor"
+        ],
+        "utilities": [
+          "almostEqual",
+          "patternMatch",
+          "scaleFromMKS",
+          "scaleToMKS",
+          "assertTrue",
+          "updateProgressAndCheckForInterrupt",
+          "refreshStartupPathCacheDirectory",
+          "registerOpdefPath",
+          "startHoudiniEngineDebugger",
+          "chopExportConflictResolutionPattern",
+          "setChopExportConflictResolutionPattern"
+        ],
+        "ui_utilities": [
+          "isUIAvailable"
+        ]
+      }
+    }
+  }
+}

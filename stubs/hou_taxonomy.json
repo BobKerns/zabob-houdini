@@ -1,0 +1,2659 @@
+{
+  "metadata": {
+    "description": "Complete taxonomy of hou module with implementation status",
+    "date_generated": "2025-11-24",
+    "source_stub_file": "/Users/rwk/p/zabob-houdini/stubs/hou.pyi",
+    "source_missing_file": "/Users/rwk/p/zabob-houdini/stubs/missing_hou_entries.json",
+    "statistics": {
+      "total_documented_entries": 375,
+      "total_implemented_entries": 104,
+      "documented_and_implemented": 13,
+      "documented_but_missing": 362,
+      "implemented_but_undocumented": 91,
+      "categories_count": 25
+    }
+  },
+  "categories": {
+    "shelf_ui_scripting": {
+      "purpose": "Scripting shelf tools, tabs, and sets",
+      "entries": {
+        "Shelf": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ShelfSet": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ShelfDock": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ShelfElement": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Tool": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "shelves": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "ui_desktop_panes": {
+      "purpose": "Desktop layouts, panes, floating panels, dialogs",
+      "entries": {
+        "Desktop": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "FloatingPanel": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Pane": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PaneTab": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Dialog": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkEditor": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "SceneViewer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometryViewport": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ParameterEditor": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PerformanceMonitor": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "DataTree": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "CompositorViewer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "HelpBrowser": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PythonPanel": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PythonPanelInterface": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "RenderGallery": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometrySpreadsheet": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "SceneGraphTree": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ChannelEditorPane": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ContextViewer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "IPRViewer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "viewer_states_handles": {
+      "purpose": "Custom viewer states and handles",
+      "entries": {
+        "ViewerState": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerStateTemplate": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerStateContext": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerStateDragger": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerStateMenu": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Handle": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerHandleTemplate": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerHandleContext": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerHandleDragger": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Selector": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerDragger": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "viewport_display": {
+      "purpose": "Viewport settings, drawables, visualization",
+      "entries": {
+        "GeometryViewportSettings": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometryViewportDisplaySet": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometryViewportBackground": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometryViewportCamera": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ConstructionPlane": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ReferencePlane": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "FlipbookSettings": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Drawable": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AdvancedDrawable": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Drawable2D": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "SimpleDrawable": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometryDrawable": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometryDrawableGroup": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GadgetDrawable": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "TextDrawable": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkShape": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkShapeBox": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkShapeConnection": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkShapeLine": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkShapeNodeShape": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkImage": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkFootprint": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NetworkAnimValue": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewportVisualizer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewportVisualizerType": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "ui_events": {
+      "purpose": "User interface event handling",
+      "entries": {
+        "UIEvent": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "UIEventDevice": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ViewerEvent": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "CompositorViewerEvent": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometrySelection": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Viewport2D": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GadgetContext": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "animation_playbar": {
+      "purpose": "Animation, keyframes, playback control",
+      "entries": {
+        "BaseKeyframe": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Keyframe": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "StringKeyframe": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Bookmark": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AnimBar": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ChannelGraph": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ChannelGraphSelection": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ChannelList": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ChannelPrim": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "addAnimationLayer": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "removeAnimationLayer": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "createAnimationClip": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "createAnimationLayers": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "clipInfo": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "convertClipData": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "convertKeyframesToClipData": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "commitPendingKeyframes": {
+          "type": "function",
+          "group": "management",
+          "implemented": false,
+          "status": "missing"
+        },
+        "bezier": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "constant": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "cubic": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "cycle": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "cycleoffset": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "cycleoffsett": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "cyclet": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ease": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "easein": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "easeinp": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "easeout": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "easeoutp": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "easep": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "linear": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "match": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "matchin": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "matchout": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "qlinear": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "quintic": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "repeat": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "repeatt": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "spline": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "vmatch": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "vmatchin": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "vmatchout": {
+          "type": "function",
+          "group": "interpolation",
+          "implemented": false,
+          "status": "missing"
+        },
+        "fps": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "frame": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "intFrame": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "time": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setFps": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setFrame": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setTime": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "frameToTime": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        },
+        "timeToFrame": {
+          "type": "function",
+          "group": "playbar",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "digital_assets": {
+      "purpose": "HDA definition, sections, options",
+      "entries": {
+        "HDADefinition": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "HDAOptions": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "HDASection": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hda": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hdaDefinition": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "shading_galleries": {
+      "purpose": "Shaders, materials, galleries, style sheets",
+      "entries": {
+        "ShopNode": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "VopNode": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "VopNetNode": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Gallery": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GalleryEntry": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "StyleSheet": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "galleries": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "styles": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "properties": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "vex_contexts": {
+      "purpose": "VEX execution and contexts",
+      "entries": {
+        "VexContext": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "runVex": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "vexContextForNodeTypeCategory": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "vexContextForShaderType": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "vexContexts": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "crowds_agents": {
+      "purpose": "Crowd simulation and agent primitives",
+      "entries": {
+        "Agent": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentClip": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentDefinition": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentLayer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentMetadata": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentRig": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentShape": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentShapeBinding": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentShapeDeformer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentShapeLibrary": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AgentTransformGroup": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "crowds": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "solaris_usd": {
+      "purpose": "USD/Solaris (LOP) functionality",
+      "entries": {
+        "LopExpansionState": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "LopInstanceIdRule": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "LopLockedStage": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "LopPostLayer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "LopSelectionRule": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "LopViewportLoadMasks": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "LopViewportOverrides": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "lopTraversalDemands": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "lop": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "copernicus_images": {
+      "purpose": "Compositing and image handling",
+      "entries": {
+        "Cop2Node": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "CopCableStructure": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "CopVerb": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ImageLayer": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "NanoVDB": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "imageResolution": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "saveImageDataToFile": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "geometry_primitives": {
+      "purpose": "Additional geometry primitive types",
+      "entries": {
+        "Quadric": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "VDB": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PackedPrim": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PackedGeometry": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PackedFragment": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PointGroup": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PrimGroup": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "EdgeGroup": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "VertexGroup": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "Edge": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AttribDataId": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "GeometryRayCache": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "IndexPairPropertyTable": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "apex": {
+      "purpose": "APEX node graphs",
+      "entries": {
+        "ApexNode": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ApexNodeConnection": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ApexNodeType": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ApexStickyNote": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "apexNodeBySessionId": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "apexNodeConnectionBySessionId": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "apexStickyNoteBySessionId": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "createApexRootNode": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "organization_bundles": {
+      "purpose": "Node organization, bundles, network boxes",
+      "entries": {
+        "NodeBundle": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "OpNetworkBox": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "OpStickyNote": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "OpIndirectInput": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "OpSubnetIndirectInput": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "OpNetworkDot": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "addNodeBundle": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "nodeBundle": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "nodeBundles": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "selectedNodeBundles": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "node_connections": {
+      "purpose": "Node connection types",
+      "entries": {
+        "OpNodeConnection": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "SubnetIndirectInput": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "takes": {
+      "purpose": "Takes management",
+      "entries": {
+        "Take": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "takes": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "radial_menus": {
+      "purpose": "Radial menu system",
+      "entries": {
+        "RadialMenu": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "RadialItem": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "RadialScriptItem": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "RadialSubmenu": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "performance_monitoring": {
+      "purpose": "Performance profiling",
+      "entries": {
+        "PerfMonEvent": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PerfMonProfile": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "PerfMonRecordOptions": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "perfMon": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "preferences": {
+      "purpose": "User preferences management",
+      "entries": {
+        "addPreference": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "getPreference": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setPreference": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "removePreference": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "getPreferenceNames": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "loadPreferences": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "savePreferences": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "refreshPreferences": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "createPreferenceRegistry": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        },
+        "refreshPreferenceRegistry": {
+          "type": "function",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "hotkeys": {
+      "purpose": "Hotkey management",
+      "entries": {
+        "PluginHotkeyDefinitions": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hotkeys": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "utilities": {
+      "purpose": "Utility classes and modules",
+      "entries": {
+        "OrientedBoundingRect": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "InterruptableOperation": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "RedrawBlock": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ScriptEvalContext": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ShellIO": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        },
+        "AssetGalleryDataSource": {
+          "type": "class",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "logging_data": {
+      "purpose": "Logging, data handling, file system",
+      "entries": {
+        "logging": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "data": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "fs": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "text": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "submodules": {
+      "purpose": "Organized submodules for specific domains",
+      "entries": {
+        "anim": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "audio": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "clone": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "dop": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hda": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hipFile": {
+          "type": "module",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "hmath": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ik": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "playbar": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "pypanel": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "qt": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ui": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "undos": {
+          "type": "module",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "viewportVisualizers": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        },
+        "webServer": {
+          "type": "module",
+          "implemented": false,
+          "status": "missing"
+        }
+      }
+    },
+    "package_functions": {
+      "purpose": "Package-level utility functions",
+      "entries": {
+        "node": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "nodes": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "item": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "items": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "cd": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "pwd": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "setPwd": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "parent": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "root": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "nodeBySessionId": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "itemBySessionId": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "networkBoxBySessionId": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "stickyNoteBySessionId": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "networkDotBySessionId": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "subnetIndirectInputBySessionId": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "nodeConnectionBySessionId": {
+          "type": "function",
+          "group": "node_item_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "selectedNodes": {
+          "type": "function",
+          "group": "selection",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "selectedItems": {
+          "type": "function",
+          "group": "selection",
+          "implemented": false,
+          "status": "missing"
+        },
+        "selectedConnections": {
+          "type": "function",
+          "group": "selection",
+          "implemented": false,
+          "status": "missing"
+        },
+        "clearAllSelected": {
+          "type": "function",
+          "group": "selection",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "selectedNodeBundles": {
+          "type": "function",
+          "group": "selection",
+          "implemented": false,
+          "status": "missing"
+        },
+        "copyNodesTo": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": false,
+          "status": "missing"
+        },
+        "moveNodesTo": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": false,
+          "status": "missing"
+        },
+        "copyNodesToClipboard": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": false,
+          "status": "missing"
+        },
+        "pasteNodesFromClipboard": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": false,
+          "status": "missing"
+        },
+        "sortedNodes": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": false,
+          "status": "missing"
+        },
+        "sortedNodePaths": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": false,
+          "status": "missing"
+        },
+        "nodeType": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "preferredNodeType": {
+          "type": "function",
+          "group": "node_operations",
+          "implemented": false,
+          "status": "missing"
+        },
+        "parm": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "parmTuple": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "evalParm": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "evalParmTuple": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "ch": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "chsop": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "chsoplist": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "evaluatingParm": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "lvar": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "parmClipboardContents": {
+          "type": "function",
+          "group": "parameter_access",
+          "implemented": false,
+          "status": "missing"
+        },
+        "findFile": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "findFiles": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "findDirectory": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "findDirectories": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "findFilesWithExtension": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "readFile": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "readBinaryFile": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "homeHoudiniDirectory": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "houdiniPath": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "fileReferences": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "loadCPIODataFromString": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "loadIndexDataFromFile": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "loadIndexDataFromString": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "saveCPIODataToString": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "saveIndexDataToFile": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "saveIndexDataToString": {
+          "type": "function",
+          "group": "file_io",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hscript": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hscriptExpression": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hscriptFloatExpression": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hscriptStringExpression": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hscriptVectorExpression": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hscriptMatrixExpression": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hscriptCommandHelp": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "expandString": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "expandStringAtFrame": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "encode": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "decode": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "incrementNumberedString": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "expressionGlobals": {
+          "type": "function",
+          "group": "scripting",
+          "implemented": false,
+          "status": "missing"
+        },
+        "getenv": {
+          "type": "function",
+          "group": "environment",
+          "implemented": false,
+          "status": "missing"
+        },
+        "putenv": {
+          "type": "function",
+          "group": "environment",
+          "implemented": false,
+          "status": "missing"
+        },
+        "unsetenv": {
+          "type": "function",
+          "group": "environment",
+          "implemented": false,
+          "status": "missing"
+        },
+        "allowEnvironmentToOverwriteVariable": {
+          "type": "function",
+          "group": "environment",
+          "implemented": false,
+          "status": "missing"
+        },
+        "getEnvConfigValue": {
+          "type": "function",
+          "group": "environment",
+          "implemented": false,
+          "status": "missing"
+        },
+        "applicationName": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "applicationVersion": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "applicationVersionString": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": true,
+          "status": "implemented"
+        },
+        "applicationCompilationDate": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "applicationPlatformInfo": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "isApprentice": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "licenseCategory": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hdkAPIVersion": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "exit": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "machineName": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "userName": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "maxThreads": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setMaxThreads": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "releaseLicense": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "helpServerUrl": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hipExtension": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "thirdPartyLibraryVersions": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "vdbVersionInfo": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "videoEncoders": {
+          "type": "function",
+          "group": "application_info",
+          "implemented": false,
+          "status": "missing"
+        },
+        "session": {
+          "type": "function",
+          "group": "session",
+          "implemented": false,
+          "status": "missing"
+        },
+        "sessionModuleSource": {
+          "type": "function",
+          "group": "session",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setSessionModuleSource": {
+          "type": "function",
+          "group": "session",
+          "implemented": false,
+          "status": "missing"
+        },
+        "appendSessionModuleSource": {
+          "type": "function",
+          "group": "session",
+          "implemented": false,
+          "status": "missing"
+        },
+        "contextOption": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setContextOption": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "removeContextOption": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "hasContextOption": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "contextOptionNames": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "contextOptionConfig": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setContextOptionConfig": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "isAutoContextOption": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "isAutoContextOptionOverridden": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "addContextOptionChangeCallback": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "removeContextOptionChangeCallback": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "removeAllContextOptionChangeCallbacks": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "contextOptionChangeCallbacks": {
+          "type": "function",
+          "group": "context_options",
+          "implemented": false,
+          "status": "missing"
+        },
+        "updateModeSetting": {
+          "type": "function",
+          "group": "cooking",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setUpdateMode": {
+          "type": "function",
+          "group": "cooking",
+          "implemented": false,
+          "status": "missing"
+        },
+        "currentDopNet": {
+          "type": "function",
+          "group": "dop",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setCurrentDopNet": {
+          "type": "function",
+          "group": "dop",
+          "implemented": false,
+          "status": "missing"
+        },
+        "simulationEnabled": {
+          "type": "function",
+          "group": "dop",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setSimulationEnabled": {
+          "type": "function",
+          "group": "dop",
+          "implemented": false,
+          "status": "missing"
+        },
+        "defaultColor": {
+          "type": "function",
+          "group": "colors",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setDefaultColor": {
+          "type": "function",
+          "group": "colors",
+          "implemented": false,
+          "status": "missing"
+        },
+        "almostEqual": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "patternMatch": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "scaleFromMKS": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "scaleToMKS": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "assertTrue": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "updateProgressAndCheckForInterrupt": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "refreshStartupPathCacheDirectory": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "registerOpdefPath": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "startHoudiniEngineDebugger": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "chopExportConflictResolutionPattern": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "setChopExportConflictResolutionPattern": {
+          "type": "function",
+          "group": "utilities",
+          "implemented": false,
+          "status": "missing"
+        },
+        "isUIAvailable": {
+          "type": "function",
+          "group": "ui_utilities",
+          "implemented": true,
+          "status": "implemented"
+        }
+      }
+    }
+  },
+  "uncategorized": {
+    "purpose": "Items implemented in hou.pyi but not found in documentation",
+    "entries": {
+      "ApexNodeTypeCategory": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Attrib": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "BoundingBox": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "BoundingRect": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ButtonParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ChopNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Clip": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Color": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "CopNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "DataParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "DopData": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "DopNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "DopObject": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "DopRecord": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "DopRelationship": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "DopSimulation": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "EnumValue": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Face": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "FloatParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "FolderParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "FolderSetParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Geometry": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "GeometryDelta": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "HDAModule": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "HDAViewerHandleModule": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "HDAViewerStateModule": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "HipFile": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Image": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "IndirectInput": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "IntParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "InvalidInput": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "LabelParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "LoadWarning": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "LopNetwork": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "LopNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Matrix2": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Matrix3": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Matrix4": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "MenuParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NetworkBox": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NetworkDot": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NetworkItem": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NetworkMovableItem": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Node": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NodeConnection": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NodeGroup": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NodeInfoTree": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NodeType": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "NodeTypeCategory": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ObjNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "OpNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "OpNodeTypeCategory": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "OperationFailed": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "OrientedBoundingBox": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Parm": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ParmTemplateGroup": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ParmTuple": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Point": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Polygon": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Prim": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ProgressBar": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Quaternion": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Ramp": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "RampParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "RopNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Selection": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "SeparatorParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "SopNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "SopVerb": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "StickyNote": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "StringParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Surface": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "ToggleParmTemplate": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "TopNode": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Track": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "UndoDisabler": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "UndoGroup": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "UndoManager": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Vector2": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Vector3": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Vector4": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Vertex": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "Volume": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "WorkItem": {
+        "type": "class",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "_Floats2": {
+        "type": "variable",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "_Floats3": {
+        "type": "variable",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "findNode": {
+        "type": "function",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "nodeAtPath": {
+        "type": "function",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "nodeTypeCategories": {
+        "type": "function",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      },
+      "progressBar": {
+        "type": "function",
+        "implemented": true,
+        "status": "implemented_undocumented"
+      }
+    }
+  }
+}

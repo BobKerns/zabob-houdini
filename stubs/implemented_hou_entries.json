@@ -1,0 +1,248 @@
+{
+  "metadata": {
+    "description": "Implemented entries in hou.pyi",
+    "date_analyzed": "2025-11-24",
+    "source_file": "/Users/rwk/p/zabob-houdini/stubs/hou.pyi",
+    "stats": {
+      "total_classes": 85,
+      "total_enums": 0,
+      "total_functions": 16,
+      "total_variables": 1,
+      "uncategorized_classes": 1,
+      "uncategorized_enums": 0,
+      "uncategorized_functions": 4
+    }
+  },
+  "categories": {
+    "node_types": {
+      "classes": [
+        "ApexNodeTypeCategory",
+        "NodeTypeCategory",
+        "OpNodeTypeCategory"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "geometry": {
+      "classes": [
+        "Attrib",
+        "Face",
+        "Geometry",
+        "GeometryDelta",
+        "Point",
+        "Polygon",
+        "Prim",
+        "Selection",
+        "SopNode",
+        "SopVerb",
+        "Surface",
+        "Vertex",
+        "Volume"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "utilities": {
+      "classes": [
+        "BoundingBox",
+        "BoundingRect",
+        "Color",
+        "HipFile",
+        "Matrix2",
+        "Matrix3",
+        "Matrix4",
+        "OrientedBoundingBox",
+        "ProgressBar",
+        "Quaternion",
+        "Ramp",
+        "UndoDisabler",
+        "UndoGroup",
+        "UndoManager",
+        "Vector2",
+        "Vector3",
+        "Vector4"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "parameter_templates": {
+      "classes": [
+        "ButtonParmTemplate",
+        "DataParmTemplate",
+        "FloatParmTemplate",
+        "FolderParmTemplate",
+        "FolderSetParmTemplate",
+        "IntParmTemplate",
+        "LabelParmTemplate",
+        "MenuParmTemplate",
+        "ParmTemplate",
+        "ParmTemplateGroup",
+        "RampParmTemplate",
+        "SeparatorParmTemplate",
+        "StringParmTemplate",
+        "ToggleParmTemplate"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "channels": {
+      "classes": [
+        "ChopNode",
+        "Clip",
+        "Track"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "copernicus_images": {
+      "classes": [
+        "CopNode",
+        "Image"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "dynamics": {
+      "classes": [
+        "DopData",
+        "DopNode",
+        "DopObject",
+        "DopRecord",
+        "DopRelationship",
+        "DopSimulation"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "uncategorized": {
+      "classes": [
+        "EnumValue"
+      ],
+      "enums": [],
+      "functions": [
+        "findNode",
+        "nodeAtPath",
+        "nodeTypeCategories",
+        "progressBar"
+      ],
+      "variables": []
+    },
+    "digital_assets": {
+      "classes": [
+        "HDAModule",
+        "HDAViewerHandleModule",
+        "HDAViewerStateModule"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "nodes": {
+      "classes": [
+        "IndirectInput",
+        "NetworkBox",
+        "NetworkDot",
+        "NetworkItem",
+        "NetworkMovableItem",
+        "Node",
+        "NodeConnection",
+        "NodeGroup",
+        "NodeInfoTree",
+        "NodeType",
+        "OpNode",
+        "StickyNote"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "exceptions": {
+      "classes": [
+        "InvalidInput",
+        "LoadWarning",
+        "OperationFailed"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "solaris_usd": {
+      "classes": [
+        "LopNetwork",
+        "LopNode"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "objects": {
+      "classes": [
+        "ObjNode"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "parameters": {
+      "classes": [
+        "Parm",
+        "ParmTuple"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "rendering": {
+      "classes": [
+        "RopNode"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "tops": {
+      "classes": [
+        "TopNode",
+        "WorkItem"
+      ],
+      "enums": [],
+      "functions": [],
+      "variables": []
+    },
+    "package_functions": {
+      "classes": [],
+      "enums": [],
+      "functions": [
+        "applicationName",
+        "applicationVersion",
+        "applicationVersionString",
+        "cd",
+        "clearAllSelected",
+        "isUIAvailable",
+        "node",
+        "nodeType",
+        "pwd",
+        "root",
+        "selectedNodes"
+      ],
+      "variables": []
+    },
+    "submodules": {
+      "classes": [],
+      "enums": [],
+      "functions": [
+        "undos"
+      ],
+      "variables": [
+        "hipFile"
+      ]
+    }
+  }
+}
