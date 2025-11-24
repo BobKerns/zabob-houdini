@@ -3713,3 +3713,179 @@ class ProgressBar:
     def update(self, progress: float, message: str = "") -> None: ...
     def setLabel(self, label: str) -> None: ...
 
+class hipFile:
+    """Hip file management module (hou.hipFile).
+
+    Functions for working with the current scene (.hip) file.
+    Note: Houdini inherits the "current directory" from the environment where you run it.
+    """
+    # File path functions
+    @staticmethod
+    def basename() -> str:
+        """Return the filename portion of the current scene's path (including the .hip extension)."""
+        ...
+
+    @staticmethod
+    def name() -> str:
+        """Return the path of the current hip file relative to the current directory."""
+        ...
+
+    @staticmethod
+    def path() -> str:
+        """Return the absolute file path of the current scene file."""
+        ...
+
+    # File state queries
+    @staticmethod
+    def hasUnsavedChanges() -> bool:
+        """Returns whether the current Houdini session has been modified since it was last saved."""
+        ...
+
+    @staticmethod
+    def isNewFile() -> bool:
+        """Returns whether the current Houdini file is a new file or is a previously loaded file."""
+        ...
+
+    @staticmethod
+    def isLoadingHipFile() -> bool:
+        """Returns True if Houdini is currently loading a scene file."""
+        ...
+
+    @staticmethod
+    def isShuttingDown() -> bool:
+        """Returns True if Houdini is currently exiting."""
+        ...
+
+    # File operations
+    @staticmethod
+    def load(file_name: str, suppress_save_prompt: bool = False, ignore_load_warnings: bool = False) -> None:
+        """Loads a new scene (.hip) file."""
+        ...
+
+    @staticmethod
+    def save(file_name: str | None = None, save_to_recent_files: bool = True) -> None:
+        """Saves the current scene to a .hip file."""
+        ...
+
+    @staticmethod
+    def setName(file_name: str) -> None:
+        """Sets the in-memory path of the current scene file."""
+        ...
+
+    @staticmethod
+    def saveAndIncrementFileName() -> None:
+        """Saves the scene to its current path (same as File ▸ Save), but increments a number at the end of the filename."""
+        ...
+
+    @staticmethod
+    def saveAndBackup() -> str:
+        """Saves the current scene but first creates a backup of the previous saved state to a backup file in $HOUDINI_BACKUP_DIR with _bak and an increasing number added before the .hip extension."""
+        ...
+
+    @staticmethod
+    def saveAsBackup() -> str:
+        """Saves the current scene to a new file in $HOUDINI_BACKUP_DIR with _bak and an increasing number added before the .hip extension."""
+        ...
+
+    @staticmethod
+    def clear(suppress_save_prompt: bool = False) -> bool:
+        """Clears the contents of the current scene file, starting a new unsaved file."""
+        ...
+
+    @staticmethod
+    def merge(
+        file_name: str,
+        node_pattern: str = "*",
+        overwrite_on_conflict: bool = False,
+        ignore_load_warnings: bool = False
+    ) -> None:
+        """Imports the contents of the file at path file_name into the current scene."""
+        ...
+
+    @staticmethod
+    def collisionNodesIfMerged(file_name: str, node_pattern: str = "*") -> tuple[Any, ...]:
+        """Returns a sequence of hou.OpNode objects representing the nodes that would have conflicts if you tried to merge the given file with hou.hipFile.merge."""
+        ...
+
+    # Save mode
+    @staticmethod
+    def saveMode() -> Any:  # Returns hou.saveMode enum
+        """Return the save mode of the current scene, either hou.saveMode.Binary or hou.saveMode.Text."""
+        ...
+
+    @staticmethod
+    def setSaveMode(save_mode: Any) -> None:  # Accepts hou.saveMode enum
+        """Set the save mode of the current scene to either hou.saveMode.Binary or hou.saveMode.Text."""
+        ...
+
+    # Group colors
+    @staticmethod
+    def groupColorTable() -> dict[str, Any]:  # dict of str to hou.Color
+        """Returns a dictionary of color overrides for the viewport group list."""
+        ...
+
+    @staticmethod
+    def setGroupColorTable(color_table: dict[str, Any]) -> None:
+        """Sets a dictionary of color overrides for the viewport group list."""
+        ...
+
+    # FBX import
+    @staticmethod
+    def importFBX(
+        file_name: str,
+        suppress_save_prompt: bool = False,
+        merge_into_scene: bool = True,
+        import_cameras: bool = True,
+        import_joints_and_skin: bool = True,
+        import_geometry: bool = True,
+        import_lights: bool = True,
+        import_animation: bool = True,
+        import_materials: bool = True,
+        resample_animation: bool = False,
+        resample_interval: float = 1.0,
+        override_framerate: bool = False,
+        framerate: float = -1,
+        hide_joints_attached_to_skin: bool = True,
+        convert_joints_to_zyx_rotation_order: bool = False,
+        material_mode: Any = None,  # hou.fbxMaterialMode
+        compatibility_mode: Any = None,  # hou.fbxCompatibilityMode
+        single_precision_vertex_caches: bool = False,
+        triangulate_nurbs: bool = False,
+        triangulate_patches: bool = False,
+        import_global_ambient_light: bool = False,
+        import_blend_deformers_as_blend_sops: bool = False,
+        segment_scale_already_baked_in: bool = True,
+        convert_file_paths_to_relative: bool = True,
+        unlock_geometry: bool = False,
+        unlock_deformations: bool = False,
+        import_nulls_as_subnets: bool = False,
+        import_into_object_subnet: bool = True,
+        convert_into_y_up_coordinate_system: bool = False,
+        create_sibling_bones: bool = True,
+        override_scene_frame_range: bool = False,
+        convert_units: bool = False
+    ) -> tuple[Any, str]:  # Returns (hou.ObjNode, str)
+        """Imports the contents of an FBX file into the scene, like when the user chooses File ▸ Import ▸ FBX."""
+        ...
+
+    # Event callbacks
+    @staticmethod
+    def addEventCallback(callback: Any) -> None:
+        """Register a Python callback to be called whenever a .hip file event occurs (for example, file load, file save)."""
+        ...
+
+    @staticmethod
+    def removeEventCallback(callback: Any) -> None:
+        """Removes a Python callback that was previously registered with hou.hipFile.addEventCallback."""
+        ...
+
+    @staticmethod
+    def clearEventCallbacks() -> None:
+        """This method is deprecated in favor of hou.hipFile.removeEventCallback."""
+        ...
+
+    @staticmethod
+    def eventCallbacks() -> tuple[Any, ...]:
+        """Returns a tuple of all the callback functions that have been registered with hou.hipFile.addEventCallback."""
+        ...
+
