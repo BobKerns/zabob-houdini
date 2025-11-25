@@ -1,4 +1,4 @@
-"""Logging utilities module (hou.logging).
+"""Type stubs for hou.logging module.
 
 Logging module for warnings and errors with sources and sinks system.
 
@@ -7,27 +7,29 @@ distribute log entries. Sinks receive log entries from sources, and do something
 with them. Sources are global, and identified by a unique name string.
 """
 
-from typing import Any
+from typing import Sequence, TYPE_CHECKING
 
-# Classes are defined in the main hou module: FileSink, LogEntry, MemorySink, Sink
+if TYPE_CHECKING:
+    from . import LogEntry, FileSink, MemorySink
+
 
 def createSource(source_name: str) -> None:
     """Create a new logging source that can send log entries."""
     ...
 
-def defaultFileSink() -> Any | None:  # Returns FileSink or None
+def defaultFileSink() -> FileSink | None:
     """Return shared file sink for the current Houdini session."""
     ...
 
-def defaultSink(force_create: bool = False) -> Any | None:  # Returns MemorySink or None
+def defaultSink(force_create: bool = False) -> MemorySink | None:
     """Return shared memory sink for the current Houdini session."""
     ...
 
-def loadLogsFromFile(filepath: str) -> tuple[Any, ...]:  # tuple of LogEntry
+def loadLogsFromFile(filepath: str) -> tuple[LogEntry, ...]:
     """Load tuple of LogEntry objects from JSON file."""
     ...
 
-def log(entry: Any, source_name: str | None = None) -> None:  # entry is LogEntry
+def log(entry: LogEntry, source_name: str | None = None) -> None:
     """Send LogEntry to all sinks connected to a logging source."""
     ...
 
@@ -35,7 +37,7 @@ def renderLogVerbosity() -> int:
     """Return Karma logging verbosity level (0-9)."""
     ...
 
-def saveLogsToFile(logs: Any, filepath: str) -> None:  # logs is Iterable[LogEntry]
+def saveLogsToFile(logs: Sequence[LogEntry], filepath: str) -> None:
     """Save tuple of LogEntry objects to JSON file."""
     ...
 

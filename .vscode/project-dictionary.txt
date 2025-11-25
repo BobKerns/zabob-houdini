@@ -96,6 +96,7 @@ kwargs
 libname
 lookupable
 lopnode
+Marm
 matchin
 matchout
 minversion
@@ -158,6 +159,7 @@ rady
 radz
 rangex
 rangey
+Rects
 Referer
 regkey
 repeatt

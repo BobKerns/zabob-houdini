@@ -228,6 +228,17 @@ class rampParmType(_Enum):
     Color: '_EnumValue[rampParmType]'
     Float: '_EnumValue[rampParmType]'
 
+class scaleInheritanceMode(_Enum):
+    """Enumeration of scale inheritance modes for transforms.
+
+    Controls how child objects inherit scale transformations from parent objects.
+    """
+    Default: '_EnumValue[scaleInheritanceMode]'  # Simple inheritance: world = local * parent_world
+    OffsetOnly: '_EnumValue[scaleInheritanceMode]'  # Child doesn't scale with parent local scales, but local translation is scaled
+    OffsetAndScale: '_EnumValue[scaleInheritanceMode]'  # Local translation is scaled and parent local scaling is reapplied by child in local space
+    ScaleOnly: '_EnumValue[scaleInheritanceMode]'  # Local translation is not scaled, but parent local scaling is reapplied by child in local space
+    Ignore: '_EnumValue[scaleInheritanceMode]'  # Child completely ignores any parent local scaling
+
 class parmData(_Enum):
     """Enumeration of parameter data types."""
     Int: '_EnumValue[parmData]'
@@ -358,6 +369,11 @@ class parmTemplateInterfaceType(_Enum):
     UV: '_EnumValue[parmTemplateInterfaceType]'
     UVW: '_EnumValue[parmTemplateInterfaceType]'
 
+class radialItemType(_Enum):
+    """Enumeration of types for radial menu items in Houdini."""
+    Script: '_EnumValue[radialItemType]'
+    Submenu: '_EnumValue[radialItemType]'
+
 class rampBasis(_Enum):
     """Enumeration of ramp interpolation types."""
     Linear: '_EnumValue[rampBasis]'
@@ -367,6 +383,54 @@ class rampBasis(_Enum):
     Bezier: '_EnumValue[rampBasis]'
     BSpline: '_EnumValue[rampBasis]'
     Hermite: '_EnumValue[rampBasis]'
+
+class renderMethod(_Enum):
+    """Enumeration of dependency rendering methods."""
+    RopByRop: '_EnumValue[renderMethod]'
+    FrameByFrame: '_EnumValue[renderMethod]'
+
+class severityType(_Enum):
+    """Enumeration of log message severity levels."""
+    Message: '_EnumValue[severityType]'
+    Warning: '_EnumValue[severityType]'
+    Error: '_EnumValue[severityType]'
+    Fatal: '_EnumValue[severityType]'
+
+class paneTabType(_Enum):
+    """Enumeration of pane tab types."""
+    NetworkEditor: '_EnumValue[paneTabType]'
+    SceneViewer: '_EnumValue[paneTabType]'
+    ChannelEditor: '_EnumValue[paneTabType]'
+    CompositorViewer: '_EnumValue[paneTabType]'
+    PythonShell: '_EnumValue[paneTabType]'
+    ParameterEditor: '_EnumValue[paneTabType]'
+    PythonPanel: '_EnumValue[paneTabType]'
+    PerformanceMonitor: '_EnumValue[paneTabType]'
+
+class paneLinkType(_Enum):
+    """Enumeration of pane link types for synchronizing pane tabs."""
+    Pinned: '_EnumValue[paneLinkType]'
+    Linked1: '_EnumValue[paneLinkType]'
+    Linked2: '_EnumValue[paneLinkType]'
+    Linked3: '_EnumValue[paneLinkType]'
+
+class parmFilterMode(_Enum):
+    """Enumeration of parameter filter modes."""
+    ShowAll: '_EnumValue[parmFilterMode]'
+    ShowMatching: '_EnumValue[parmFilterMode]'
+    HideMatching: '_EnumValue[parmFilterMode]'
+
+class parmFilterCriteria(_Enum):
+    """Enumeration of parameter filter criteria."""
+    AllParameters: '_EnumValue[parmFilterCriteria]'
+    AnimatedParameters: '_EnumValue[parmFilterCriteria]'
+    ChangedParameters: '_EnumValue[parmFilterCriteria]'
+
+class scrollPosition(_Enum):
+    """Enumeration of scroll positions for parameter editor."""
+    Top: '_EnumValue[scrollPosition]'
+    Center: '_EnumValue[scrollPosition]'
+    Bottom: '_EnumValue[scrollPosition]'
 
 class stringParmType(_Enum):
     """Enumeration of string parameter types."""
@@ -1556,7 +1620,7 @@ class Ramp:
     def lookup(self, position: float) -> float | tuple[float, float, float]: ...
 
     # Structure access
-    def basis(self) -> tuple: ...  # Tuple of hou.rampBasis enum values
+    def basis(self) -> tuple[rampBasis, ...]: ...
     def keys(self) -> tuple[float, ...]: ...
     def values(self) -> tuple[float, ...] | tuple[tuple[float, float, float], ...]: ...
 
@@ -1582,7 +1646,7 @@ class ParmTemplate:
 
     # Display
     def look(self) -> 'parmLook': ...
-    def setLook(self, look: 'paMarmLook') -> None: ...
+    def setLook(self, look: 'parmLook') -> None: ...
 
     # Help and documentation
     def help(self) -> str: ...
@@ -1641,10 +1705,10 @@ class DataParmTemplate(ParmTemplate):
         name: str,
         label: str,
         num_components: int=1,
-        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
-        data_parm_type: dataParmType=...,  # dataParmType enum
+        data_parm_type: dataParmType=...,
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1666,7 +1730,7 @@ class FloatParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[float, ...]=...,
-        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,
         min: float=0.0,
         max: float=1.0,
         min_is_strict: bool=False,
@@ -1702,7 +1766,7 @@ class FolderParmTemplate(ParmTemplate):
         name: str,
         label: str,
         parm_templates: tuple['ParmTemplate', ...]=...,
-        folder_type: folderType=...,  # folderType enum
+        folder_type: folderType=...,
         default_value: int=0,
         ends_tab_group: bool=False,
         is_hidden: bool=False,
@@ -1727,7 +1791,7 @@ class FolderSetParmTemplate(ParmTemplate):
         name: str,
         label: str,
         folder_names: tuple[str, ...]=...,
-        folder_type: folderType=...,  # folderType enum
+        folder_type: folderType=...,
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1747,7 +1811,7 @@ class IntParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[int, ...]=...,
-        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,
         min: int=0,
         max: int=10,
         min_is_strict: bool=False,
@@ -1758,7 +1822,7 @@ class IntParmTemplate(ParmTemplate):
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: menuType=...,  # menuType enum
+        menu_type: menuType=...,
         menu_use_token: bool=False,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
@@ -1804,7 +1868,7 @@ class LabelParmTemplate(ParmTemplate):
         name: str,
         label: str,
         column_labels: tuple[str, ...]=...,
-        label_parm_type: labelParmType=...,  # labelParmType enum
+        label_parm_type: labelParmType=...,
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1828,7 +1892,7 @@ class MenuParmTemplate(ParmTemplate):
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: menuType=...,  # menuType enum
+        menu_type: menuType=...,
         menu_use_token: bool=False,
         default_expression: str|None=None,
         default_expression_language: scriptLanguage=...,
@@ -1918,15 +1982,15 @@ class StringParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[str, ...]=...,
-        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
-        string_type: stringParmType=...,  # stringParmType enum
-        file_type: fileType=...,  # fileType enum
+        naming_scheme: parmNamingScheme=...,
+        string_type: stringParmType=...,
+        file_type: fileType=...,
         menu_items: tuple[str, ...]=...,
         menu_labels: tuple[str, ...]=...,
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: menuType=...,  # menuType enum
+        menu_type: menuType=...,
         menu_use_token: bool=False,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
@@ -2161,7 +2225,7 @@ class RopNode(OpNode):
                to_flipbook: bool = False,
                quality: int = 2,
                ignore_inputs: bool = False,
-               method: Any = None,  # hou.renderMethod enum
+               method: renderMethod|None = None,
                ignore_bypass_flags: bool = False,
                ignore_lock_flags: bool = False,
                verbose: bool = False,
@@ -2620,24 +2684,24 @@ class Geometry:
     def deletePoints(self, points: Sequence['Point']) -> None: ...
 
     # Groups - Point
-    def findPointGroup(self, name: str, scope: Any = ...) -> Any: ...  # PointGroup or None, scope: groupScope
-    def pointGroups(self, scope: Any = ...) -> tuple: ...  # tuple[PointGroup, ...], scope: groupScope
-    def createPointGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> Any: ...  # PointGroup
+    def findPointGroup(self, name: str, scope: groupScope = ...) -> 'PointGroup | None': ...
+    def pointGroups(self, scope: groupScope = ...) -> tuple['PointGroup', ...]: ...
+    def createPointGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> 'PointGroup': ...
 
     # Groups - Primitive
-    def findPrimGroup(self, name: str, scope: Any = ...) -> Any: ...  # PrimGroup or None, scope: groupScope
-    def primGroups(self, scope: Any = ...) -> tuple: ...  # tuple[PrimGroup, ...], scope: groupScope
-    def createPrimGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> Any: ...  # PrimGroup
+    def findPrimGroup(self, name: str, scope: groupScope = ...) -> 'PrimGroup | None': ...
+    def primGroups(self, scope: groupScope = ...) -> tuple['PrimGroup', ...]: ...
+    def createPrimGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> 'PrimGroup': ...
 
     # Groups - Edge
-    def findEdgeGroup(self, name: str, scope: Any = ...) -> Any: ...  # EdgeGroup or None, scope: groupScope
-    def edgeGroups(self, scope: Any = ...) -> tuple: ...  # tuple[EdgeGroup, ...], scope: groupScope
-    def createEdgeGroup(self, name: str) -> Any: ...  # EdgeGroup
+    def findEdgeGroup(self, name: str, scope: groupScope = ...) -> 'EdgeGroup | None': ...
+    def edgeGroups(self, scope: groupScope = ...) -> tuple['EdgeGroup', ...]: ...
+    def createEdgeGroup(self, name: str) -> 'EdgeGroup': ...
 
     # Groups - Vertex
-    def findVertexGroup(self, name: str, scope: Any = ...) -> Any: ...  # VertexGroup or None, scope: groupScope
-    def vertexGroups(self, scope: Any = ...) -> tuple: ...  # tuple[VertexGroup, ...], scope: groupScope
-    def createVertexGroup(self, name: str, is_ordered: bool = False) -> Any: ...  # VertexGroup
+    def findVertexGroup(self, name: str, scope: groupScope = ...) -> 'VertexGroup | None': ...
+    def vertexGroups(self, scope: groupScope = ...) -> tuple['VertexGroup', ...]: ...
+    def createVertexGroup(self, name: str, is_ordered: bool = False) -> 'VertexGroup': ...
 
     # Groups - Menu generation
     def generateGroupMenu(self, group_types: Sequence[str] | None = None, include_selection: bool = True, include_name_attrib: bool = True, case_sensitive: bool = True, pattern: str = "*", decode_tokens: bool = False, parm: 'Parm | None' = None) -> tuple[str, ...]: ...
@@ -2672,8 +2736,8 @@ class Geometry:
     def setPointStringAttribValues(self, name: str, values: Sequence[str]) -> None: ...
 
     # Edges
-    def findEdge(self, p0: 'Point', p1: 'Point') -> Any: ...  # Edge
-    def globEdges(self, pattern: str) -> tuple: ...  # tuple[Edge, ...]
+    def findEdge(self, p0: 'Point', p1: 'Point') -> 'Edge': ...
+    def globEdges(self, pattern: str) -> tuple['Edge', ...]: ...
 
     # Primitives - Access
     def nearestPrim(self, position: Sequence[float]) -> tuple['Prim | None', float, float, float]: ...
@@ -2753,9 +2817,9 @@ class Geometry:
     def transformPrims(self, prims: Sequence['Prim'], matrix: 'Matrix4') -> None: ...
 
     # Loops
-    def primLoop(self, prims: Sequence['Prim'], loop_type: Any) -> tuple['Prim', ...]: ...  # loop_type: componentLoopType
+    def primLoop(self, prims: Sequence['Prim'], loop_type: componentLoopType) -> tuple['Prim', ...]: ...
     def pointLoop(self, points: Sequence['Point'], full_loop: bool) -> tuple['Point', ...]: ...
-    def edgeLoop(self, edges: Sequence, loop_type: Any, full_loop_per_edge: bool, force_ring: bool, allow_ring: bool) -> tuple: ...  # tuple[Edge, ...], loop_type: componentLoopType
+    def edgeLoop(self, edges: Sequence['Edge'], loop_type: componentLoopType, full_loop_per_edge: bool, force_ring: bool, allow_ring: bool) -> tuple['Edge', ...]: ...
     def pointNormals(self, points: Sequence['Point']) -> tuple['Vector3', ...]: ...
 
     # Selection
@@ -3704,6 +3768,233 @@ class WorkItem:
     def state(self) -> str: ...  # "ready", "cooking", "cooked", "failed"
 
 # Context managers for safer Houdini operations
+class ScriptEvalContext:
+    """Context manager for temporarily changing the scripting evaluation context.
+
+    Use this to set a specific node or parameter as the evaluation context within
+    a Python code block. This affects functions like hou.pwd(), hou.ch(), etc.
+    """
+    def __init__(self, node_or_parm: 'OpNode | Parm') -> None: ...
+    def __enter__(self) -> 'ScriptEvalContext': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+    def node(self) -> 'OpNode': ...
+    def parm(self) -> 'Parm': ...
+
+class LogEntry:
+    """Represents a single log message sent by a source to a sink."""
+    def __init__(
+        self,
+        message: str | None = None,
+        source: str | None = None,
+        source_context: str | None = None,
+        severity: severityType | None = None,
+        verbosity: int = 0,
+        time: float = 0.0,
+        thread_id: int = 0,
+        has_external_info: bool = False,
+        external_host_name: str | None = None,
+        external_identifier: str | None = None,
+        external_command_line: str | None = None,
+        external_process_id: int = 0
+    ) -> None: ...
+    def source(self) -> str: ...
+    def sourceContext(self) -> str: ...
+    def message(self) -> str: ...
+    def severity(self) -> severityType: ...
+    def verbosity(self) -> int: ...
+    def time(self) -> float: ...
+    def threadId(self) -> int: ...
+    def hasExternalInfo(self) -> bool: ...
+    def externalHostName(self) -> str: ...
+    def externalIdentifier(self) -> str: ...
+    def externalCommandLine(self) -> str: ...
+    def externalProcessId(self) -> int: ...
+
+class PaneTab:
+    """Base class for pane tabs in the Houdini UI."""
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def type(self) -> paneTabType: ...
+    def setType(self, type: paneTabType) -> 'PaneTab': ...
+    def close(self) -> None: ...
+    def isCurrentTab(self) -> bool: ...
+    def setIsCurrentTab(self) -> None: ...
+    def isFloating(self) -> bool: ...
+    def clone(self) -> 'PaneTab': ...
+    def linkGroup(self) -> paneLinkType: ...
+    def setLinkGroup(self, group: paneLinkType) -> None: ...
+    def isPin(self) -> bool: ...
+    def setPin(self, pin: bool) -> None: ...
+    def size(self) -> tuple[int, int]: ...
+    def contentSize(self) -> tuple[int, int]: ...
+
+class NetworkEditor(PaneTab):
+    """Represents a Network Editor pane tab.
+
+    Inherits from PaneTab and PathBasedPaneTab. Provides comprehensive control
+    over network view, selection, display, and interaction within the network editor.
+    """
+
+    # Bounds and Transformations
+    def cursorPosition(self, confine_to_view: bool = True) -> Vector2: ...
+    def isShowingConnectors(self) -> bool: ...
+    def isUnderCursor(self) -> bool: ...
+    def isPosInside(self, pos: Vector2, ignore_floating_windows: bool = True) -> bool: ...
+    def setCursorPosition(self, pos: Vector2) -> None: ...
+    def screenBounds(self) -> BoundingRect: ...
+    def visibleBounds(self) -> BoundingRect: ...
+    def setVisibleBounds(
+        self, bounds: BoundingRect, transition_time: float = 0.0,
+        max_scale: float = 0.0, set_center_when_scale_rejected: bool = False
+    ) -> None: ...
+    def requestZoomReset(self) -> None: ...
+    def isZoomResetRequested(self) -> bool: ...
+    def setLocatingEnabled(self, enabled: bool) -> None: ...
+    def locatingEnabled(self) -> bool: ...
+    def lengthToScreen(self, len: float) -> float: ...
+    def lengthFromScreen(self, len: float) -> float: ...
+    def sizeToScreen(self, size: Vector2) -> Vector2: ...
+    def sizeFromScreen(self, size: Vector2) -> Vector2: ...
+    def posToScreen(self, pos: Vector2) -> Vector2: ...
+    def posFromScreen(self, pos: Vector2) -> Vector2: ...
+    def overviewPosToScreen(self, pos: Vector2) -> Vector2: ...
+    def overviewPosFromScreen(self, pos: Vector2) -> Vector2: ...
+    def overviewVisible(self) -> bool: ...
+    def overviewVisibleIfAutomatic(self) -> bool: ...
+
+    # Selection and Highlighting
+    def networkItemsInBox(
+        self, pos1: Vector2, pos2: Vector2, for_drop: bool = False, for_select: bool = False
+    ) -> tuple[tuple[NetworkItem, str, int], ...]: ...
+    def setDragSourceData(self, items: Sequence[NetworkItem]) -> None: ...
+    def setDragSourceWorkItem(self, work_item_id: int) -> None: ...
+    def setDropTargetItem(self, item: NetworkItem | None, name: str, index: int) -> None: ...
+    def dropTargetItem(self) -> tuple[NetworkItem | None, str, int]: ...
+    def setDecoratedItem(self, item: NetworkItem | None, interactive: bool) -> None: ...
+    def decoratedItem(self) -> NetworkItem | None: ...
+    def decorationInteractive(self) -> bool: ...
+    def setPreSelectedItems(self, items: Sequence[NetworkItem]) -> None: ...
+    def preSelectedItems(self) -> tuple[NetworkItem, ...]: ...
+    def selectedConnections(self) -> tuple[NodeConnection, ...]: ...
+    def clearAllSelected(self) -> None: ...
+    def setNetworkBoxPendingRemovals(self, items: Sequence[NetworkMovableItem]) -> None: ...
+    def networkBoxPendingRemovals(self) -> tuple[NetworkMovableItem, ...]: ...
+
+    # Decoration
+    def nodeShapes(self) -> tuple[str, ...]: ...
+    def reloadNodeShapes(self) -> tuple[str, ...]: ...
+    def setFootprints(self, footprints: Sequence[Any]) -> None: ...  # NetworkFootprint
+    def footprints(self) -> tuple[Any, ...]: ...  # NetworkFootprint
+    def setCursorMap(self, cursors: dict[tuple[str, int], str]) -> None: ...
+    def cursorMap(self) -> dict[tuple[str, int], str]: ...
+    def setDefaultCursor(self, cursor_name: str) -> None: ...
+    def defaultCursor(self) -> str: ...
+    def setBackgroundImages(self, images: Sequence[Any]) -> None: ...  # NetworkImage
+    def backgroundImages(self) -> tuple[Any, ...]: ...  # NetworkImage
+    def setAdjustments(
+        self, items: Sequence[NetworkMovableItem], adjustments: Any, auto_remove: bool = False
+    ) -> None: ...
+    def setShapes(self, shapes: Sequence[Any]) -> None: ...  # NetworkShape
+    def setOverlayShapes(self, shapes: Sequence[Any]) -> None: ...  # NetworkShape
+    def redraw(self) -> None: ...
+
+    # Network Item Information
+    def itemRect(self, item: NetworkMovableItem, adjusted: bool = True) -> BoundingRect: ...
+    def itemInputPos(self, item: Node | Any, input_index: int, adjusted: bool = True) -> Vector2: ...  # NetworkDot
+    def itemInputDir(self, item: Node | Any, input_index: int) -> Vector2: ...  # NetworkDot
+    def itemOutputPos(self, item: Node | Any, output_index: int, adjusted: bool = True) -> Vector2: ...  # NetworkDot or SubnetIndirectInput
+    def itemOutputDir(self, item: Node | Any, output_index: int) -> Vector2: ...  # NetworkDot or SubnetIndirectInput
+    def allVisibleRects(self, ignore_items: Sequence[NetworkMovableItem]) -> tuple[tuple[NetworkMovableItem, BoundingRect], ...]: ...
+
+    # Prompts
+    def setTooltip(self, tooltip: str) -> None: ...
+    def tooltip(self) -> str: ...
+    def setPrompt(self, prompt: str) -> None: ...
+    def prompt(self) -> str: ...
+    def flashMessage(self, image: str, message: str, duration: float) -> None: ...
+
+    # Standard Menus and Editors
+    def openTabMenu(
+        self, key: str | None = None, auto_place: bool = False, branch: bool = False,
+        src_item: Node | None = None, src_connector_index: int = -1,
+        dest_item: Node | None = None, dest_connector_index: int = -1,
+        node_position: Vector2 | None = None,
+        src_items: Sequence[Node] = [], src_indexes: Sequence[int] = [],
+        dest_items: Sequence[Node] = [], dest_indexes: Sequence[int] = []
+    ) -> None: ...
+    def openNodeMenu(self, node: Node | None = None, items: Sequence[Node] = []) -> None: ...
+    def openVopEffectsMenu(self, node: Any, input_index: int) -> None: ...  # VopNode
+    def openVopOutputInfoMenu(self, node: Any, output_index: int) -> None: ...  # VopNode
+    def openCommentEditor(self, item: Any, select_all: bool = False) -> int: ...  # NetworkBox
+    def openFloatingParameterEditor(self, node: Node) -> None: ...
+    def openNameEditor(self, item: Node, select_all: bool = False) -> int: ...
+    def openNoteEditor(self, stickynote: Any, select_all: bool = False) -> int: ...  # StickyNote
+    def closeTextEditor(self, id: int, apply_changes: bool = True) -> None: ...
+    def runShelfTool(self, tool_name: str) -> None: ...
+
+    # Event Handling
+    def scheduleTimerEvent(self, seconds: float) -> int: ...
+    def handleCurrentKeyboardEvent(self, resend: bool = False) -> None: ...
+    def setVolatileHotkeys(self, hotkey_symbols: Sequence[str]) -> None: ...
+    def isVolatileHotkeyDown(self, hotkey_symbol: str) -> bool: ...
+    def hotkeyAssignments(self, hotkey_symbols: Sequence[str]) -> tuple[tuple[str, ...], ...]: ...
+    def pushEventContext(self, module: str, data: dict[str, Any]) -> bool: ...
+    def popEventContext(self) -> None: ...
+    def eventContextData(self) -> dict[str, Any]: ...
+
+    # Preferences
+    def setPref(self, pref: str, value: str) -> None: ...
+    def getPref(self, pref: str) -> str: ...
+    def setPrefs(self, prefs: dict[str, str]) -> None: ...
+    def getPrefs(self) -> dict[str, str]: ...
+    def registerPref(self, pref: str, value: str, global_pref: bool) -> None: ...
+    def badges(self) -> tuple[tuple[str, ...], ...]: ...
+    def textBadges(self) -> tuple[tuple[str, ...], ...]: ...
+
+    # Parameter Editor
+    def parmFilterEnabled(self) -> bool: ...
+    def setParmFilterEnabled(self, on: bool, keyboard_lock: bool) -> None: ...
+    def parmFilterMode(self) -> parmFilterMode: ...
+    def setParmFilterMode(self, mode: parmFilterMode) -> None: ...
+    def parmFilterCriteria(self) -> parmFilterCriteria: ...
+    def setParmFilterCriteria(self, criteria: parmFilterCriteria) -> None: ...
+    def parmFilterPattern(self) -> str: ...
+    def setParmFilterPattern(self, pattern: str) -> None: ...
+    def parmFilterExactMatch(self) -> bool: ...
+    def setParmFilterExactMatch(self, on: bool) -> None: ...
+    def parmScrollPosition(self) -> Vector2: ...
+    def setParmScrollPosition(self, pos: Vector2) -> None: ...
+    def parmScrollTo(self, parms: Sequence[Parm], scroll_pos: scrollPosition) -> None: ...
+    def parmMoveFocusTo(self, parm: Parm) -> None: ...
+    def setMultiParmTab(self, parm: Parm, tab_index: int) -> None: ...
+    def multiParmTab(self, parm: Parm) -> int: ...
+
+    # Methods from PaneTab (inherited)
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def type(self) -> paneTabType: ...
+    def setType(self, type: paneTabType) -> 'PaneTab': ...
+    def close(self) -> None: ...
+    def pane(self) -> Any | None: ...  # Pane
+    def floatingPanel(self) -> Any | None: ...  # FloatingPanel
+    def isCurrentTab(self) -> bool: ...
+    def setIsCurrentTab(self) -> None: ...
+    def isFloating(self) -> bool: ...
+    def clone(self) -> 'PaneTab': ...
+    def linkGroup(self) -> paneLinkType: ...
+    def setLinkGroup(self, group: paneLinkType) -> None: ...
+    def isPin(self) -> bool: ...
+    def setPin(self, pin: bool) -> None: ...
+    def size(self) -> tuple[int, int]: ...
+    def contentSize(self) -> tuple[int, int]: ...
+
+    # Methods from PathBasedPaneTab (inherited)
+    def cd(self, path: str) -> None: ...
+    def currentNode(self) -> Node: ...
+    def pwd(self) -> Node: ...
+    def setCurrentNode(self, node: Node, pick_node: bool = True) -> None: ...
+    def setPwd(self, node: Node) -> None: ...
+
 class UndoGroup:
     """Context manager for grouping operations into a single undo."""
     def __init__(self, name: str) -> None: ...
@@ -4093,11 +4384,7 @@ class NodeBundle:
     def clear(self) -> None: ...
     def destroy(self) -> None: ...
 
-# Session module
-class session:
-    """Container for session-specific functions and variables."""
-    ...
-
+# Session module functions
 def sessionModuleSource() -> str:
     """Get session module source code."""
     ...
@@ -4537,252 +4824,251 @@ def saveIndexDataToString(data: bytes) -> str:
 # ==============================================================================
 # SUBMODULES
 # ==============================================================================
+# Note: Submodule stubs are in stubs/hou/*.pyi files
+# These are pre-loaded C++ modules: anim, clone, crowds, data, dop, fs, galleries,
+# hda, hmath, ik, logging, lop, perfMon, playbar, properties, pypanel, session,
+# shelves, styles, takes, text, webServer
+# Accessible as: hou.hmath, hou.dop, hou.logging, etc.
 
-class hmath:
-    """3D math functions for transforms, rotations, and geometric operations."""
+class PerfMonEvent:
+    """Represents an event recorded by the performance monitor for generating statistics.
 
-    # Transform building functions
-    @staticmethod
-    def buildTranslate(tx: float, ty: float, tz: float) -> Matrix4:
-        """Build translation matrix."""
+    Note: All methods may raise hou.OperationFailed if the event was not recorded.
+    Time and memory statistics are reported in milliseconds and bytes respectively.
+    """
+
+    def id(self) -> int:
+        """Return the event's unique identifier used internally by the performance monitor."""
         ...
 
-    @staticmethod
-    def buildRotate(rx: float, ry: float, rz: float, order: str = "xyz") -> Matrix4:
-        """Build rotation matrix from Euler angles (degrees)."""
+    def isAutoNestEnabled(self) -> bool:
+        """Return True if the event automatically nests other events started while this event is running."""
         ...
 
-    @staticmethod
-    def buildRotateAboutAxis(axis: Vector3, angle_in_deg: float) -> Matrix4:
-        """Build rotation matrix about arbitrary axis."""
+    def isRunning(self) -> bool:
+        """Return True if the event has been started but not stopped."""
         ...
 
-    @staticmethod
-    def buildRotateZToAxis(axis: Vector3) -> Matrix4:
-        """Build rotation matrix that rotates Z axis to target axis."""
+    def isTiming(self) -> bool:
+        """Deprecated: Use isRunning() instead."""
         ...
 
-    @staticmethod
-    def buildRotateLookAt(from_pos: Vector3, to_pos: Vector3, up: Vector3) -> Matrix4:
-        """Build rotation matrix for look-at transform."""
+    def name(self) -> str:
+        """Return the event name."""
         ...
 
-    @staticmethod
-    def buildScale(sx: float, sy: float, sz: float) -> Matrix4:
-        """Build scale matrix."""
+    def object(self) -> str:
+        """Return the object that the event applies to."""
         ...
 
-    @staticmethod
-    def buildShear(shearx: float, sheary: float, shearz: float) -> Matrix4:
-        """Build shear matrix."""
+    def startTime(self) -> float:
+        """Return the start time of the event in milliseconds since the epoch date."""
         ...
 
-    @staticmethod
-    def buildTransform(values: dict[str, Any], transform_order: str = "srt", rotate_order: str = "xyz") -> Matrix4:
-        """Build transform matrix from parameter dictionary."""
+    def stop(self) -> tuple[float, int]:
+        """Stop the event timer and return (elapsed_time_ms, memory_growth_bytes)."""
         ...
 
-    @staticmethod
-    def combineLocalTransform(local: Matrix4, world: Matrix4, parent_local: Matrix4 | None = None, mode: Any = ...) -> Matrix4:
-        """Combine local transform with parent world transform."""
+
+class PerfMonProfile:
+    """Represents a performance monitor profile.
+
+    Note: Time and memory statistics are reported in milliseconds and bytes respectively.
+    """
+
+    def cancel(self) -> None:
+        """Stop the profile from recording events and remove it from the performance monitor."""
         ...
 
-    @staticmethod
-    def extractLocalTransform(world: Matrix4, parent_world: Matrix4, parent_local: Matrix4, mode: Any = ...) -> Matrix4:
-        """Extract local transform from world transforms."""
+    def exportAsCSV(self, file_path: str) -> None:
+        """Export the profile statistics to disk using comma-separated (CSV) format."""
         ...
 
-    @staticmethod
-    def identityTransform() -> Matrix4:
-        """Return identity transform matrix."""
+    def id(self) -> int:
+        """Return the profile's unique identifier used internally by the performance monitor."""
         ...
 
-    # Angle conversion
-    @staticmethod
-    def degToRad(degrees: float) -> float:
-        """Convert degrees to radians."""
+    def isActive(self) -> bool:
+        """Return True if the profile is either recording events or is paused."""
         ...
 
-    @staticmethod
-    def radToDeg(radians: float) -> float:
-        """Convert radians to degrees."""
+    def isRecordingCookStats(self) -> bool:
+        """Return True if the profile is recording cook events and statistics."""
         ...
 
-    # Math utilities
-    @staticmethod
-    def clamp(value: float, min_val: float, max_val: float) -> float:
-        """Clamp value to range."""
+    def isRecordingPDGCookStats(self) -> bool:
+        """Return True if the profile is recording PDG node cook events and statistics."""
         ...
 
-    @staticmethod
-    def wrap(value: float, min_val: float, max_val: float) -> float:
-        """Wrap value within range."""
+    def isRecordingDrawStats(self) -> bool:
+        """Return True if the profile is recording draw events and statistics."""
         ...
 
-    @staticmethod
-    def sign(value: float) -> int:
-        """Return sign of value (-1, 0, or 1)."""
+    def isRecordingErrors(self) -> bool:
+        """Return True if the profile is recording errors."""
         ...
 
-    @staticmethod
-    def smooth(value: float, min_val: float, max_val: float) -> float:
-        """Smooth step interpolation."""
+    def isRecordingFrameStats(self) -> bool:
+        """Return True if the profile is recording frame events and statistics."""
         ...
 
-    @staticmethod
-    def fit(value: float, old_min: float, old_max: float, new_min: float, new_max: float) -> float:
-        """Fit value from one range to another."""
+    def isRecordingGPUDrawStats(self) -> bool:
+        """Return True if the profile is recording GPU draw events and statistics."""
         ...
 
-    @staticmethod
-    def fit01(value: float, new_min: float, new_max: float) -> float:
-        """Fit value from 0-1 range to new range."""
+    def isRecordingRenderStats(self) -> bool:
+        """Return True if the profile is recording statistics related to rendering."""
         ...
 
-    @staticmethod
-    def fit10(value: float, new_min: float, new_max: float) -> float:
-        """Fit value from 1-0 range to new range."""
+    def isRecordingScriptStats(self) -> bool:
+        """Return True if the profile is recording script events and statistics."""
         ...
 
-    @staticmethod
-    def fit11(value: float, new_min: float, new_max: float) -> float:
-        """Fit value from -1 to 1 range to new range."""
+    def isRecordingSolveStats(self) -> bool:
+        """Return True if the profile is recording simulation solver events and statistics."""
         ...
 
-    # Random and noise
-    @staticmethod
-    def rand(seed: float) -> float:
-        """Generate random float from seed."""
+    def isRecordingThreadStats(self) -> bool:
+        """Return True if the profile is recording thread statistics."""
         ...
 
-    @staticmethod
-    def noise1d(pos: float) -> float:
-        """Generate 1D Perlin noise."""
+    def isRecordingViewportStats(self) -> bool:
+        """Return True if the profile is recording viewport events and statistics."""
         ...
 
-    @staticmethod
-    def noise3d(pos: Vector3) -> Vector3:
-        """Generate 3D Perlin noise vector."""
+    def isPaused(self) -> bool:
+        """Return True if the profile is paused from recording."""
         ...
 
-    # Geometric tests
-    @staticmethod
-    def orient2d(pa: Vector2, pb: Vector2, point: Vector2) -> float:
-        """Test point orientation relative to 2D line."""
+    def pause(self) -> None:
+        """Pause the profile from recording events and statistics."""
         ...
 
-    @staticmethod
-    def orient3d(pa: Vector3, pb: Vector3, pc: Vector3, point: Vector3) -> float:
-        """Test point orientation relative to 3D plane."""
+    def resume(self) -> None:
+        """Unpause the profile so that it can record events and statistics."""
         ...
 
-    @staticmethod
-    def inCircle(pa: Vector2, pb: Vector2, pc: Vector2, point: Vector2) -> float:
-        """Test if point is inside circle defined by three points."""
+    def save(self, file_path: str) -> None:
+        """Deprecated: Use hou.perfMon.saveProfile() instead."""
         ...
 
-    @staticmethod
-    def inSphere(pa: Vector3, pb: Vector3, pc: Vector3, pd: Vector3, point: Vector3) -> float:
-        """Test if point is inside sphere defined by four points."""
+    def stats(self) -> str:
+        """Return the profile statistics in JSON format."""
         ...
 
-    @staticmethod
-    def intersectPlane(plane_point: Vector3, plane_normal: Vector3, line_origin: Vector3, line_dir: Vector3) -> Vector3:
-        """Compute line-plane intersection point."""
+    def stop(self) -> None:
+        """Stop the profile from recording and generate statistics for recorded events."""
         ...
 
-    # Advanced transforms
-    @staticmethod
-    def slerpTransforms(xforms: list[Matrix4], input_weights: list[float], normalize_weights: bool, slerp_method: Any, slerp_flip_method: Any) -> Matrix4:
-        """Spherical linear interpolation of transforms."""
+    def title(self) -> str:
+        """Return the profile title."""
         ...
 
-class dop:
-    """DOP (Dynamics) related functions for Python script solver context."""
 
-    @staticmethod
-    def isScriptSolverRunning() -> bool:
-        """Check if currently executing in a script solver."""
+class PerfMonRecordOptions:
+    """Options specifying types of statistics to be recorded in a performance monitor profile."""
+
+    def recordCookStats(self) -> bool:
+        """Return True if cook statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverData() -> DopData:
-        """Get the solver data for the current script solver."""
+    def recordPDGCookStats(self) -> bool:
+        """Return True if PDG node and work item cook statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverNetwork() -> OpNode | None:
-        """Get the DOP network containing the current script solver."""
+    def recordDrawStats(self) -> bool:
+        """Return True if node draw statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverSimulation() -> DopSimulation | None:
-        """Get the simulation containing the current script solver."""
+    def recordErrors(self) -> bool:
+        """Return True if warnings and errors should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverObjects() -> tuple[DopObject, ...]:
-        """Get all DOP objects being solved by the current script solver."""
+    def recordFrameStats(self) -> bool:
+        """Return True if frame statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverNewObjects() -> tuple[DopObject, ...]:
-        """Get newly-created DOP objects in the current script solver timestep."""
+    def recordGPUDrawStats(self) -> bool:
+        """Return True if node GPU draw statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverTimestepSize() -> float:
-        """Get the timestep size for the current script solver."""
+    def recordMemoryStats(self) -> bool:
+        """Return True if memory statistics should be recorded."""
         ...
 
-class logging:
-    """Logging module for warnings and errors with sources and sinks system."""
-
-    # Classes (forward references - defined elsewhere in hou module)
-    # FileSink, LogEntry, MemorySink, Sink
-
-    @staticmethod
-    def createSource(source_name: str) -> None:
-        """Create a new logging source that can send log entries."""
+    def recordPaneStats(self) -> bool:
+        """Return True if non-viewport pane statistics should be recorded."""
         ...
 
-    @staticmethod
-    def defaultFileSink() -> Any | None:  # Returns FileSink or None
-        """Return shared file sink for the current Houdini session."""
+    def recordRenderStats(self) -> bool:
+        """Return True if Mantra render statistics should be recorded."""
         ...
 
-    @staticmethod
-    def defaultSink(force_create: bool = False) -> Any | None:  # Returns MemorySink or None
-        """Return shared memory sink for the current Houdini session."""
+    def recordScriptStats(self) -> bool:
+        """Return True if hscript and Python statistics should be recorded."""
         ...
 
-    @staticmethod
-    def loadLogsFromFile(filepath: str) -> tuple[Any, ...]:  # tuple of LogEntry
-        """Load tuple of LogEntry objects from JSON file."""
+    def recordSolveStats(self) -> bool:
+        """Return True if DOP solver statistics should be recorded."""
         ...
 
-    @staticmethod
-    def log(entry: Any, source_name: str | None = None) -> None:  # entry is LogEntry
-        """Send LogEntry to all sinks connected to a logging source."""
+    def recordThreadStats(self) -> bool:
+        """Return True if thread statistics should be recorded."""
         ...
 
-    @staticmethod
-    def renderLogVerbosity() -> int:
-        """Return Karma logging verbosity level (0-9)."""
+    def recordViewportStats(self) -> bool:
+        """Return True if viewport statistics should be recorded."""
         ...
 
-    @staticmethod
-    def saveLogsToFile(logs: Any, filepath: str) -> None:  # logs is Iterable[LogEntry]
-        """Save tuple of LogEntry objects to JSON file."""
+    def setRecordCookStats(self, record: bool) -> None:
+        """Turn the recording of node cook statistics on or off."""
         ...
 
-    @staticmethod
-    def setRenderLogVerbosity(verbosity: int) -> None:
-        """Set Karma logging verbosity level (0-9)."""
+    def setRecordPDGCookStats(self, record: bool) -> None:
+        """Turn the recording of PDG node and work item cook statistics on or off."""
         ...
 
-    @staticmethod
-    def sources() -> tuple[str, ...]:
-        """Return tuple of all available log source names."""
+    def setRecordDrawStats(self, record: bool) -> None:
+        """Turn the recording of node draw statistics on or off."""
+        ...
+
+    def setRecordErrors(self, record: bool) -> None:
+        """Turn the recording of warnings and errors on or off."""
+        ...
+
+    def setRecordFrameStats(self, record: bool) -> None:
+        """Turn the recording of frame statistics on or off."""
+        ...
+
+    def setRecordGPUDrawStats(self, record: bool) -> None:
+        """Turn the recording of node GPU draw statistics on or off."""
+        ...
+
+    def setRecordMemoryStats(self, record: bool) -> None:
+        """Turn the recording of memory statistics on or off."""
+        ...
+
+    def setRecordPaneStats(self, record: bool) -> None:
+        """Turn the recording of non-viewport pane statistics on or off."""
+        ...
+
+    def setRecordRenderStats(self, record: bool) -> None:
+        """Turn the recording of Mantra render statistics on or off."""
+        ...
+
+    def setRecordScriptStats(self, record: bool) -> None:
+        """Turn the recording of hscript and Python statistics on or off."""
+        ...
+
+    def setRecordSolveStats(self, record: bool) -> None:
+        """Turn the recording of DOP solver statistics on or off."""
+        ...
+
+    def setRecordThreadStats(self, record: bool) -> None:
+        """Turn the recording of thread statistics on or off."""
+        ...
+
+    def setRecordViewportStats(self, record: bool) -> None:
+        """Turn the recording of viewport statistics on or off."""
         ...
 
