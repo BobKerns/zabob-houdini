@@ -4,7 +4,7 @@ This file exists so pylance and other tools have something that satisfies
 >  import hou
 
 in the codebase. The type signatures are supplied by the accompanying
-hou.pyi file, rather than Houdini's own, which is auto-generated
+hou/__init__.pyi file, rather than Houdini's own, which is auto-generated
 and often incorrect or incomplete.
 '''
 
