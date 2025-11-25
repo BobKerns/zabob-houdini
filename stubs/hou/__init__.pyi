@@ -1093,98 +1093,146 @@ class fileChooserMode(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/fileChooserMode.html
     """
-    pass
+    Read: '_EnumValue[fileChooserMode]'
+    Write: '_EnumValue[fileChooserMode]'
+    ReadAndWrite: '_EnumValue[fileChooserMode]'
 
 class nodeFootprint(_Enum):
     """Enumeration of the specialized node footprints supported by the network editor.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/nodeFootprint.html
     """
-    pass
+    InsertionPoint: '_EnumValue[nodeFootprint]'  # Draw a footprint around the LOP node that is currently set as the insertion point
 
 class perfMonObjectView(_Enum):
     """Enumeration of the different structures that are used to view objects in the Performance Monitor panetab.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonObjectView.html
     """
-    pass
+    List: '_EnumValue[perfMonObjectView]'
+    Tree: '_EnumValue[perfMonObjectView]'
+    EventLog: '_EnumValue[perfMonObjectView]'
 
 class perfMonTimeFormat(_Enum):
     """Enumeration of the different formats used when viewing times in the Performance Monitor panetab.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonTimeFormat.html
     """
-    pass
+    Absolute: '_EnumValue[perfMonTimeFormat]'
+    Percent: '_EnumValue[perfMonTimeFormat]'
 
 class perfMonTimeUnit(_Enum):
     """Enumeration of the different units used when viewing times in the Performance Monitor panetab.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonTimeUnit.html
     """
-    pass
+    Seconds: '_EnumValue[perfMonTimeUnit]'  # Display times in seconds
+    Milliseconds: '_EnumValue[perfMonTimeUnit]'  # Display times in milliseconds
 
 class resourceEventMessage(_Enum):
     """Enumeration of the resource events that can be handled by callback functions.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/resourceEventMessage.html
     """
-    pass
+    OnActivate: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer handle has been activated
+    OnCustomEvent: '_EnumValue[resourceEventMessage]'  # Event triggered when hou.ui.fireResourceCustomEvent is called
+    OnDeactivate: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer handle has been deactivated
+    OnEnter: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state begins
+    OnExit: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state ends
+    OnGenerate: '_EnumValue[resourceEventMessage]'  # Event triggered after a nodeless viewer state begins
+    OnInterrupt: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has been interrupted
+    OnLoad: '_EnumValue[resourceEventMessage]'  # Event triggered after a package has been successfully loaded
+    OnPreEnter: '_EnumValue[resourceEventMessage]'  # Event triggered before a viewer state begins
+    OnPrintMessage: '_EnumValue[resourceEventMessage]'  # Event triggered when hou.ui.printViewerStateMessage is called
+    OnReload: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state or package has been successfully reloaded
+    OnResume: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has resumed after an interruption
+    OnRegister: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has been successfully registered
+    OnUnload: '_EnumValue[resourceEventMessage]'  # Event triggered after a package has been successfully unloaded
+    OnUnregister: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has been successfully un-registered
+    OnRuntimeError: '_EnumValue[resourceEventMessage]'  # Event triggered when a runtime error occurs during a viewer state operation
+    NoEventType: '_EnumValue[resourceEventMessage]'  # An invalid viewer state event type
 
 class secureSelectionOption(_Enum):
     """Enumeration of the secure selection options used by viewer state selectors.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/secureSelectionOption.html
     """
-    pass
+    Ignore: '_EnumValue[secureSelectionOption]'  # Selector ignores the viewer's secure selection setting
+    Obey: '_EnumValue[secureSelectionOption]'  # Selector obeys the viewer's secure selection setting
+    On: '_EnumValue[secureSelectionOption]'  # Selector sets the viewer's secure selection to On when it starts
+    Off: '_EnumValue[secureSelectionOption]'  # Selector sets the viewer's secure selection to Off when it starts
 
 class stateGenerateMode(_Enum):
     """Enumeration of possible node generation modes by states.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/stateGenerateMode.html
     """
-    pass
+    Insert: '_EnumValue[stateGenerateMode]'
+    Branch: '_EnumValue[stateGenerateMode]'
+    Enter: '_EnumValue[stateGenerateMode]'
 
 class stateViewerType(_Enum):
     """Enumeration of state viewer types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/stateViewerType.html
     """
-    pass
+    Scene: '_EnumValue[stateViewerType]'
+    Compositor: '_EnumValue[stateViewerType]'
 
 class triggerSelectorAction(_Enum):
     """Enumerator representing the type of action a state selector can perform if triggered.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/triggerSelectorAction.html
     """
-    pass
+    Start: '_EnumValue[triggerSelectorAction]'  # Activate a selector
+    Stop: '_EnumValue[triggerSelectorAction]'  # Deactivate a selector
+    Toggle: '_EnumValue[triggerSelectorAction]'  # Start or stop a selector depending on the current selector state
 
 class uiEventReason(_Enum):
     """Values representing reasons Houdini generated a particular UI event.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/uiEventReason.html
     """
-    pass
+    Picked: '_EnumValue[uiEventReason]'  # Quick mouse click without dragging
+    Start: '_EnumValue[uiEventReason]'  # Left mouse button pressed (mouse down)
+    Active: '_EnumValue[uiEventReason]'  # Mouse dragged with the left mouse button down
+    Changed: '_EnumValue[uiEventReason]'  # Left mouse button released (mouse up)
+    Located: '_EnumValue[uiEventReason]'  # Mouse pointer hovered over something in the interface
+    ItemsChanged: '_EnumValue[uiEventReason]'  # Event generated as a change of values in hou.UIEvent
+    New: '_EnumValue[uiEventReason]'  # Event generated when a UI element was assigned a different value
+    RangeChanged: '_EnumValue[uiEventReason]'  # Event generated when a slider or scrollbar has changed
+    NoReason: '_EnumValue[uiEventReason]'  # Event was likely explicitly generated
 
 class uiEventValueType(_Enum):
     """Enumerator for UI event value types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/uiEventValueType.html
     """
-    pass
+    Float: '_EnumValue[uiEventValueType]'  # float value type
+    FloatArray: '_EnumValue[uiEventValueType]'  # Array of float values
+    IntArray: '_EnumValue[uiEventValueType]'  # Array of int values
+    Integer: '_EnumValue[uiEventValueType]'  # int value type
+    NoType: '_EnumValue[uiEventValueType]'  # invalid value type
+    String: '_EnumValue[uiEventValueType]'  # string value type
+    StringArray: '_EnumValue[uiEventValueType]'  # Array of string values
 
 class valueLadderDataType(_Enum):
     """Enumeration of the different data types that may be manipulated by a value ladder.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/valueLadderDataType.html
     """
-    pass
+    Float: '_EnumValue[valueLadderDataType]'  # The ladder is being used to manipulate a single floating point value
+    Int: '_EnumValue[valueLadderDataType]'  # The ladder is being used to manipulate a single integer value
+    FloatArray: '_EnumValue[valueLadderDataType]'  # Array of floating point values
+    IntArray: '_EnumValue[valueLadderDataType]'  # Array of integer values
 
 class valueLadderType(_Enum):
     """Enumeration of the different value ladder types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/valueLadderType.html
     """
-    pass
+    Generic: '_EnumValue[valueLadderType]'  # Generic numeric value. Step sizes range from 0.0001 to 100.0
+    Angle: '_EnumValue[valueLadderType]'  # Value representing an angle. Step sizes range from 1.0 to 45.0
 
 # ============================================================================
 # VIEWS/VIEWPORT ENUMERATIONS
