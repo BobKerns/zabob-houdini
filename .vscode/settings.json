@@ -19,7 +19,6 @@
     // Houdini integration for IntelliSense
     "python.analysis.extraPaths": [
         "${env:_HOUDINI_PATH}/houdini/python3.11libs",
-        "${env:_HOUDINI_PATH)",
         "stubs/"
     ],
     "python.analysis.autoImportCompletions": true,
