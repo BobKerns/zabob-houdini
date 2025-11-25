@@ -1058,35 +1058,98 @@ class confirmType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/confirmType.html
     """
-    pass
+    NoConfirmType: '_EnumValue[confirmType]'
+    OverwriteFile: '_EnumValue[confirmType]'
+    UnlockNode: '_EnumValue[confirmType]'
+    DeleteSpareParameters: '_EnumValue[confirmType]'
+    DeleteWithoutReferences: '_EnumValue[confirmType]'
+    NestedChannelGroups: '_EnumValue[confirmType]'
+    SiblingChannelGroups: '_EnumValue[confirmType]'
+    DeleteShelfElement: '_EnumValue[confirmType]'
+    DeleteGalleryEntry: '_EnumValue[confirmType]'
+    InactiveSnapMode: '_EnumValue[confirmType]'
+    BackgroundSave: '_EnumValue[confirmType]'
+    LockMultiNode: '_EnumValue[confirmType]'
+    SaveEmbeddedDefinitions: '_EnumValue[confirmType]'
+    OCIOChangeReminder: '_EnumValue[confirmType]'
+    OCIOPackageExists: '_EnumValue[confirmType]'
+    OverwriteRecipe: '_EnumValue[confirmType]'
+    TopCookSave: '_EnumValue[confirmType]'
+    TopDeleteResults: '_EnumValue[confirmType]'
+    TopDeleteTempDir: '_EnumValue[confirmType]'
+    TopHotKeyCancelCook: '_EnumValue[confirmType]'
+    TopViewResults: '_EnumValue[confirmType]'
+    TopTerminateRemoteSession: '_EnumValue[confirmType]'
 
 class drawableDisplayMode(_Enum):
     """Enumerator for the drawable display mode.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableDisplayMode.html
     """
-    pass
+    CurrentViewportMode: '_EnumValue[drawableDisplayMode]'  # Specifies the display mode currently active in the viewport
+    WireframeMode: '_EnumValue[drawableDisplayMode]'  # Specifies the display mode as wireframe
 
 class drawableGeometryPointStyle(_Enum):
     """Enumeration used to specify the style of points to draw.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryPointStyle.html
     """
-    pass
+    LinearCircle: '_EnumValue[drawableGeometryPointStyle]'  # Linear circle
+    LinearSquare: '_EnumValue[drawableGeometryPointStyle]'  # Linear square
+    LinearDiamond: '_EnumValue[drawableGeometryPointStyle]'  # Linear Diamond
+    RingsCircle: '_EnumValue[drawableGeometryPointStyle]'  # Circular rings
+    RingsSquare: '_EnumValue[drawableGeometryPointStyle]'  # Square rings
+    RingsDiamond: '_EnumValue[drawableGeometryPointStyle]'  # Rings Diamond
+    SmoothCircle: '_EnumValue[drawableGeometryPointStyle]'  # Smooth circle
+    SmoothSquare: '_EnumValue[drawableGeometryPointStyle]'  # Smooth square
+    SmoothDiamond: '_EnumValue[drawableGeometryPointStyle]'  # Smooth Diamond
+    ArrowUp: '_EnumValue[drawableGeometryPointStyle]'  # Arrow pointing up
+    Cross: '_EnumValue[drawableGeometryPointStyle]'  # Cross
+    Cube: '_EnumValue[drawableGeometryPointStyle]'  # 3D cube
+    Diamond: '_EnumValue[drawableGeometryPointStyle]'  # Diamond shape
+    Diamond2: '_EnumValue[drawableGeometryPointStyle]'  # Diamond shape with dash lines
+    Diamond3: '_EnumValue[drawableGeometryPointStyle]'  # Diamond-cross shape with dash lines
+    Flare: '_EnumValue[drawableGeometryPointStyle]'  # Flare shape
+    Frame: '_EnumValue[drawableGeometryPointStyle]'  # Simple frame
+    Frame2: '_EnumValue[drawableGeometryPointStyle]'  # Frame with dash lines
+    Frame3: '_EnumValue[drawableGeometryPointStyle]'  # Frame with dotted line
+    Locate: '_EnumValue[drawableGeometryPointStyle]'  # Locate-arrow shape
+    Locate2: '_EnumValue[drawableGeometryPointStyle]'  # Simple locate shape
+    Plus: '_EnumValue[drawableGeometryPointStyle]'  # Plus sign
+    Ring: '_EnumValue[drawableGeometryPointStyle]'  # Simple ring
+    Ring2: '_EnumValue[drawableGeometryPointStyle]'  # Simple ring with dashed line
+    Ring3: '_EnumValue[drawableGeometryPointStyle]'  # Two color ring
+    Ring4: '_EnumValue[drawableGeometryPointStyle]'  # Ring with triple lines
+    Ring5: '_EnumValue[drawableGeometryPointStyle]'  # Dotted ring
+    Target1: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 1
+    Target2: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 2
+    Target3: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 3
+    Target4: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 4
+    TriangleDown: '_EnumValue[drawableGeometryPointStyle]'  # Triangle pointing down
+    TriangleUp: '_EnumValue[drawableGeometryPointStyle]'  # Triangle pointing up
 
 class drawablePrimitive(_Enum):
     """Enumerator for the drawable primitive types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawablePrimitive.html
     """
-    pass
+    Circle: '_EnumValue[drawablePrimitive]'
+    Sphere: '_EnumValue[drawablePrimitive]'
+    Tube: '_EnumValue[drawablePrimitive]'
 
 class drawableTextOrigin(_Enum):
     """Enumeration used to specify the reference point of the text within its bounding box.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableTextOrigin.html
     """
-    pass
+    BottomLeft: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the bottom left position of the bounding box
+    BottomCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the bottom center position of the bounding box
+    BottomRight: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the bottom right position of the bounding box
+    LeftCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the left center position of the bounding box
+    RightCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the right center position of the bounding box
+    UpperLeft: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the upper left position of the bounding box
+    UpperCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the upper center position of the bounding box
+    UpperRight: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the upper right position of the bounding box
 
 class fileChooserMode(_Enum):
     """Enumeration of possible read/write modes for the file chooser.
