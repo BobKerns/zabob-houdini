@@ -66,6 +66,8 @@ venv.bak/
 *.swp
 *.swo
 *~
+\#*
+*\#
 
 # VS Code - all configs are now tracked
 # Personal customizations can use .git/info/exclude if needed

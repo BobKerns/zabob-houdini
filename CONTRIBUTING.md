@@ -33,7 +33,7 @@ Currently, it runs in python 3.13.
 
 Either as a standalone program returning requested information, or a server running within Houdini, this needs to be compatible with specific Houdini versions and their associated python/hython versions.
 
-Houdini 20.5 (current as of 2025-05-15) uses python 3.11.
+Houdini 20.5 (current as of 2025-11-15) uses python 3.11.
 
 I expect Houdini 21.0 no earlier than July, and using python 3.12.
 
@@ -55,5 +55,5 @@ I expect Houdini 21.0 no earlier than July, and using python 3.12.
 More info:
 
 - Read [RELEASE.md](RELEASE.md) for information about how releases are done.
-- Read [test/README.md](test/README.md) for information about testing.
+- Read [tests/README.md](tests/README.md) for information about testing.
 - [Instructions for LLMs contributing or commenting](.prompt.md) (but good advice for humans, too).

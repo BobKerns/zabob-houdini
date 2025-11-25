@@ -15,7 +15,7 @@ At the time of this writing:
 
 ## Reporting a Vulnerability
 
-Javascript issues are unlikely to affect security, as node.js is only used during
+JavaScript issues are unlikely to affect security, as node.js is only used during
 development, to generate diagrams and to validate output in the test suite.
 
 Report them anyway, but don't expect a response on those. Vulnerabilities in the main

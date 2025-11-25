@@ -165,6 +165,7 @@ resultdatatag
 rtype
 sdist
 segfaulting
+SEGV
 selectionrule
 sesinetd
 shearx
