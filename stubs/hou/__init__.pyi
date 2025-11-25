@@ -585,14 +585,22 @@ class hdaEventType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/hdaEventType.html
     """
-    pass
+    AssetCreated: '_EnumValue[hdaEventType]'  # A new asset was created
+    AssetDeleted: '_EnumValue[hdaEventType]'  # An asset was deleted
+    AssetSaved: '_EnumValue[hdaEventType]'  # An asset was saved
+    BeforeAssetCreated: '_EnumValue[hdaEventType]'  # A new asset is about to be created
+    BeforeAssetSaved: '_EnumValue[hdaEventType]'  # An asset is about to be saved
+    LibraryInstalled: '_EnumValue[hdaEventType]'  # A digital asset library has been installed
+    LibraryUninstalled: '_EnumValue[hdaEventType]'  # A digital asset library has been uninstalled
 
 class hdaLicenseType(_Enum):
     """Enumeration of digital asset license permission levels.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/hdaLicenseType.html
     """
-    pass
+    Execute: '_EnumValue[hdaLicenseType]'  # Execute permission level
+    Read: '_EnumValue[hdaLicenseType]'  # Read permission level
+    Full: '_EnumValue[hdaLicenseType]'  # Full permission level
 
 # ============================================================================
 # CHANNELS ENUMERATIONS
@@ -603,7 +611,8 @@ class channelListChangedReason(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/channelListChangedReason.html
     """
-    pass
+    Replaced: '_EnumValue[channelListChangedReason]'  # Triggered when the channel list has been fully replaced
+    Filtered: '_EnumValue[channelListChangedReason]'  # Triggered when the channel list has been filtered
 
 # ============================================================================
 # COOKING ENUMERATIONS
@@ -614,7 +623,9 @@ class updateMode(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/updateMode.html
     """
-    pass
+    AutoUpdate: '_EnumValue[updateMode]'  # Automatically update the interface
+    OnMouseUp: '_EnumValue[updateMode]'  # Update the interface when the mouse button is released
+    Manual: '_EnumValue[updateMode]'  # Manually update the interface
 
 # ============================================================================
 # CROWDS ENUMERATIONS
@@ -625,7 +636,13 @@ class agentShapeDeformerType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/agentShapeDeformerType.html
     """
-    pass
+    LinearSkinning: '_EnumValue[agentShapeDeformerType]'  # Linear skinning deformer
+    DualQuatSkinning: '_EnumValue[agentShapeDeformerType]'  # Dual quaternion skinning deformer
+    DualQuatBlendSkinning: '_EnumValue[agentShapeDeformerType]'  # Dual quaternion blend skinning deformer
+    BlendShape: '_EnumValue[agentShapeDeformerType]'  # Blend shape deformer
+    BlendShapeAndLinearSkinning: '_EnumValue[agentShapeDeformerType]'  # Blend shape and linear skinning deformer
+    BlendShapeAndDualQuatSkinning: '_EnumValue[agentShapeDeformerType]'  # Blend shape and dual quaternion skinning deformer
+    BlendShapeAndDualQuatBlendSkinning: '_EnumValue[agentShapeDeformerType]'  # Blend shape and dual quaternion blend skinning deformer
 
 # ============================================================================
 # GENERAL ENUMERATIONS
@@ -636,14 +653,25 @@ class hipFileEventType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/hipFileEventType.html
     """
-    pass
+    BeforeClear: '_EnumValue[hipFileEventType]'  # Triggered immediately before the current .hip file is cleared
+    AfterClear: '_EnumValue[hipFileEventType]'  # Triggered immediately after the current .hip file is cleared
+    BeforeLoad: '_EnumValue[hipFileEventType]'  # Triggered immediately before a .hip file is loaded
+    AfterLoad: '_EnumValue[hipFileEventType]'  # Triggered immediately after a .hip file is loaded
+    BeforeMerge: '_EnumValue[hipFileEventType]'  # Triggered immediately before a .hip file is merged
+    AfterMerge: '_EnumValue[hipFileEventType]'  # Triggered immediately after a .hip file is merged
+    BeforeSave: '_EnumValue[hipFileEventType]'  # Triggered immediately before the current .hip file is saved
+    AfterSave: '_EnumValue[hipFileEventType]'  # Triggered immediately after the current .hip file is saved
 
 class licenseCategoryType(_Enum):
     """Enumeration of license category values.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/licenseCategoryType.html
     """
-    pass
+    Commercial: '_EnumValue[licenseCategoryType]'  # Commercial license
+    Indie: '_EnumValue[licenseCategoryType]'  # Indie license
+    Education: '_EnumValue[licenseCategoryType]'  # Education license
+    ApprenticeHD: '_EnumValue[licenseCategoryType]'  # Apprentice HD license
+    Apprentice: '_EnumValue[licenseCategoryType]'  # Apprentice license
 
 # ============================================================================
 # GEOMETRY ENUMERATIONS
@@ -663,14 +691,27 @@ class vdbData(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/vdbData.html
     """
-    pass
+    Boolean: '_EnumValue[vdbData]'  # Boolean voxel data type
+    Float: '_EnumValue[vdbData]'  # Float voxel data type
+    Int: '_EnumValue[vdbData]'  # Integer voxel data type
+    Vector3: '_EnumValue[vdbData]'  # Vector3 voxel data type
 
 class vdbType(_Enum):
     """Enumeration of VDB types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/vdbType.html
     """
-    pass
+    Bool: '_EnumValue[vdbType]'  # Boolean VDB type
+    Double: '_EnumValue[vdbType]'  # Double precision VDB type
+    Float: '_EnumValue[vdbType]'  # Float VDB type
+    Int32: '_EnumValue[vdbType]'  # 32-bit integer VDB type
+    Int64: '_EnumValue[vdbType]'  # 64-bit integer VDB type
+    Invalid: '_EnumValue[vdbType]'  # Invalid VDB type
+    PointData: '_EnumValue[vdbType]'  # Point data VDB type
+    PointIndex: '_EnumValue[vdbType]'  # Point index VDB type
+    Vec3d: '_EnumValue[vdbType]'  # 3D double vector VDB type
+    Vec3f: '_EnumValue[vdbType]'  # 3D float vector VDB type
+    Vec3i: '_EnumValue[vdbType]'  # 3D integer vector VDB type
 
 # ============================================================================
 # IMAGES/LAYER ENUMERATIONS
@@ -681,35 +722,59 @@ class imageDepth(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/imageDepth.html
     """
-    pass
+    Int8: '_EnumValue[imageDepth]'  # 8-bit integer format
+    Int16: '_EnumValue[imageDepth]'  # 16-bit integer format
+    Int32: '_EnumValue[imageDepth]'  # 32-bit integer format
+    Float16: '_EnumValue[imageDepth]'  # 16-bit float format
+    Float32: '_EnumValue[imageDepth]'  # 32-bit float format
 
 class imageLayerBorder(_Enum):
     """Enumeration of ImageLayer Borders.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerBorder.html
     """
-    pass
+    Clamp: '_EnumValue[imageLayerBorder]'  # Clamp to nearest valid location
+    Constant: '_EnumValue[imageLayerBorder]'  # Use constant value (usually 0) for out of bound reads
+    Mirror: '_EnumValue[imageLayerBorder]'  # Mirror across border to find valid internal location
+    Wrap: '_EnumValue[imageLayerBorder]'  # Wrap around to far side
 
 class imageLayerProjection(_Enum):
     """Enumeration of ImageLayer Projections.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerProjection.html
     """
-    pass
+    Orthographic: '_EnumValue[imageLayerProjection]'  # Orthographic projection along local Z direction
+    Perspective: '_EnumValue[imageLayerProjection]'  # Perspective transform focusing to camera position
 
 class imageLayerStorageType(_Enum):
     """Enumeration of ImageLayer StorageTypes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerStorageType.html
     """
-    pass
+    Float16: '_EnumValue[imageLayerStorageType]'  # 16-bit floats
+    Float32: '_EnumValue[imageLayerStorageType]'  # 32-bit floats
+    Int16: '_EnumValue[imageLayerStorageType]'  # 16-bit integers
+    Int32: '_EnumValue[imageLayerStorageType]'  # 32-bit integers
+    Int8: '_EnumValue[imageLayerStorageType]'  # 8-bit integers
+    Fixed8: '_EnumValue[imageLayerStorageType]'  # Fractional 0-1 using 8 bits fixed precision
+    Fixed16: '_EnumValue[imageLayerStorageType]'  # Fractional 0-1 using 16 bits fixed precision
 
 class imageLayerTypeInfo(_Enum):
     """Enumeration of ImageLayer TypeInfos.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerTypeInfo.html
     """
-    pass
+    Color: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as RGB
+    Height: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as height map (usually Mono)
+    ID: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as ID map (usually ID)
+    Mask: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as 0-1 mask (usually Mono)
+    Normal: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as signed normal (RGB, -1 to 1, normalized)
+    OffsetNormal: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as offset normal (RGB, 0 to 1, normalized around 0.5)
+    Position: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as XYZ location (3-tuples: space, 2-tuples: Image space)
+    Raw: '_EnumValue[imageLayerTypeInfo]'  # Data not interpreted, no specific type hint
+    SDF: '_EnumValue[imageLayerTypeInfo]'  # Data stores signed distance to curve (usually Mono)
+    Texture: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as UV location (2-tuples: Texture space)
+    Vector: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as direction with magnitude (UV or RGB)
 
 # ============================================================================
 # NODES ENUMERATIONS
