@@ -229,6 +229,7 @@ uncategorized
 undos
 unregistration
 unsetenv
+Untextured
 usdvaluetype
 valueselected
 venv

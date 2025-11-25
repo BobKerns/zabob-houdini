@@ -1675,56 +1675,96 @@ class viewportFogHeightMode(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportFogHeightMode.html
     """
-    pass
+    Off: _EnumValue[viewportFogHeightMode]  # No layering; fog is the same density regardless of height
+    Above: _EnumValue[viewportFogHeightMode]  # Fog exists only above a given height
+    Below: _EnumValue[viewportFogHeightMode]  # Fog exists only below a given height
 
 class viewportFogQuality(_Enum):
     """Viewport volume fog quality.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportFogQuality.html
     """
-    pass
+    Low: _EnumValue[viewportFogQuality]  # Uses a small volume for fog lighting. Fast but low quality
+    Medium: _EnumValue[viewportFogQuality]  # Uses a bigger volume for fog lighting. Balanced between quality and speed
+    High: _EnumValue[viewportFogQuality]  # Uses a large volume for fog lighting. Slow but good quality
+    VeryHigh: _EnumValue[viewportFogQuality]  # Uses a large volume for fog lighting. Slowest but best quality
 
 class viewportGeometryInfo(_Enum):
     """Geometry information display state.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGeometryInfo.html
     """
-    pass
+    Off: _EnumValue[viewportGeometryInfo]  # Do not show geometry information
+    SelectedOnly: _EnumValue[viewportGeometryInfo]  # Only show information when a selection is present
+    AlwaysOn: _EnumValue[viewportGeometryInfo]  # Always show information on the displayed geometry
 
 class viewportGridRuler(_Enum):
     """Enum for grid numbering on viewport grids.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGridRuler.html
     """
-    pass
+    Hide: _EnumValue[viewportGridRuler]  # No grid numbers are displayed
+    MainAxis: _EnumValue[viewportGridRuler]  # Numbers appear along the max axes at grid line intersections
+    GridPoints: _EnumValue[viewportGridRuler]  # Numbers appear at grid line intersections
 
 class viewportGuide(_Enum):
     """Viewport guides.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGuide.html
     """
-    pass
+    CameraMask: _EnumValue[viewportGuide]  # The mask which dims out areas outside the camera aspect ratio
+    CurrentGeometry: _EnumValue[viewportGuide]  # Geometry from the current modelling operator (SOP)
+    DisplayNodes: _EnumValue[viewportGuide]  # Geometry from the currently displayed modelling operator (SOP)
+    FieldGuide: _EnumValue[viewportGuide]  # Show the field guide overlay for broadcast
+    FillSelections: _EnumValue[viewportGuide]  # Polygon selections are highlighted with a solid color rather than just an outline when in Wire-Over shading modes
+    FloatingGnomon: _EnumValue[viewportGuide]  # Show the orientation axes in the lower left corner of the viewport
+    FollowSelection: _EnumValue[viewportGuide]  # Show point or vertex markers when point or selection is active
+    GroupList: _EnumValue[viewportGuide]  # Show the group list in the top right corner of the viewport
+    IKCriticalZone: _EnumValue[viewportGuide]  # Show the critical zone for IK bones
+    NodeGuides: _EnumValue[viewportGuide]  # Show any node guides that are available
+    NodeHandles: _EnumValue[viewportGuide]  # Show any handles that are available
+    ObjectNames: _EnumValue[viewportGuide]  # Show object names for visible objects
+    ObjectPaths: _EnumValue[viewportGuide]  # Show full objects paths for visible objects. Object names must be displayed
+    ObjectSelection: _EnumValue[viewportGuide]  # Show object selections
+    OriginGnomon: _EnumValue[viewportGuide]  # Show the axes at the world origin
+    ParticleGnomon: _EnumValue[viewportGuide]  # Show axes per particle
+    SafeArea: _EnumValue[viewportGuide]  # Show the safe area overlay for broadcast
+    SelectableTemplates: _EnumValue[viewportGuide]  # Show geometry from modelling operators with their selectable template flags set
+    ShowDrawTime: _EnumValue[viewportGuide]  # Show the time to update and render the viewport
+    TemplateGeometry: _EnumValue[viewportGuide]  # Show geometry from modelling operators with their template flags set
+    ViewPivot: _EnumValue[viewportGuide]  # Show the camera pivot where tumbling will rotate about
+    XYPlane: _EnumValue[viewportGuide]  # Show a grid along the XY plane
+    XZPlane: _EnumValue[viewportGuide]  # Show a grid along the XZ plane
+    YZPlane: _EnumValue[viewportGuide]  # Show a grid along the YZ plane
 
 class viewportGuideFont(_Enum):
     """Viewport font sizes for visualizer text.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGuideFont.html
     """
-    pass
+    Tiny: _EnumValue[viewportGuideFont]  # Tiny font
+    Small: _EnumValue[viewportGuideFont]  # Small font
+    Medium: _EnumValue[viewportGuideFont]  # The just right font
+    Large: _EnumValue[viewportGuideFont]  # Largest font
 
 class viewportHandleHighlight(_Enum):
     """Handle highlight size.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportHandleHighlight.html
     """
-    pass
+    Off: _EnumValue[viewportHandleHighlight]  # Don't display any highlights
+    Small: _EnumValue[viewportHandleHighlight]  # Show a half-width highlight
+    Normal: _EnumValue[viewportHandleHighlight]  # Show a full highlight
 
 class viewportHomeClipMode(_Enum):
     """Automatic viewport clip plane adjustment during homing.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportHomeClipMode.html
     """
-    pass
+    Neither: _EnumValue[viewportHomeClipMode]  # No clip planes are adjusted
+    NearOnly: _EnumValue[viewportHomeClipMode]  # Only the near clip plane is adjusted. Far is left as is
+    FarOnly: _EnumValue[viewportHomeClipMode]  # Only the far clip plane is adjusted. Near is left as is
+    NearAndFar: _EnumValue[viewportHomeClipMode]  # Both clip planes are adjusted
 
 class viewportLighting(_Enum):
     """Lighting modes for the viewport.
