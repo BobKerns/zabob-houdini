@@ -537,28 +537,44 @@ class animBarToolSize(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/animBarToolSize.html
     """
-    pass
+    Compact: '_EnumValue[animBarToolSize]'
+    Standard: '_EnumValue[animBarToolSize]'
+    Wide: '_EnumValue[animBarToolSize]'
+    ExtraWide: '_EnumValue[animBarToolSize]'
 
 class bookmarkEvent(_Enum):
     """Enumeration of the bookmark events that can be handled by callback functions.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/bookmarkEvent.html
     """
-    pass
+    Created: '_EnumValue[bookmarkEvent]'  # Triggered when a new bookmark has been created
+    Modified: '_EnumValue[bookmarkEvent]'  # Triggered when a bookmark has been modified
+    Deleted: '_EnumValue[bookmarkEvent]'  # Triggered when a bookmark has been deleted
+    Reset: '_EnumValue[bookmarkEvent]'  # Triggered when the list of bookmarks has been reset or cleared
+    InteractionStarted: '_EnumValue[bookmarkEvent]'  # Triggered when a new user interaction begins on a bookmark
+    InteractionFinished: '_EnumValue[bookmarkEvent]'  # Triggered when releasing the bookmark after interacting with it
 
 class segmentType(_Enum):
     """Enumeration of values for segment types used by channel primitives.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/segmentType.html
     """
-    pass
+    Bezier: '_EnumValue[segmentType]'
+    Constant: '_EnumValue[segmentType]'
+    Linear: '_EnumValue[segmentType]'
+    Cubic: '_EnumValue[segmentType]'
+    Ease: '_EnumValue[segmentType]'
+    EaseIn: '_EnumValue[segmentType]'
+    EaseOut: '_EnumValue[segmentType]'
+    Quintic: '_EnumValue[segmentType]'
 
 class slopeMode(_Enum):
     """Enumeration of values for default Slope Mode when inserting new keys into a channel.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/slopeMode.html
     """
-    pass
+    Manual: '_EnumValue[slopeMode]'
+    Automatic: '_EnumValue[slopeMode]'
 
 # ============================================================================
 # DIGITAL ASSETS ENUMERATIONS
@@ -638,7 +654,9 @@ class keyHalf(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/keyHalf.html
     """
-    pass
+    In: '_EnumValue[keyHalf]'  # Used to set only the in (left) side of a key
+    Out: '_EnumValue[keyHalf]'  # Used to set only the out (right) side of a key
+    InOut: '_EnumValue[keyHalf]'  # Used to set both sides of a key
 
 class vdbData(_Enum):
     """Enumeration of voxel data types.
@@ -3613,7 +3631,7 @@ class ChannelPrim(Prim):
         ...
 
     def keyValue(self, frame: float, value: float,
-                 key_half: keyHalf) -> float:
+                 key_half: '_EnumValue[keyHalf]' = keyHalf.Out) -> float:
         """Returns the value of the key at the given frame, if one exists.
 
         Args:
@@ -3629,7 +3647,7 @@ class ChannelPrim(Prim):
         ...
 
     def setKeyValue(self, frame: float, value: float,
-                    key_half: keyHalf) -> bool:
+                    key_half: '_EnumValue[keyHalf]' = keyHalf.InOut) -> bool:
         """Sets the value of the key at the given frame, if one exists.
 
         Args:
@@ -3645,7 +3663,7 @@ class ChannelPrim(Prim):
         ...
 
     def keySlope(self, frame: float, value: float,
-                 key_half: keyHalf) -> float:
+                 key_half: '_EnumValue[keyHalf]' = keyHalf.Out) -> float:
         """Returns the slope of the key at the given frame, if one exists.
 
         Args:
@@ -3661,7 +3679,7 @@ class ChannelPrim(Prim):
         ...
 
     def setKeyAutoSlope(self, frame: float, auto_slope: bool,
-                        key_half: keyHalf) -> bool:
+                        key_half: '_EnumValue[keyHalf]' = keyHalf.InOut) -> bool:
         """Sets the auto slope property of the key at the given frame.
 
         Args:
@@ -3710,7 +3728,7 @@ class ChannelPrim(Prim):
         """
         ...
 
-    def keyValues(self, key_half: keyHalf) -> tuple[float, ...]:
+    def keyValues(self, key_half: '_EnumValue[keyHalf]' = keyHalf.Out) -> tuple[float, ...]:
         """Returns values of all keys in the channel.
 
         Args:
