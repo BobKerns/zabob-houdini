@@ -20,6 +20,7 @@ Catmull
 cchain
 cctx
 chainbuilder
+chopnet
 chsop
 chsoplist
 cnode
@@ -53,6 +54,7 @@ easeoutp
 easep
 ehthumbs
 fanout
+FBIK
 filepattern
 fillvalue
 filterby
@@ -73,6 +75,7 @@ hdanc
 hdso
 heducation
 heightfield
+helpurl
 hengine
 hhdir
 hipfile
@@ -92,6 +95,7 @@ inputidx
 inputimagelist
 Interruptable
 isinstance
+isstarred
 itemcount
 keepachangelog
 KHTML
@@ -115,6 +119,7 @@ networkitems
 newdeps
 Nodeinstances
 nodename
+nodetypes
 nosetests
 numworkitems
 nurbs
@@ -123,6 +128,8 @@ oldeps
 oneline
 opdef
 orthowidth
+panetab
+panetype
 parametername
 parmdictionary
 parmname
@@ -133,6 +140,7 @@ parmtuple
 parmtype
 parmvalues
 Partitioner
+pathsegments
 Perlin
 pickable
 playbar
@@ -195,11 +203,14 @@ sizey
 sizez
 slerp
 softprops
+solvefbik
+solvephysfbik
 sopnode
 soppath
 startfile
 startswith
 stype
+subframe
 Sublayer
 subpaths
 testbox
@@ -211,13 +222,16 @@ timestep
 topnet
 uncategorized
 undos
+unregistration
 unsetenv
 usdvaluetype
+valueselected
 venv
 viewports
 vmatch
 vmatchin
 vmatchout
+vopnet
 vstr
 waitforall
 wedgecount

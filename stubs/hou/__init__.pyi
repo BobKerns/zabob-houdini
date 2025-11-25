@@ -2623,6 +2623,1541 @@ class ApexNodeType:
     def name(self) -> str: ...
     def category(self) -> str: ...
 
+class AnimBar:
+    """Animation toolbar control.
+
+    The animation toolbar lives above the playbar or at the bottom of the animation
+    editor, and consists of simple slider tools for easily manipulating animation curves.
+
+    You cannot instantiate this object directly. Call hou.playbar.animBar or
+    hou.ChannelEditorPane.animBar instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html
+    """
+
+    def tools(self, shown_only: bool = True) -> tuple[str, ...]:
+        """Returns tool IDs currently on the animation toolbar.
+
+        Args:
+            shown_only: If True, returns only visible tools. If False, includes hidden tools.
+
+        Returns:
+            Tuple of tool ID strings.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#tools
+        """
+        ...
+
+    def hiddenTools(self) -> tuple[str, ...]:
+        """Returns tool IDs that have been removed from the animation toolbar.
+
+        Returns:
+            Tuple of hidden tool ID strings.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#hiddenTools
+        """
+        ...
+
+    def setTools(self, tool_ids: tuple[str, ...]) -> None:
+        """Sets the active tools, replacing previously active tools.
+
+        Args:
+            tool_ids: Tuple of tool ID strings to set as active.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#setTools
+        """
+        ...
+
+    def removeTool(self, id: str) -> None:
+        """Removes a tool from the animation toolbar.
+
+        Args:
+            id: Tool ID to remove.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#removeTool
+        """
+        ...
+
+    def addTool(self, id: str, index: int = -1) -> None:
+        """Adds a tool to the animation toolbar if not already present.
+
+        Args:
+            id: Tool ID to add.
+            index: Position index to insert tool. -1 appends to end.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#addTool
+        """
+        ...
+
+    def reset(self) -> None:
+        """Resets the toolbar, restoring all removed tools to original order.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#reset
+        """
+        ...
+
+    def showLabels(self, show: bool) -> None:
+        """Shows or hides tool labels.
+
+        Args:
+            show: True to show labels, False to hide.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#showLabels
+        """
+        ...
+
+    def labelsShown(self) -> bool:
+        """Returns whether full labels are currently displayed.
+
+        Returns:
+            True if labels are shown, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#labelsShown
+        """
+        ...
+
+    def setToolSize(self, size: animBarToolSize) -> None:
+        """Sets the size of tools on the toolbar.
+
+        Args:
+            size: Tool size setting from hou.animBarToolSize enum.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#setToolSize
+        """
+        ...
+
+    def toolSize(self) -> animBarToolSize:
+        """Returns the current tool size.
+
+        Returns:
+            Current tool size from hou.animBarToolSize enum.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#toolSize
+        """
+        ...
+
+class BaseKeyframe:
+    """Abstract base class for all keyframe classes.
+
+    This is the base class for hou.Keyframe and hou.StringKeyframe.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html
+    """
+
+    def asCode(self, brief: bool = False, save_keys_in_frames: bool = False,
+               function_name: str | None = None) -> str:
+        """Returns Python code that can recreate this keyframe.
+
+        Args:
+            brief: If True, generates more compact code.
+            save_keys_in_frames: If True, uses frame numbers instead of seconds.
+            function_name: Optional function name to use in generated code.
+
+        Returns:
+            Python code string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#asCode
+        """
+        ...
+
+    def evaluatedType(self) -> parmData:
+        """Returns the type that the keyframe evaluates to.
+
+        Returns:
+            Parameter data type enum value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#evaluatedType
+        """
+        ...
+
+    def expression(self) -> str:
+        """Returns the keyframe's expression.
+
+        Returns:
+            Expression string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#expression
+        """
+        ...
+
+    def expressionLanguage(self) -> exprLanguage:
+        """Returns the expression's language.
+
+        Returns:
+            Expression language enum value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#expressionLanguage
+        """
+        ...
+
+    def frame(self) -> float:
+        """Returns the keyframe's frame number.
+
+        Returns:
+            Frame number as float.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#frame
+        """
+        ...
+
+    def isExpressionLanguageSet(self) -> bool:
+        """Returns whether the expression language is explicitly set.
+
+        Returns:
+            True if language is set, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#isExpressionLanguageSet
+        """
+        ...
+
+    def isExpressionSet(self) -> bool:
+        """Returns whether an expression is set on this keyframe.
+
+        Returns:
+            True if expression is set, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#isExpressionSet
+        """
+        ...
+
+    def isTimeSet(self) -> bool:
+        """Returns whether the keyframe's time is set.
+
+        Returns:
+            True if time is set, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#isTimeSet
+        """
+        ...
+
+    def setExpression(self, expression: str, language: exprLanguage | None = None) -> None:
+        """Sets the keyframe's expression and language.
+
+        Args:
+            expression: Expression string to set.
+            language: Optional expression language. If None, uses default.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#setExpression
+        """
+        ...
+
+    def setFrame(self, frame: float) -> None:
+        """Sets the keyframe's frame number.
+
+        Args:
+            frame: Frame number to set.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#setFrame
+        """
+        ...
+
+    def setTime(self, time: float) -> None:
+        """Sets the keyframe's time in seconds.
+
+        Args:
+            time: Time in seconds.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#setTime
+        """
+        ...
+
+    def time(self) -> float:
+        """Returns the keyframe's time in seconds.
+
+        Returns:
+            Time in seconds as float.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#time
+        """
+        ...
+
+class ChannelList:
+    """Copy of a list of channels from Channel List or Animation Editor.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html
+    """
+
+    def clear(self) -> None:
+        """Clears the channel list.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#clear
+        """
+        ...
+
+    def parms(self) -> tuple[Parm, ...]:
+        """Returns all channels in the list.
+
+        Returns:
+            Tuple of hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#parms
+        """
+        ...
+
+    def selected(self) -> tuple[Parm, ...]:
+        """Returns selected channels.
+
+        Returns:
+            Tuple of selected hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selected
+        """
+        ...
+
+    def deselected(self) -> tuple[Parm, ...]:
+        """Returns deselected channels.
+
+        Returns:
+            Tuple of deselected hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselected
+        """
+        ...
+
+    def pinned(self) -> tuple[Parm, ...]:
+        """Returns pinned channels.
+
+        Returns:
+            Tuple of pinned hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#pinned
+        """
+        ...
+
+    def unpinned(self) -> tuple[Parm, ...]:
+        """Returns unpinned channels.
+
+        Returns:
+            Tuple of unpinned hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#unpinned
+        """
+        ...
+
+    def selectedValue(self) -> tuple[Parm, ...]:
+        """Returns channels with value column selected.
+
+        Returns:
+            Tuple of hou.Parm objects with value column selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectedValue
+        """
+        ...
+
+    def deselectedValue(self) -> tuple[Parm, ...]:
+        """Returns channels with value column deselected.
+
+        Returns:
+            Tuple of hou.Parm objects with value column deselected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectedValue
+        """
+        ...
+
+    def addParm(self, parm: Parm, selected: bool, pinned: bool, valueselected: bool) -> None:
+        """Adds a parameter with flags.
+
+        Args:
+            parm: Parameter to add.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addParm
+        """
+        ...
+
+    def addParms(self, parms: tuple[Parm, ...], selected: bool, pinned: bool,
+                 valueselected: bool) -> None:
+        """Adds multiple parameters with flags.
+
+        Args:
+            parms: Tuple of parameters to add.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addParms
+        """
+        ...
+
+    def addPath(self, path: str, selected: bool, pinned: bool, valueselected: bool) -> None:
+        """Adds a parameter by path with flags.
+
+        Args:
+            path: Parameter path.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addPath
+        """
+        ...
+
+    def addPaths(self, paths: tuple[str, ...], selected: bool, pinned: bool,
+                 valueselected: bool) -> None:
+        """Adds multiple parameters by path with flags.
+
+        Args:
+            paths: Tuple of parameter paths.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addPaths
+        """
+        ...
+
+    def remove(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Removes parameter(s) from the list.
+
+        Args:
+            parm: Single parameter or tuple of parameters to remove.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#remove
+        """
+        ...
+
+    def select(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Selects parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to select.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#select
+        """
+        ...
+
+    def deselect(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Deselects parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to deselect.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselect
+        """
+        ...
+
+    def pin(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Pins parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to pin.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#pin
+        """
+        ...
+
+    def unpin(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Unpins parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to unpin.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#unpin
+        """
+        ...
+
+    def selectValue(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Selects value column of parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectValue
+        """
+        ...
+
+    def deselectValue(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Deselects value column of parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectValue
+        """
+        ...
+
+    def contains(self, parm: Parm) -> bool:
+        """Checks if parameter is in the list.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if parameter is in the list.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#contains
+        """
+        ...
+
+    def isSelected(self, parm: Parm) -> bool:
+        """Checks if parameter is selected.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isSelected
+        """
+        ...
+
+    def isPinned(self, parm: Parm) -> bool:
+        """Checks if parameter is pinned.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if pinned.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isPinned
+        """
+        ...
+
+    def isValueSelected(self, parm: Parm) -> bool:
+        """Checks if parameter's value column is selected.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if value column is selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isValueSelected
+        """
+        ...
+
+    def filter(self) -> str:
+        """Returns the filter string.
+
+        Returns:
+            Filter pattern string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filter
+        """
+        ...
+
+    def keepSelection(self) -> bool:
+        """Returns Keep Selection flag.
+
+        Returns:
+            True if Keep Selection is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#keepSelection
+        """
+        ...
+
+    def enableFilter(self) -> bool:
+        """Returns whether filtering is active.
+
+        Returns:
+            True if filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#enableFilter
+        """
+        ...
+
+    def filterRotates(self) -> bool:
+        """Returns whether rotation filtering is active.
+
+        Returns:
+            True if rotation filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filterRotates
+        """
+        ...
+
+    def filterTranslates(self) -> bool:
+        """Returns whether translation filtering is active.
+
+        Returns:
+            True if translation filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filterTranslates
+        """
+        ...
+
+    def filterScales(self) -> bool:
+        """Returns whether scale filtering is active.
+
+        Returns:
+            True if scale filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filterScales
+        """
+        ...
+
+    def setFilter(self, pattern: str) -> None:
+        """Sets the filter string.
+
+        Args:
+            pattern: Filter pattern to set.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilter
+        """
+        ...
+
+    def setKeepSelection(self, on: bool) -> None:
+        """Sets Keep Selection flag.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setKeepSelection
+        """
+        ...
+
+    def setEnableFilter(self, on: bool) -> None:
+        """Enables or disables filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setEnableFilter
+        """
+        ...
+
+    def setFilterRotates(self, on: bool) -> None:
+        """Enables or disables rotation filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilterRotates
+        """
+        ...
+
+    def setFilterTranslates(self, on: bool) -> None:
+        """Enables or disables translation filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilterTranslates
+        """
+        ...
+
+    def setFilterScales(self, on: bool) -> None:
+        """Enables or disables scale filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilterScales
+        """
+        ...
+
+    def addGeometryChannels(self, geometry: Geometry, collection_name: str | None = None,
+                           pattern: str | None = None, selected: bool = True,
+                           pinned: bool = False, valueselected: bool = False) -> str:
+        """Adds geometry channel collection.
+
+        Args:
+            geometry: Geometry containing channel primitives.
+            collection_name: Optional name for the collection.
+            pattern: Optional pattern to filter channels.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        Returns:
+            Name of the created collection.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addGeometryChannels
+        """
+        ...
+
+    def addNodeGeometryChannels(self, node: Node, pattern: str | None = None,
+                                selected: bool = True, pinned: bool = False,
+                                valueselected: bool = False) -> str:
+        """Adds geometry channels from a node.
+
+        Args:
+            node: Node containing geometry with channel primitives.
+            pattern: Optional pattern to filter channels.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        Returns:
+            Name of the created collection.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addNodeGeometryChannels
+        """
+        ...
+
+    def removeGeometryChannels(self, collection_name: str | None = None) -> None:
+        """Removes geometry channel collection.
+
+        Args:
+            collection_name: Name of collection to remove, or None for all.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#removeGeometryChannels
+        """
+        ...
+
+    def geometryChannelCollectionNames(self) -> tuple[str, ...]:
+        """Returns names of geometry channel collections.
+
+        Returns:
+            Tuple of collection name strings.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#geometryChannelCollectionNames
+        """
+        ...
+
+    def geometryChannels(self, collection_name: str) -> tuple[ChannelPrim, ...]:
+        """Returns channel primitives in a collection.
+
+        Args:
+            collection_name: Name of the collection.
+
+        Returns:
+            Tuple of hou.ChannelPrim objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#geometryChannels
+        """
+        ...
+
+    def selectGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Selects a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectGeometryChannel
+        """
+        ...
+
+    def deselectGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Deselects a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectGeometryChannel
+        """
+        ...
+
+    def pinGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Pins a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#pinGeometryChannel
+        """
+        ...
+
+    def unpinGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Unpins a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#unpinGeometryChannel
+        """
+        ...
+
+    def selectGeometryChannelValue(self, collection_name: str, channel: str | None = None) -> None:
+        """Selects value column of a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectGeometryChannelValue
+        """
+        ...
+
+    def deselectGeometryChannelValue(self, collection_name: str,
+                                    channel: str | None = None) -> None:
+        """Deselects value column of a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectGeometryChannelValue
+        """
+        ...
+
+    def containsGeometryChannel(self, collection_name: str, channel: str | None = None) -> bool:
+        """Checks if geometry channel is present.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        Returns:
+            True if channel is present.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#containsGeometryChannel
+        """
+        ...
+
+    def isGeometryChannelSelected(self, collection_name: str, channel: str) -> bool:
+        """Checks if geometry channel is selected.
+
+        Args:
+            collection_name: Collection name.
+            channel: Channel name.
+
+        Returns:
+            True if selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isGeometryChannelSelected
+        """
+        ...
+
+    def isGeometryChannelPinned(self, collection_name: str, channel: str) -> bool:
+        """Checks if geometry channel is pinned.
+
+        Args:
+            collection_name: Collection name.
+            channel: Channel name.
+
+        Returns:
+            True if pinned.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isGeometryChannelPinned
+        """
+        ...
+
+    def isGeometryChannelValueSelected(self, collection_name: str, channel: str) -> bool:
+        """Checks if geometry channel's value column is selected.
+
+        Args:
+            collection_name: Collection name.
+            channel: Channel name.
+
+        Returns:
+            True if value column is selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isGeometryChannelValueSelected
+        """
+        ...
+
+    def asCode(self, var_name: str) -> str:
+        """Returns Python code to recreate this ChannelList.
+
+        Args:
+            var_name: Variable name to use in generated code.
+
+        Returns:
+            Python code string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#asCode
+        """
+        ...
+
+
+class ChannelPrim(Prim):
+    """Geometry primitive that stores channel data.
+
+    Channel primitives are lightweight, standalone channels optimized for quick
+    evaluation. They inherit from hou.Prim and provide methods for creating,
+    manipulating, and evaluating animation channels stored as geometry primitives.
+
+    You cannot instantiate this object directly. Call hou.Geometry.createChannelPrim
+    instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html
+    """
+
+    def start(self) -> float:
+        """Returns the start frame of this channel primitive.
+
+        Returns:
+            Start frame number.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#start
+        """
+        ...
+
+    def end(self) -> float:
+        """Returns the end frame of this channel primitive.
+
+        Returns:
+            End frame number.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#end
+        """
+        ...
+
+    def length(self) -> float:
+        """Returns the length in frames of this channel primitive.
+
+        Returns:
+            Length in frames.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#length
+        """
+        ...
+
+    def setStart(self, frame: float) -> None:
+        """Sets the start frame of this channel primitive.
+
+        Args:
+            frame: Start frame number.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setStart
+        """
+        ...
+
+    def defaultValue(self) -> float:
+        """Returns the default value for this channel primitive.
+
+        The default value is used when the channel is empty.
+
+        Returns:
+            Default channel value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#defaultValue
+        """
+        ...
+
+    def setDefaultValue(self, value: float) -> None:
+        """Sets the default value for this channel primitive.
+
+        Args:
+            value: Default value to use when channel is empty.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setDefaultValue
+        """
+        ...
+
+    def eval(self, frame: float) -> float:
+        """Evaluates the channel at the given frame.
+
+        Args:
+            frame: Frame number to evaluate at.
+
+        Returns:
+            Evaluated channel value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#eval
+        """
+        ...
+
+    def hasKeyAtFrame(self, frame: float) -> bool:
+        """Returns whether the channel has a key at the given frame.
+
+        Args:
+            frame: Frame number to check.
+
+        Returns:
+            True if a key exists at the frame.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#hasKeyAtFrame
+        """
+        ...
+
+    def insertKey(self, frame: float, auto_slope: bool = True) -> None:
+        """Inserts a key at the given frame, if there isn't one already.
+
+        Args:
+            frame: Frame number for the key.
+            auto_slope: Whether to automatically compute slopes.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#insertKey
+        """
+        ...
+
+    def destroyKey(self, frame: float) -> None:
+        """Destroys a key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number of key to destroy.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#destroyKey
+        """
+        ...
+
+    def destroyKeys(self, frame_start: float, frame_end: float) -> None:
+        """Destroys all keys in the given time range, inclusive.
+
+        Args:
+            frame_start: Start of frame range.
+            frame_end: End of frame range.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#destroyKeys
+        """
+        ...
+
+    def clear(self) -> None:
+        """Clears the channel primitive, removing all keys and segments.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#clear
+        """
+        ...
+
+    def keyIndex(self, frame: float) -> int:
+        """Returns the index of the key at the given frame.
+
+        Args:
+            frame: Frame number to query.
+
+        Returns:
+            Key index, or -1 if no key exists at that frame.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyIndex
+        """
+        ...
+
+    def keyValue(self, frame: float, value: float,
+                 key_half: keyHalf) -> float:
+        """Returns the value of the key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number.
+            value: Value parameter (purpose unclear in documentation).
+            key_half: Which half of the key to query.
+
+        Returns:
+            Key value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyValue
+        """
+        ...
+
+    def setKeyValue(self, frame: float, value: float,
+                    key_half: keyHalf) -> bool:
+        """Sets the value of the key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number.
+            value: New key value.
+            key_half: Which half of the key to set.
+
+        Returns:
+            True if successful.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setKeyValue
+        """
+        ...
+
+    def keySlope(self, frame: float, value: float,
+                 key_half: keyHalf) -> float:
+        """Returns the slope of the key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number.
+            value: Value parameter (purpose unclear in documentation).
+            key_half: Which half of the key to query.
+
+        Returns:
+            Key slope.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keySlope
+        """
+        ...
+
+    def setKeyAutoSlope(self, frame: float, auto_slope: bool,
+                        key_half: keyHalf) -> bool:
+        """Sets the auto slope property of the key at the given frame.
+
+        Args:
+            frame: Frame number.
+            auto_slope: Whether to enable auto slope.
+            key_half: Which half of the key to set.
+
+        Returns:
+            True if successful.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setKeyAutoSlope
+        """
+        ...
+
+    def segmentType(self, frame: float) -> segmentType:
+        """Returns the type of the segment at the given frame.
+
+        Args:
+            frame: Frame number.
+
+        Returns:
+            Segment type.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#segmentType
+        """
+        ...
+
+    def setSegmentType(self, frame: float, type: segmentType) -> None:
+        """Sets the type of the segment at the given frame.
+
+        Args:
+            frame: Frame number.
+            type: Segment type to set.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setSegmentType
+        """
+        ...
+
+    def keyFrames(self) -> tuple[float, ...]:
+        """Returns an ordered list of frames at which keys exist.
+
+        Returns:
+            Tuple of frame numbers with keys.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyFrames
+        """
+        ...
+
+    def keyValues(self, key_half: keyHalf) -> tuple[float, ...]:
+        """Returns values of all keys in the channel.
+
+        Args:
+            key_half: Which half of keys to query.
+
+        Returns:
+            Tuple of key values.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyValues
+        """
+        ...
+
+    def smoothAutoSlopes(self) -> None:
+        """Smooths the slopes of all keys with auto slope enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#smoothAutoSlopes
+        """
+        ...
+
+
+class Gallery:
+    """Collection of gallery entries for operator nodes.
+
+    A gallery is a collection of node templates and their parameter presets,
+    represented by hou.GalleryEntry objects. A gallery corresponds to a file
+    where such templates are saved.
+
+    You cannot instantiate this object directly. Use hou.galleries module functions
+    instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html
+    """
+
+    def createEntry(self, entry_name: str, node: Node | None = None) -> GalleryEntry:
+        """Creates and returns a new gallery entry.
+
+        Args:
+            entry_name: Name for the new entry.
+            node: Optional node to initialize entry from.
+
+        Returns:
+            The created gallery entry.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html#createEntry
+        """
+        ...
+
+    def deleteEntry(self, entry_name: str) -> None:
+        """Deletes an entry from the gallery.
+
+        Args:
+            entry_name: Name of entry to delete.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html#deleteEntry
+        """
+        ...
+
+    def galleryEntries(self, name_pattern: str | None = None,
+                      label_pattern: str | None = None,
+                      keyword_pattern: str | None = None,
+                      category: str | None = None,
+                      node_type: NodeType | None = None) -> tuple[GalleryEntry, ...]:
+        """Returns gallery entries matching the specified criteria.
+
+        Args:
+            name_pattern: Optional pattern for entry names.
+            label_pattern: Optional pattern for entry labels.
+            keyword_pattern: Optional pattern for entry keywords.
+            category: Optional category filter.
+            node_type: Optional node type filter.
+
+        Returns:
+            Tuple of matching gallery entries.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html#galleryEntries
+        """
+        ...
+
+
+class GalleryEntry:
+    """Gallery entry that can be applied to operator nodes.
+
+    A gallery entry contains data about an operator node setup, including parameter
+    values, spare parameters, channels, and for subnet nodes, information about
+    children. Gallery entries are like node templates or parameter presets that
+    can be created from and applied to existing nodes.
+
+    A gallery entry has a unique name and a non-unique label, and is usually
+    associated with specific node types. Entries can have categories for organization
+    and keywords for identification.
+
+    You cannot instantiate this object directly. Use hou.Gallery.createEntry or
+    hou.galleries module functions instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html
+    """
+
+    def allowIconRegeneration(self) -> bool:
+        """Returns whether this entry allows automatic icon regeneration.
+
+        Returns:
+            True if automatic icon regeneration is allowed.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#allowIconRegeneration
+        """
+        ...
+
+    def applyToNode(self, node: Node) -> None:
+        """Applies the gallery entry to a given node.
+
+        Args:
+            node: Node to apply entry to.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#applyToNode
+        """
+        ...
+
+    def bestNodeType(self) -> NodeType | None:
+        """Returns the best node type associated with this entry.
+
+        Returns:
+            Best matching node type, or None.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#bestNodeType
+        """
+        ...
+
+    def canApplyToNode(self, node: Node) -> bool:
+        """Returns whether this entry can be safely applied to the node.
+
+        Args:
+            node: Node to check.
+
+        Returns:
+            True if entry can be applied to node.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#canApplyToNode
+        """
+        ...
+
+    def canCreateChildNode(self, parent: Node) -> bool:
+        """Returns whether createChildNode can succeed.
+
+        Args:
+            parent: Parent network node.
+
+        Returns:
+            True if child node can be created.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#canCreateChildNode
+        """
+        ...
+
+    def categories(self) -> tuple[str, ...]:
+        """Returns the categories this entry subscribes to.
+
+        Returns:
+            Tuple of category names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#categories
+        """
+        ...
+
+    def createChildNode(self, parent: Node) -> Node:
+        """Creates a new node in the parent network and applies this entry.
+
+        Args:
+            parent: Parent network node.
+
+        Returns:
+            The created and configured node.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#createChildNode
+        """
+        ...
+
+    def description(self) -> str:
+        """Returns the description of the gallery entry.
+
+        Returns:
+            Entry description.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#description
+        """
+        ...
+
+    def helpURL(self) -> str:
+        """Returns the URL of the help document for this entry.
+
+        Returns:
+            Help URL.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#helpURL
+        """
+        ...
+
+    def isHidden(self) -> bool:
+        """Returns whether this entry is hidden from the tools gallery menu.
+
+        Returns:
+            True if hidden.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#isHidden
+        """
+        ...
+
+    def icon(self) -> str:
+        """Returns the icon name or file path for this entry.
+
+        Returns:
+            Icon name or path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#icon
+        """
+        ...
+
+    def keywords(self) -> tuple[str, ...]:
+        """Returns the keywords that describe this entry.
+
+        Returns:
+            Tuple of keywords.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#keywords
+        """
+        ...
+
+    def label(self) -> str:
+        """Returns the gallery entry label.
+
+        Returns:
+            Entry label.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#label
+        """
+        ...
+
+    def name(self) -> str:
+        """Returns the gallery entry name.
+
+        Returns:
+            Entry name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#name
+        """
+        ...
+
+    def nodeTypeCategory(self) -> NodeTypeCategory:
+        """Returns the category of node types this entry is associated with.
+
+        Returns:
+            Node type category.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#nodeTypeCategory
+        """
+        ...
+
+    def nodeTypeNames(self) -> tuple[str, ...]:
+        """Returns the names of node types this entry is associated with.
+
+        Returns:
+            Tuple of node type names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#nodeTypeNames
+        """
+        ...
+
+    def requiredHDAFile(self) -> str:
+        """Returns the HDA library file path required by this entry.
+
+        Returns:
+            HDA file path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#requiredHDAFile
+        """
+        ...
+
+    def script(self) -> str:
+        """Returns the script that modifies node parameters.
+
+        Returns:
+            Parameter modification script.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#script
+        """
+        ...
+
+    def setAllowIconRegeneration(self, allow: bool) -> None:
+        """Sets the allow icon regeneration flag.
+
+        Args:
+            allow: Whether to allow icon regeneration.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setAllowIconRegeneration
+        """
+        ...
+
+    def setCategories(self, categories: tuple[str, ...]) -> None:
+        """Sets the categories this entry subscribes to.
+
+        Args:
+            categories: Tuple of category names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setCategories
+        """
+        ...
+
+    def setContentsFromNode(self, node: Node) -> None:
+        """Saves information about the node contents (child nodes).
+
+        Args:
+            node: Node to save contents from.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setContentsFromNode
+        """
+        ...
+
+    def setDescription(self, description: str) -> None:
+        """Sets the description of the gallery entry.
+
+        Args:
+            description: Entry description.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setDescription
+        """
+        ...
+
+    def setEqual(self, entry: GalleryEntry) -> None:
+        """Sets this entry to be the same as the given entry, except for name.
+
+        Args:
+            entry: Entry to copy from.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setEqual
+        """
+        ...
+
+    def setHelpURL(self, helpurl: str) -> None:
+        """Sets the URL of the help document for this entry.
+
+        Args:
+            helpurl: Help URL.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setHelpURL
+        """
+        ...
+
+    def setHidden(self, hide: bool) -> None:
+        """Sets the hidden flag for this entry.
+
+        Args:
+            hide: Whether to hide the entry.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setHidden
+        """
+        ...
+
+    def setIcon(self, icon: str) -> None:
+        """Sets the icon name or file path for this entry.
+
+        Args:
+            icon: Icon name or path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setIcon
+        """
+        ...
+
+    def setKeywords(self, keywords: tuple[str, ...]) -> None:
+        """Sets the keywords that describe this entry.
+
+        Args:
+            keywords: Tuple of keywords.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setKeywords
+        """
+        ...
+
+    def setLabel(self, label: str) -> None:
+        """Sets the gallery entry label.
+
+        Args:
+            label: Entry label.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setLabel
+        """
+        ...
+
+    def setName(self, name: str) -> None:
+        """Sets the gallery entry name.
+
+        Args:
+            name: Entry name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setName
+        """
+        ...
+
+    def setNodeTypeCategory(self, category: NodeTypeCategory) -> None:
+        """Sets the category of node types this entry should be associated with.
+
+        Args:
+            category: Node type category.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setNodeTypeCategory
+        """
+        ...
+
+    def setNodeTypeNames(self, nodetypes: tuple[str, ...]) -> None:
+        """Sets the names of node types this entry should be associated with.
+
+        Args:
+            nodetypes: Tuple of node type names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setNodeTypeNames
+        """
+        ...
+
+    def setRequiredHDAFile(self, hda_file: str) -> None:
+        """Sets the HDA library file path required by this entry.
+
+        Args:
+            hda_file: HDA file path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setRequiredHDAFile
+        """
+        ...
+
+    def setScript(self, script: str) -> None:
+        """Sets the script that modifies parameters when entry is applied.
+
+        Args:
+            script: Parameter modification script.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setScript
+        """
+        ...
+
+    def setScriptFromNode(self, node: Node) -> None:
+        """Sets the script from a node's parameter values.
+
+        Args:
+            node: Node to generate script from.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setScriptFromNode
+        """
+        ...
+
+
 class Bookmark:
     """Represents an animation bookmark.
 
@@ -2762,6 +4297,280 @@ class Bookmark:
         """Returns the ID of the bookmark.
 
         See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#sessionId
+        """
+        ...
+
+class Take:
+    """Represents a take in Houdini's take system.
+
+    Takes allow you to store different versions of parameter values
+    within the same scene, making it easy to manage variations without
+    duplicating the entire scene.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html
+    """
+
+    def isCurrent(self) -> bool:
+        """Return True if the take is the current take.
+
+        Returns:
+            True if this is the current take, False otherwise.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#isCurrent
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the name of the take.
+
+        Returns:
+            The take name.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#name
+        """
+        ...
+
+    def setName(self, name: str) -> None:
+        """Rename the take.
+
+        Args:
+            name: The new name for the take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#setName
+        """
+        ...
+
+    def addChildTake(self, name: str) -> Take:
+        """Create a new take with the given name and add it as a child to this take.
+
+        Args:
+            name: Name for the new child take.
+
+        Returns:
+            The newly created child take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addChildTake
+        """
+        ...
+
+    def addNodeDisplayFlag(self, node: Node) -> None:
+        """Include the given node's display flag in this take making it editable.
+
+        Args:
+            node: The node whose display flag should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addNodeDisplayFlag
+        """
+        ...
+
+    def removeNodeDisplayFlag(self, node: Node) -> None:
+        """Exclude the given node's display flag from this take.
+
+        Args:
+            node: The node whose display flag should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeNodeDisplayFlag
+        """
+        ...
+
+    def addNodeBypassFlag(self, node: Node) -> None:
+        """Include the given node's bypass flag in this take making it editable.
+
+        Args:
+            node: The node whose bypass flag should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addNodeBypassFlag
+        """
+        ...
+
+    def removeNodeBypassFlag(self, node: Node) -> None:
+        """Exclude the given node's bypass flag from this take.
+
+        Args:
+            node: The node whose bypass flag should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeNodeBypassFlag
+        """
+        ...
+
+    def addNodeRenderFlag(self, node: Node) -> None:
+        """Include the given node's render flag in this take making it editable.
+
+        Args:
+            node: The node whose render flag should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addNodeRenderFlag
+        """
+        ...
+
+    def removeNodeRenderFlag(self, node: Node) -> None:
+        """Exclude the given node's render flag from this take.
+
+        Args:
+            node: The node whose render flag should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeNodeRenderFlag
+        """
+        ...
+
+    def parmTuples(self) -> tuple[ParmTuple, ...]:
+        """Return a tuple of node parameters that are included and editable in this take.
+
+        Returns:
+            Tuple of parameter tuples included in this take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#parmTuples
+        """
+        ...
+
+    def hasParmTuple(self, parm_tuple: ParmTuple) -> bool:
+        """Return True if the given parameter is included in this take.
+
+        Args:
+            parm_tuple: The parameter tuple to check.
+
+        Returns:
+            True if the parameter is included, False otherwise.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#hasParmTuple
+        """
+        ...
+
+    def addParmTuple(self, parm_tuple: ParmTuple) -> None:
+        """Include the given parameter in this take making it editable.
+
+        Args:
+            parm_tuple: The parameter tuple to include.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addParmTuple
+        """
+        ...
+
+    def removeParmTuple(self, parm_tuple: ParmTuple) -> None:
+        """Exclude the given parameter from this take.
+
+        Args:
+            parm_tuple: The parameter tuple to exclude.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeParmTuple
+        """
+        ...
+
+    def addParmTuplesFromTake(self, take: Take, overwrite_existing: bool = True) -> None:
+        """Include all the given take's parameters in this take.
+
+        Args:
+            take: The take whose parameters should be copied.
+            overwrite_existing: Whether to overwrite existing parameter values.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addParmTuplesFromTake
+        """
+        ...
+
+    def addParmTuplesFromNode(self, node: Node) -> None:
+        """Include all the given node's parameters in this take.
+
+        Args:
+            node: The node whose parameters should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addParmTuplesFromNode
+        """
+        ...
+
+    def removeParmTuplesFromNode(self, node: Node) -> None:
+        """Exclude all the given node's parameters from this take.
+
+        Args:
+            node: The node whose parameters should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeParmTuplesFromNode
+        """
+        ...
+
+    def children(self) -> tuple[Take, ...]:
+        """Return a tuple of the child takes.
+
+        Returns:
+            Tuple of child takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#children
+        """
+        ...
+
+    def destroy(self, recurse: bool = False) -> None:
+        """Delete the take.
+
+        Args:
+            recurse: Whether to recursively delete child takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#destroy
+        """
+        ...
+
+    def parent(self) -> Take | None:
+        """Return the parent take or None if this take is the main (master) take.
+
+        Returns:
+            The parent take or None.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#parent
+        """
+        ...
+
+    def path(self) -> str:
+        """Return the path of the take.
+
+        Returns:
+            The take path.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#path
+        """
+        ...
+
+    def insertTakeAbove(self, name: str) -> Take:
+        """Create a new take with the given name and add it as a child of this take's parent.
+
+        Args:
+            name: Name for the new take.
+
+        Returns:
+            The newly created take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#insertTakeAbove
+        """
+        ...
+
+    def moveUnderTake(self, take: Take) -> None:
+        """Reparent this take to the specified take.
+
+        Args:
+            take: The new parent take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#moveUnderTake
+        """
+        ...
+
+    def saveToFile(self, filename: str, recurse: bool = False) -> None:
+        """Save this take to a file on disk.
+
+        Args:
+            filename: Path to save the take file.
+            recurse: Whether to recursively save child takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#saveToFile
+        """
+        ...
+
+    def loadChildTakeFromFile(self, filename: str) -> tuple[Take, ...]:
+        """Load a take from a file and make it a child of this take.
+
+        Args:
+            filename: Path to the take file to load.
+
+        Returns:
+            Tuple of loaded takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#loadChildTakeFromFile
         """
         ...
 
@@ -5634,6 +7443,83 @@ class ScriptEvalContext:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
     def node(self) -> 'OpNode': ...
     def parm(self) -> 'Parm': ...
+
+class ShellIO:
+    """Proxy object that replaces Python's stdin, stdout, and stderr streams within Houdini.
+
+    This class is mostly an implementation detail of how Houdini replaces Python's
+    standard streams with versions that allow Python input and output in Houdini
+    windows and pane tabs.
+
+    The methods that might be useful outside of internal SideFX scripts are
+    addCloseCallback(), removeCloseCallback(), and closeCallbacks(). These let you
+    register functions that Houdini calls when the Python shell window or pane tab
+    is closed (the equivalent of atexit() scripts in regular Python).
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html
+    """
+    def addCloseCallback(self, callback: Callable[[], None]) -> None:
+        """Register a Python callback to be called whenever the last Houdini Python Shell is closed.
+
+        Args:
+            callback: Function to call when shell closes.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#addCloseCallback
+        """
+        ...
+
+    def closeCallbacks(self) -> tuple[Callable[[], None], ...]:
+        """Return a tuple of all Python callbacks registered with addCloseCallback.
+
+        Returns:
+            Tuple of registered callback functions.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#closeCallbacks
+        """
+        ...
+
+    def isatty(self) -> bool:
+        """Implemented as part of the file-like object interface.
+
+        Returns:
+            Whether this is a TTY device.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#isatty
+        """
+        ...
+
+    def readline(self, size: int = -1) -> str:
+        """Implemented as part of the file-like object interface.
+
+        Args:
+            size: Maximum number of bytes to read. -1 reads entire line.
+
+        Returns:
+            String read from input.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#readline
+        """
+        ...
+
+    def removeCloseCallback(self, callback: Callable[[], None]) -> None:
+        """Remove a Python callback previously registered with addCloseCallback.
+
+        Args:
+            callback: Function to remove from callback list.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#removeCloseCallback
+        """
+        ...
+
+    def write(self, data: str) -> None:
+        """Implemented as part of the file-like object interface.
+
+        Args:
+            data: String data to write.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#write
+        """
+        ...
 
 class LogEntry:
     """Represents a single log message sent by a source to a sink."""
