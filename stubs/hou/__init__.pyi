@@ -45,10 +45,26 @@ ParameterDict = dict[str, ParameterValue]
 NodePath = str | 'Node'
 TransformValue = float | Sequence[float]
 
-_Floats2: TypeAlias = 'tuple[float, float]|Sequence[float]|Vector2'  # A sequence of floats representing a point (x, y)
+_Floats2: TypeAlias = 'tuple[float, float]|Sequence[float]|Vector2'
+"""
+A sequence of floats representing a 2D point (x, y).
+
+Useful for functions that accept 2D coordinates in any of these forms.
+"""
 
 _Floats3: TypeAlias = 'tuple[float, float, float]|Sequence[float]|Vector3'
+"""
+A sequence of floats representing a 3D point (x, y, z).
 
+Useful for functions that accept 3D coordinates in any of these forms.
+"""
+
+_FFloats4: TypeAlias = 'tuple[float, float, float, float]|Sequence[float]|Vector4'
+"""
+A sequence of floats representing a 4D point (x, y, z, w).
+
+Useful for functions that accept 4D coordinates in any of these forms.
+"""
 
 class EnumValue:
     """A simple class to represent enum values in Houdini."""
@@ -1566,7 +1582,7 @@ class ParmTemplate:
 
     # Display
     def look(self) -> 'parmLook': ...
-    def setLook(self, look: 'parmLook') -> None: ...
+    def setLook(self, look: 'paMarmLook') -> None: ...
 
     # Help and documentation
     def help(self) -> str: ...
@@ -1587,7 +1603,7 @@ class ParmTemplate:
     def disableWhen(self) -> str: ...
     def setDisableWhen(self, disable_when: str) -> None: ...
     def conditionals(self) -> dict[Any, str]: ...  # Dict of parmCondType to str
-    def setConditional(self, type: Any, conditional: str) -> None: ...  # Takes parmCondType enum
+    def setConditional(self, type: parmCondType, conditional: str) -> None: ...  # Takes parmCondType enum
 
     # Tags and metadata
     def tags(self) -> dict[str, str]: ...
@@ -1625,10 +1641,10 @@ class DataParmTemplate(ParmTemplate):
         name: str,
         label: str,
         num_components: int=1,
-        naming_scheme: Any=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
-        data_parm_type: Any=...,  # dataParmType enum
+        data_parm_type: dataParmType=...,  # dataParmType enum
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1650,7 +1666,7 @@ class FloatParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[float, ...]=...,
-        naming_scheme: Any=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
         min: float=0.0,
         max: float=1.0,
         min_is_strict: bool=False,
@@ -1686,7 +1702,7 @@ class FolderParmTemplate(ParmTemplate):
         name: str,
         label: str,
         parm_templates: tuple['ParmTemplate', ...]=...,
-        folder_type: Any=...,  # folderType enum
+        folder_type: folderType=...,  # folderType enum
         default_value: int=0,
         ends_tab_group: bool=False,
         is_hidden: bool=False,
@@ -1711,7 +1727,7 @@ class FolderSetParmTemplate(ParmTemplate):
         name: str,
         label: str,
         folder_names: tuple[str, ...]=...,
-        folder_type: Any=...,  # folderType enum
+        folder_type: folderType=...,  # folderType enum
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1731,7 +1747,7 @@ class IntParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[int, ...]=...,
-        naming_scheme: Any=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
         min: int=0,
         max: int=10,
         min_is_strict: bool=False,
@@ -1742,7 +1758,7 @@ class IntParmTemplate(ParmTemplate):
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: Any=...,  # menuType enum
+        menu_type: menuType=...,  # menuType enum
         menu_use_token: bool=False,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
@@ -1788,7 +1804,7 @@ class LabelParmTemplate(ParmTemplate):
         name: str,
         label: str,
         column_labels: tuple[str, ...]=...,
-        label_parm_type: Any=...,  # labelParmType enum
+        label_parm_type: labelParmType=...,  # labelParmType enum
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1812,7 +1828,7 @@ class MenuParmTemplate(ParmTemplate):
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: Any=...,  # menuType enum
+        menu_type: menuType=...,  # menuType enum
         menu_use_token: bool=False,
         default_expression: str|None=None,
         default_expression_language: scriptLanguage=...,
@@ -1902,15 +1918,15 @@ class StringParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[str, ...]=...,
-        naming_scheme: Any=...,  # parmNamingScheme enum
-        string_type: Any=...,  # stringParmType enum
-        file_type: Any=...,  # fileType enum
+        naming_scheme: parmNamingScheme=...,  # parmNamingScheme enum
+        string_type: stringParmType=...,  # stringParmType enum
+        file_type: fileType=...,  # fileType enum
         menu_items: tuple[str, ...]=...,
         menu_labels: tuple[str, ...]=...,
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: Any=...,  # menuType enum
+        menu_type: menuType=...,  # menuType enum
         menu_use_token: bool=False,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
@@ -3100,7 +3116,10 @@ class Matrix2:
 
 class Vector2:
     """2D vector."""
-    def __init__(self, values: Sequence[float] = (0.0, 0.0)) -> None: ...
+    @overload
+    def __init__(self, values: Sequence[float] = ...) -> None: ...
+    @overload
+    def __init__(self, x: float = 0.0, y: float = 0.0) -> None: ...
     def __getitem__(self, index: int) -> float: ...
     def __setitem__(self, index: int, value: float) -> None: ...
     def setTo(self, sequence: Sequence[float]) -> None: ...
@@ -3123,7 +3142,10 @@ class Vector2:
 
 class Vector3:
     """3D vector."""
-    def __init__(self, values: Sequence[float] = (0.0, 0.0, 0.0)) -> None: ...
+    @overload
+    def __init__(self, values: Sequence[float] = ...) -> None: ...
+    @overload
+    def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0) -> None: ...
     def __getitem__(self, index: int) -> float: ...
     def __setitem__(self, index: int, value: float) -> None: ...
     def setTo(self, sequence: Sequence[float]) -> None: ...
@@ -3156,7 +3178,10 @@ class Vector3:
 
 class Vector4:
     """4D vector."""
-    def __init__(self, values: Sequence[float] = (0.0, 0.0, 0.0, 0.0)) -> None: ...
+    @overload
+    def __init__(self, values: Sequence[float] = ...) -> None: ...
+    @overload
+    def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0, w: float = 0.0) -> None: ...
     def __getitem__(self, index: int) -> float: ...
     def __setitem__(self, index: int, value: float) -> None: ...
     def setTo(self, sequence: Sequence[float]) -> None: ...

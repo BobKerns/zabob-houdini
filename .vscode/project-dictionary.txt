@@ -120,9 +120,11 @@ oneline
 opdef
 orthowidth
 parmdictionary
+parmname
 Parms
 parmtemplate
 parmtemplates
+parmtype
 parmvalues
 Partitioner
 Perlin
