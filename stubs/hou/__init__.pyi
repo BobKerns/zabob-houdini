@@ -1592,56 +1592,83 @@ class snappingPriority(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/snappingPriority.html
     """
-    pass
+    GeoEdge: '_EnumValue[snappingPriority]'  # Edge between two GeoPoints
+    GeoPoint: '_EnumValue[snappingPriority]'  # Point on a geometry
+    Midpoint: '_EnumValue[snappingPriority]'  # Midpoint of a GeoEdge
+    GeoPrim: '_EnumValue[snappingPriority]'  # Primitive on a geometry
+    Breakpoint: '_EnumValue[snappingPriority]'  # Control point on a NURBS curve or surface
+    GridPoint: '_EnumValue[snappingPriority]'  # Point on the construction plane, reference plane, or grid
+    GridEdge: '_EnumValue[snappingPriority]'  # Edge of the construction plane, reference plane, or grid
+    PrimGuidePoint: '_EnumValue[snappingPriority]'  # Point on the guide geometry for a primitive
+    PrimGuideEdge: '_EnumValue[snappingPriority]'  # Edge on the guide geometry for a primitive
 
 class viewportAgentBoneDeform(_Enum):
     """Enum for deforming agent quality.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportAgentBoneDeform.html
     """
-    pass
+    Always: '_EnumValue[viewportAgentBoneDeform]'
+    Disabled: '_EnumValue[viewportAgentBoneDeform]'
+    ReducedLOD: '_EnumValue[viewportAgentBoneDeform]'
 
 class viewportAgentWireframe(_Enum):
     """Enum for agent wireframe mode display.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportAgentWireframe.html
     """
-    pass
+    Bone: '_EnumValue[viewportAgentWireframe]'  # Agents are rendered as bone-based skeletons
+    Line: '_EnumValue[viewportAgentWireframe]'  # Agents are rendered as line-based skeletons
 
 class viewportBGImageView(_Enum):
     """Background image view target for the viewport display options.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportBGImageView.html
     """
-    pass
+    Perspective: '_EnumValue[viewportBGImageView]'  # The 3D view not attached to a camera
+    Camera: '_EnumValue[viewportBGImageView]'  # The 3D view looking through a camera
+    Top: '_EnumValue[viewportBGImageView]'  # The orthographic top view
+    Front: '_EnumValue[viewportBGImageView]'  # The orthographic front view
+    Right: '_EnumValue[viewportBGImageView]'  # The orthographic right view
+    Bottom: '_EnumValue[viewportBGImageView]'  # The orthographic bottom view
+    Back: '_EnumValue[viewportBGImageView]'  # The orthographic back view
+    Left: '_EnumValue[viewportBGImageView]'  # The orthographic left view
+    UV: '_EnumValue[viewportBGImageView]'  # The UV texture viewport
 
 class viewportClosureSelection(_Enum):
     """Viewport highlight of primitives with selected components.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportClosureSelection.html
     """
-    pass
+    Hide: '_EnumValue[viewportClosureSelection]'  # Primitives are not highlighted
+    HullPrimitives: '_EnumValue[viewportClosureSelection]'  # Only primitives whose points and edges reside on separate hull geometry will be highlighted when those are selected (NURBS surfaces, Bezier surfaces)
+    Show: '_EnumValue[viewportClosureSelection]'  # Highlight all primitives whose points, edges, or vertices belong to the current selection
 
 class viewportColorScheme(_Enum):
     """Viewport Color Schemes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportColorScheme.html
     """
-    pass
+    Dark: '_EnumValue[viewportColorScheme]'  # Solid black background
+    Grey: '_EnumValue[viewportColorScheme]'  # Solid grey background
+    Light: '_EnumValue[viewportColorScheme]'  # Light blue gradient background
+    DarkGrey: '_EnumValue[viewportColorScheme]'  # Light blue gradient background (duplicate desc in docs)
 
 class viewportDOFBokeh(_Enum):
     """Viewport Depth of Field Bokeh Shape.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportDOFBokeh.html
     """
-    pass
+    NoBokeh: '_EnumValue[viewportDOFBokeh]'  # No extra bokeh effect
+    Circular: '_EnumValue[viewportDOFBokeh]'  # Circular or oval bokeh
+    Texture: '_EnumValue[viewportDOFBokeh]'  # Shape defined by a texture (image file or COP)
 
 class viewportDefaultMaterial(_Enum):
     """The default material shader for the 3D viewer.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportDefaultMaterial.html
     """
-    pass
+    Simple: '_EnumValue[viewportDefaultMaterial]'  # Untextured material with variable roughness and color settings
+    MatCap: '_EnumValue[viewportDefaultMaterial]'  # Material using a MatCap texture to define lighting and shading
 
 class viewportFogHeightMode(_Enum):
     """Viewport fog layer modes.
