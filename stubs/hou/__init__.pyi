@@ -516,6 +516,18 @@ class clipMode(_Enum):
     CookFrame: '_EnumValue[clipMode]'
     CookRealTime: '_EnumValue[clipMode]'
 
+class lopTraversalDemands(_Enum):
+    """Specifies which primitives should be included/excluded during USD scene graph traversal."""
+    # Values for specifying traversal behavior in LOP operations
+    # See: https://www.sidefx.com/docs/houdini/hom/hou/lopTraversalDemands.html
+    pass
+
+class lopViewportOverridesLayer(_Enum):
+    """Specifies choice between various pxr.Sdf.Layer objects in LopViewportOverrides."""
+    # Values for selecting which layer to use for viewport overrides
+    # See: https://www.sidefx.com/docs/houdini/hom/hou/lopViewportOverridesLayer.html
+    pass
+
 class BoundingRect:
     """Houdini bounding rectangle object."""
     @overload
@@ -582,7 +594,7 @@ class NetworkMovableItem(NetworkItem):
 class StickyNote(NetworkMovableItem):
     """
     Base class for sticky notes in the network editor.
-    
+
     This is the abstract base class. Use OpStickyNote for OP networks
     and ApexStickyNote for APEX networks.
     """
@@ -593,21 +605,21 @@ class StickyNote(NetworkMovableItem):
     def setTextColor(self, color: 'Color') -> None: ...
     def textSize(self) -> float: ...
     def setTextSize(self, size: float) -> None: ...
-    
+
     # State
     def destroy(self) -> None: ...
     def drawBackground(self) -> bool: ...
     def setDrawBackground(self, on: bool) -> None: ...
     def isMinimized(self) -> bool: ...
     def setMinimized(self, on: bool) -> None: ...
-    
+
     # Size
     def minimizedSize(self) -> 'Vector2': ...
     def restoredSize(self) -> 'Vector2': ...
     def resize(self, vector2: _Floats2) -> None: ...
     def setBounds(self, bounds: 'BoundingRect') -> None: ...
     def setSize(self, size: '_Floats2') -> None: ...
-    
+
     # Serialization
     def asData(self, position: bool = False, metadata: bool = False, verbose: bool = False) -> dict[str, Any]: ...
     def setFromData(self, data: dict[str, Any]) -> None: ...
@@ -615,7 +627,7 @@ class StickyNote(NetworkMovableItem):
 class OpStickyNote(StickyNote):
     """
     Represents a sticky note in an OP network (SOP/DOP/OBJ/etc).
-    
+
     Inherits all methods from StickyNote, NetworkMovableItem, and NetworkItem.
     """
     def asCode(self, brief: bool = False, recurse: bool = False, save_box_contents: bool = False,
@@ -625,7 +637,7 @@ class OpStickyNote(StickyNote):
                function_name: str | None = None) -> str:
         """
         Prints the Python code necessary to recreate this sticky note.
-        
+
         Args:
             brief: If True, omit default parameter values
             recurse: If True, include code for child nodes
@@ -637,7 +649,7 @@ class OpStickyNote(StickyNote):
             save_spare_parms: If True, include spare parameters
             save_box_membership: If True, save network box membership
             function_name: Name of function to wrap code in
-            
+
         Returns:
             Python code string
         """
@@ -646,7 +658,7 @@ class OpStickyNote(StickyNote):
 class ApexStickyNote(StickyNote):
     """
     Represents a sticky note in an APEX network.
-    
+
     Inherits all methods from StickyNote, NetworkMovableItem, and NetworkItem.
     APEX sticky notes have the same interface as OP sticky notes but operate
     in APEX graph contexts.
@@ -656,7 +668,7 @@ class ApexStickyNote(StickyNote):
 class NetworkBox(NetworkMovableItem):
     """
     Base class for network boxes.
-    
+
     Network boxes are organizational containers in the network editor that can
     group nodes, sticky notes, and other network items.
     """
@@ -666,20 +678,20 @@ class NetworkBox(NetworkMovableItem):
     def addNode(self, node: 'Node') -> None: ...
     def addStickyNote(self, stickynote: StickyNote) -> None: ...
     def addSubnetIndirectInput(self, indirect: 'SubnetIndirectInput') -> None: ...
-    
+
     # Appearance
     def alpha(self) -> float: ...
     def setAlpha(self, alpha: float) -> None: ...
     def comment(self) -> str: ...
     def setComment(self, comment: str) -> None: ...
-    
+
     # State
     def autoFit(self) -> bool: ...
     def setAutoFit(self, auto_fit: bool) -> None: ...
     def isMinimized(self) -> bool: ...
     def setMinimized(self, on: bool) -> None: ...
     def destroy(self, destroy_contents: bool = False) -> None: ...
-    
+
     # Layout
     def fitAroundContents(self) -> None: ...
     def minimizedSize(self) -> 'Vector2': ...
@@ -687,21 +699,21 @@ class NetworkBox(NetworkMovableItem):
     def resize(self, vector2: '_Floats2') -> None: ...
     def setBounds(self, bounds: 'BoundingRect') -> None: ...
     def setSize(self, size: '_Floats2') -> None: ...
-    
+
     # Contents
     def items(self, recurse: bool = True) -> tuple[NetworkMovableItem, ...]: ...
     def nodes(self, recurse: bool = True) -> tuple['Node', ...]: ...
     def networkBoxes(self, recurse: bool = True) -> tuple['NetworkBox', ...]: ...
     def stickyNotes(self, recurse: bool = True) -> tuple[StickyNote, ...]: ...
     def subnetIndirectInputs(self, recurse: bool = True) -> tuple['SubnetIndirectInput', ...]: ...
-    
+
     # Removing items
     def removeItem(self, item: NetworkMovableItem) -> None: ...
     def removeNetworkBox(self, netbox: 'NetworkBox') -> None: ...
     def removeNode(self, node: 'Node') -> None: ...
     def removeStickyNote(self, stickynote: StickyNote) -> None: ...
     def removeSubnetIndirectInput(self, indirect: 'SubnetIndirectInput') -> None: ...
-    
+
     # Serialization
     def asData(self, box_content: bool = True, position: bool = False, metadata: bool = False,
                verbose: bool = False) -> dict[str, Any]: ...
@@ -710,7 +722,7 @@ class NetworkBox(NetworkMovableItem):
 class OpNetworkBox(NetworkBox):
     """
     Represents a network box in an OP network (SOP/DOP/OBJ/etc).
-    
+
     Inherits all methods from NetworkBox, NetworkMovableItem, and NetworkItem.
     """
     def asCode(self, brief: bool = False, recurse: bool = False, save_box_contents: bool = False,
@@ -720,7 +732,7 @@ class OpNetworkBox(NetworkBox):
                function_name: str | None = None) -> str:
         """
         Prints the Python code necessary to recreate this network box.
-        
+
         Args:
             brief: If True, omit default parameter values
             recurse: If True, include code for child nodes
@@ -732,7 +744,7 @@ class OpNetworkBox(NetworkBox):
             save_spare_parms: If True, include spare parameters
             save_box_membership: If True, save network box membership
             function_name: Name of function to wrap code in
-            
+
         Returns:
             Python code string
         """
@@ -3482,6 +3494,78 @@ def hdaDefinition(node_type_category: str | NodeTypeCategory, node_type_name: st
     Returns:
         HDADefinition object or None if not found
     """
+    ...
+
+def lopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini lighting (LOP) nodes."""
+    ...
+
+def apexNodeTypeCategory() -> ApexNodeTypeCategory:
+    """Return the NodeTypeCategory instance for APEX nodes."""
+    ...
+
+def chopNetNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini channel container (chopnet) nodes."""
+    ...
+
+def chopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini channel (CHOP) nodes."""
+    ...
+
+def cop2NetNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini composite container (cop2net) nodes."""
+    ...
+
+def cop2NodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini composite (cop2) nodes."""
+    ...
+
+def copNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini composite (COP) nodes."""
+    ...
+
+def dataNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini data nodes."""
+    ...
+
+def dopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini dynamic (DOP) nodes."""
+    ...
+
+def managerNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini manager nodes."""
+    ...
+
+def objNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini object nodes."""
+    ...
+
+def rootNodeTypeCategory() -> NodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini root (/) node."""
+    ...
+
+def ropNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini output (ROP) nodes."""
+    ...
+
+def shopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini shader (SHOP) nodes."""
+    ...
+
+def sopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini geometry (SOP) nodes."""
+    ...
+
+def topNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini task (TOP) nodes."""
+    ...
+
+def vopNetNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini VEX builder container (vopnet) nodes."""
+    ...
+
+def vopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini VEX builder (VOP) nodes."""
     ...
 
 # Animation and channel interpolation functions
