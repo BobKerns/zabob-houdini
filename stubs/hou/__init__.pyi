@@ -528,6 +528,961 @@ class lopViewportOverridesLayer(_Enum):
     # See: https://www.sidefx.com/docs/houdini/hom/hou/lopViewportOverridesLayer.html
     pass
 
+# ============================================================================
+# ANIMATION ENUMERATIONS
+# ============================================================================
+
+class animBarToolSize(_Enum):
+    """Enumeration of values for the size options for Animation Toolbar tools.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/animBarToolSize.html
+    """
+    pass
+
+class bookmarkEvent(_Enum):
+    """Enumeration of the bookmark events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/bookmarkEvent.html
+    """
+    pass
+
+class segmentType(_Enum):
+    """Enumeration of values for segment types used by channel primitives.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/segmentType.html
+    """
+    pass
+
+class slopeMode(_Enum):
+    """Enumeration of values for default Slope Mode when inserting new keys into a channel.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/slopeMode.html
+    """
+    pass
+
+# ============================================================================
+# DIGITAL ASSETS ENUMERATIONS
+# ============================================================================
+
+class hdaEventType(_Enum):
+    """Enumeration of types of events that can happen for digital asset libraries.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hdaEventType.html
+    """
+    pass
+
+class hdaLicenseType(_Enum):
+    """Enumeration of digital asset license permission levels.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hdaLicenseType.html
+    """
+    pass
+
+# ============================================================================
+# CHANNELS ENUMERATIONS
+# ============================================================================
+
+class channelListChangedReason(_Enum):
+    """Enumeration of the reasons the hou.playbarEvent.ChannelListChanged event can be triggered.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/channelListChangedReason.html
+    """
+    pass
+
+# ============================================================================
+# COOKING ENUMERATIONS
+# ============================================================================
+
+class updateMode(_Enum):
+    """Enumeration of interface update modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/updateMode.html
+    """
+    pass
+
+# ============================================================================
+# CROWDS ENUMERATIONS
+# ============================================================================
+
+class agentShapeDeformerType(_Enum):
+    """Enumeration of agent shape deformer types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/agentShapeDeformerType.html
+    """
+    pass
+
+# ============================================================================
+# GENERAL ENUMERATIONS
+# ============================================================================
+
+class hipFileEventType(_Enum):
+    """Enumeration of the hip file event types that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hipFileEventType.html
+    """
+    pass
+
+class licenseCategoryType(_Enum):
+    """Enumeration of license category values.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/licenseCategoryType.html
+    """
+    pass
+
+# ============================================================================
+# GEOMETRY ENUMERATIONS
+# ============================================================================
+
+class keyHalf(_Enum):
+    """Enumeration of the halves of a key, used when setting keyframe data in a Channel Primitive.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/keyHalf.html
+    """
+    pass
+
+class vdbData(_Enum):
+    """Enumeration of voxel data types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/vdbData.html
+    """
+    pass
+
+class vdbType(_Enum):
+    """Enumeration of VDB types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/vdbType.html
+    """
+    pass
+
+# ============================================================================
+# IMAGES/LAYER ENUMERATIONS
+# ============================================================================
+
+class imageDepth(_Enum):
+    """Enumeration of image depths (data formats) for representing the pixels in an image plane.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageDepth.html
+    """
+    pass
+
+class imageLayerBorder(_Enum):
+    """Enumeration of ImageLayer Borders.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerBorder.html
+    """
+    pass
+
+class imageLayerProjection(_Enum):
+    """Enumeration of ImageLayer Projections.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerProjection.html
+    """
+    pass
+
+class imageLayerStorageType(_Enum):
+    """Enumeration of ImageLayer StorageTypes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerStorageType.html
+    """
+    pass
+
+class imageLayerTypeInfo(_Enum):
+    """Enumeration of ImageLayer TypeInfos.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerTypeInfo.html
+    """
+    pass
+
+# ============================================================================
+# NODES ENUMERATIONS
+# ============================================================================
+
+class appearanceChangeType(_Enum):
+    """Enumeration of types of appearance change events that can happen to nodes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/appearanceChangeType.html
+    """
+    pass
+
+class colorItemType(_Enum):
+    """Enumeration for color item types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/colorItemType.html
+    """
+    pass
+
+class nodeEventType(_Enum):
+    """Enumeration of types of events that can happen to nodes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeEventType.html
+    """
+    pass
+
+class nodeFlag(_Enum):
+    """Enumeration of the different node flags.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeFlag.html
+    """
+    pass
+
+class nodeTypeSource(_Enum):
+    """Enumeration of node type sources.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeTypeSource.html
+    """
+    pass
+
+class optionalBool(_Enum):
+    """Enumeration of a generic tri-state value.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/optionalBool.html
+    """
+    pass
+
+class ropRenderEventType(_Enum):
+    """Enumeration of types of events that can happen when a ROP node is rendering.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ropRenderEventType.html
+    """
+    pass
+
+class videoDriver(_Enum):
+    """Enumeration of drivers that provide video functionality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/videoDriver.html
+    """
+    pass
+
+class nodeTypeFilter(_Enum):
+    """Enumeration of available node type filters.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeTypeFilter.html
+    """
+    pass
+
+# ============================================================================
+# PARAMETERS ENUMERATIONS
+# ============================================================================
+
+class parmBakeChop(_Enum):
+    """Enumeration of Bake Chop modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/parmBakeChop.html
+    """
+    pass
+
+# ============================================================================
+# PLAYBAR ENUMERATIONS
+# ============================================================================
+
+class playMode(_Enum):
+    """Enumeration of play modes for the main playbar in Houdini.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/playMode.html
+    """
+    pass
+
+class playbarEvent(_Enum):
+    """Enumeration of the playbar events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/playbarEvent.html
+    """
+    pass
+
+# ============================================================================
+# RADIAL MENUS ENUMERATIONS
+# ============================================================================
+
+class radialItemLocation(_Enum):
+    """Enumeration of locations for radial menu items in Houdini.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/radialItemLocation.html
+    """
+    pass
+
+# ============================================================================
+# SHADING ENUMERATIONS
+# ============================================================================
+
+class shaderType(_Enum):
+    """Enumeration of SHOP shader types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/shaderType.html
+    """
+    pass
+
+# ============================================================================
+# UTILITY ENUMERATIONS
+# ============================================================================
+
+class compressionType(_Enum):
+    """Enumeration of compression types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/compressionType.html
+    """
+    pass
+
+# ============================================================================
+# VEX ENUMERATIONS
+# ============================================================================
+
+class vopParmGenType(_Enum):
+    """Enumeration of the different node configurations that can be created for the inputs of a VOP node.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/vopParmGenType.html
+    """
+    pass
+
+# ============================================================================
+# UI ENUMERATIONS
+# ============================================================================
+
+class confirmType(_Enum):
+    """Enumeration of confirmation dialog suppression options.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/confirmType.html
+    """
+    pass
+
+class drawableDisplayMode(_Enum):
+    """Enumerator for the drawable display mode.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableDisplayMode.html
+    """
+    pass
+
+class drawableGeometryPointStyle(_Enum):
+    """Enumeration used to specify the style of points to draw.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryPointStyle.html
+    """
+    pass
+
+class drawablePrimitive(_Enum):
+    """Enumerator for the drawable primitive types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawablePrimitive.html
+    """
+    pass
+
+class drawableTextOrigin(_Enum):
+    """Enumeration used to specify the reference point of the text within its bounding box.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableTextOrigin.html
+    """
+    pass
+
+class fileChooserMode(_Enum):
+    """Enumeration of possible read/write modes for the file chooser.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/fileChooserMode.html
+    """
+    pass
+
+class nodeFootprint(_Enum):
+    """Enumeration of the specialized node footprints supported by the network editor.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeFootprint.html
+    """
+    pass
+
+class perfMonObjectView(_Enum):
+    """Enumeration of the different structures that are used to view objects in the Performance Monitor panetab.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonObjectView.html
+    """
+    pass
+
+class perfMonTimeFormat(_Enum):
+    """Enumeration of the different formats used when viewing times in the Performance Monitor panetab.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonTimeFormat.html
+    """
+    pass
+
+class perfMonTimeUnit(_Enum):
+    """Enumeration of the different units used when viewing times in the Performance Monitor panetab.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonTimeUnit.html
+    """
+    pass
+
+class resourceEventMessage(_Enum):
+    """Enumeration of the resource events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/resourceEventMessage.html
+    """
+    pass
+
+class secureSelectionOption(_Enum):
+    """Enumeration of the secure selection options used by viewer state selectors.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/secureSelectionOption.html
+    """
+    pass
+
+class stateGenerateMode(_Enum):
+    """Enumeration of possible node generation modes by states.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/stateGenerateMode.html
+    """
+    pass
+
+class stateViewerType(_Enum):
+    """Enumeration of state viewer types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/stateViewerType.html
+    """
+    pass
+
+class triggerSelectorAction(_Enum):
+    """Enumerator representing the type of action a state selector can perform if triggered.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/triggerSelectorAction.html
+    """
+    pass
+
+class uiEventReason(_Enum):
+    """Values representing reasons Houdini generated a particular UI event.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/uiEventReason.html
+    """
+    pass
+
+class uiEventValueType(_Enum):
+    """Enumerator for UI event value types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/uiEventValueType.html
+    """
+    pass
+
+class valueLadderDataType(_Enum):
+    """Enumeration of the different data types that may be manipulated by a value ladder.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/valueLadderDataType.html
+    """
+    pass
+
+class valueLadderType(_Enum):
+    """Enumeration of the different value ladder types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/valueLadderType.html
+    """
+    pass
+
+# ============================================================================
+# VIEWS/VIEWPORT ENUMERATIONS
+# ============================================================================
+
+class boundaryDisplay(_Enum):
+    """Enum for viewport boundary overlay.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/boundaryDisplay.html
+    """
+    pass
+
+class connectivityType(_Enum):
+    """Enumeration of connectivity types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/connectivityType.html
+    """
+    pass
+
+class displaySetType(_Enum):
+    """Enum of viewport geometry contexts.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/displaySetType.html
+    """
+    pass
+
+class drawable2DCapStyle(_Enum):
+    """Enumerator for 2D drawable cap styles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DCapStyle.html
+    """
+    pass
+
+class drawable2DLineStyle(_Enum):
+    """Enumerator for 2D drawable line styles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DLineStyle.html
+    """
+    pass
+
+class drawable2DMarkerSize(_Enum):
+    """Enumerator for 2D drawable marker size.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DMarkerSize.html
+    """
+    pass
+
+class drawable2DMarkerStyle(_Enum):
+    """Enumerator for 2D drawable marker style.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DMarkerStyle.html
+    """
+    pass
+
+class drawable2DType(_Enum):
+    """Enumerator for 2D drawable types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DType.html
+    """
+    pass
+
+class drawableGeometryFaceStyle(_Enum):
+    """Enumeration used to specify the style of faces to draw.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryFaceStyle.html
+    """
+    pass
+
+class drawableGeometryLineStyle(_Enum):
+    """Enumeration used to specify the style of lines to draw.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryLineStyle.html
+    """
+    pass
+
+class drawableGeometryType(_Enum):
+    """Enumeration of Geometry Drawable types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryType.html
+    """
+    pass
+
+class drawableHighlightMode(_Enum):
+    """Enumeration used to specify the highlight mode of a drawable matte.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableHighlightMode.html
+    """
+    pass
+
+class drawableRampClamp(_Enum):
+    """Enumeration used to specify how to wrap the texture generated when using a ramp color.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableRampClamp.html
+    """
+    pass
+
+class flipbookAntialias(_Enum):
+    """Enum values for flipbook antialiasing settings.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookAntialias.html
+    """
+    pass
+
+class flipbookMotionBlurBias(_Enum):
+    """Enum values used to specify the motion blur subframe range.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookMotionBlurBias.html
+    """
+    pass
+
+class flipbookObjectType(_Enum):
+    """Enum values for setting the flipbook's visible object types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookObjectType.html
+    """
+    pass
+
+class geometryViewportBackgroundImageFitMode(_Enum):
+    """Enumeration of image fit modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportBackgroundImageFitMode.html
+    """
+    pass
+
+class geometryViewportEvent(_Enum):
+    """Enumeration of the geometry viewport events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportEvent.html
+    """
+    pass
+
+class geometryViewportLayout(_Enum):
+    """Enumeration of viewport layouts.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportLayout.html
+    """
+    pass
+
+class geometryViewportType(_Enum):
+    """Enumeration of scene viewer viewport types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportType.html
+    """
+    pass
+
+class glShadingType(_Enum):
+    """Enum for viewport shading modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/glShadingType.html
+    """
+    pass
+
+class groupListType(_Enum):
+    """Enumeration of group list types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/groupListType.html
+    """
+    pass
+
+class handleOrientToNormalAxis(_Enum):
+    """Enumeration of handle axes that can be aligned to a geometry normal.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/handleOrientToNormalAxis.html
+    """
+    pass
+
+class hudInfoState(_Enum):
+    """Enumeration of states for controling the panel.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hudInfoState.html
+    """
+    pass
+
+class hudPanel(_Enum):
+    """Enumeration to identify the HUD panel types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hudPanel.html
+    """
+    pass
+
+class markerVisibility(_Enum):
+    """Enum of visibility options for marker visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/markerVisibility.html
+    """
+    pass
+
+class orientUpAxis(_Enum):
+    """Enumeration of global orientation mode.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/orientUpAxis.html
+    """
+    pass
+
+class parameterInterfaceTabType(_Enum):
+    """Enum values for selecting a specific parameter source tab in the parameter interface dialog.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/parameterInterfaceTabType.html
+    """
+    pass
+
+class pickFacing(_Enum):
+    """Enumeration for describing the facing direction of pickable components.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/pickFacing.html
+    """
+    pass
+
+class pickModifier(_Enum):
+    """Enumeration of methods for modifying selections with new components.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/pickModifier.html
+    """
+    pass
+
+class pickStyle(_Enum):
+    """Enumeration of pick styles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/pickStyle.html
+    """
+    pass
+
+class positionType(_Enum):
+    """Enumeration of spaces.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/positionType.html
+    """
+    pass
+
+class resourceType(_Enum):
+    """Enumeration of resources such as viewer states and viewer handles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/resourceType.html
+    """
+    pass
+
+class sceneViewerEvent(_Enum):
+    """Enumeration of the UI events a scene viewer can listen to via a callback.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/sceneViewerEvent.html
+    """
+    pass
+
+class selectionMode(_Enum):
+    """Enumeration of selection modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/selectionMode.html
+    """
+    pass
+
+class snappingMode(_Enum):
+    """Enumeration of snapping modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/snappingMode.html
+    """
+    pass
+
+class snappingPriority(_Enum):
+    """Enumeration of snapping priority.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/snappingPriority.html
+    """
+    pass
+
+class viewportAgentBoneDeform(_Enum):
+    """Enum for deforming agent quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportAgentBoneDeform.html
+    """
+    pass
+
+class viewportAgentWireframe(_Enum):
+    """Enum for agent wireframe mode display.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportAgentWireframe.html
+    """
+    pass
+
+class viewportBGImageView(_Enum):
+    """Background image view target for the viewport display options.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportBGImageView.html
+    """
+    pass
+
+class viewportClosureSelection(_Enum):
+    """Viewport highlight of primitives with selected components.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportClosureSelection.html
+    """
+    pass
+
+class viewportColorScheme(_Enum):
+    """Viewport Color Schemes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportColorScheme.html
+    """
+    pass
+
+class viewportDOFBokeh(_Enum):
+    """Viewport Depth of Field Bokeh Shape.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportDOFBokeh.html
+    """
+    pass
+
+class viewportDefaultMaterial(_Enum):
+    """The default material shader for the 3D viewer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportDefaultMaterial.html
+    """
+    pass
+
+class viewportFogHeightMode(_Enum):
+    """Viewport fog layer modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportFogHeightMode.html
+    """
+    pass
+
+class viewportFogQuality(_Enum):
+    """Viewport volume fog quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportFogQuality.html
+    """
+    pass
+
+class viewportGeometryInfo(_Enum):
+    """Geometry information display state.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGeometryInfo.html
+    """
+    pass
+
+class viewportGridRuler(_Enum):
+    """Enum for grid numbering on viewport grids.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGridRuler.html
+    """
+    pass
+
+class viewportGuide(_Enum):
+    """Viewport guides.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGuide.html
+    """
+    pass
+
+class viewportGuideFont(_Enum):
+    """Viewport font sizes for visualizer text.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGuideFont.html
+    """
+    pass
+
+class viewportHandleHighlight(_Enum):
+    """Handle highlight size.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportHandleHighlight.html
+    """
+    pass
+
+class viewportHomeClipMode(_Enum):
+    """Automatic viewport clip plane adjustment during homing.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportHomeClipMode.html
+    """
+    pass
+
+class viewportLighting(_Enum):
+    """Lighting modes for the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportLighting.html
+    """
+    pass
+
+class viewportMaterialUpdate(_Enum):
+    """Enum for the update frequency of viewport material assignments.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportMaterialUpdate.html
+    """
+    pass
+
+class viewportPackedBoxMode(_Enum):
+    """Enum for the culled packed geometry display mode.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportPackedBoxMode.html
+    """
+    pass
+
+class viewportParticleDisplay(_Enum):
+    """Viewport display option for particle display visualization.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportParticleDisplay.html
+    """
+    pass
+
+class viewportShadowQuality(_Enum):
+    """The quality of shadows produced in the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportShadowQuality.html
+    """
+    pass
+
+class viewportStandInGeometry(_Enum):
+    """Replacement geometry for instances culled in the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStandInGeometry.html
+    """
+    pass
+
+class viewportStereoMode(_Enum):
+    """Stereoscopic viewport display modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStereoMode.html
+    """
+    pass
+
+class viewportTextureDepth(_Enum):
+    """Enum for the viewport texture bit depth limit.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportTextureDepth.html
+    """
+    pass
+
+class viewportTransparency(_Enum):
+    """Transparency rendering quality for the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportTransparency.html
+    """
+    pass
+
+class viewportVisualizerCategory(_Enum):
+    """Enumeration of the different categories of viewport visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerCategory.html
+    """
+    pass
+
+class viewportVisualizerEventType(_Enum):
+    """Enumeration of types of events that can happen to viewport visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerEventType.html
+    """
+    pass
+
+class viewportVisualizerScope(_Enum):
+    """Enumeration of the different scopes of viewport visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerScope.html
+    """
+    pass
+
+class viewportVolumeBSplines(_Enum):
+    """Display options for viewport volume sampling quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVolumeBSplines.html
+    """
+    pass
+
+class viewportVolumeQuality(_Enum):
+    """Display options for viewport volume rendering quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVolumeQuality.html
+    """
+    pass
+
+class viewportWorkLight(_Enum):
+    """Work light type for the viewer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportWorkLight.html
+    """
+    pass
+
+# ============================================================================
+# VIEWER ENUMERATIONS
+# ============================================================================
+
+class promptMessageType(_Enum):
+    """Viewport Prompt Message Type.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/promptMessageType.html
+    """
+    pass
+
+class scenePrimMask(_Enum):
+    """Scene Graph Selection Mask.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/scenePrimMask.html
+    """
+    pass
+
+class snapSelectionMode(_Enum):
+    """Filter for primitive snapping in the LOPs viewer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/snapSelectionMode.html
+    """
+    pass
+
+# ============================================================================
+# WEBSERVER ENUMERATIONS
+# ============================================================================
+
+class webServerVerbosity(_Enum):
+    """Enumeration of Web Server verbosity level.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/webServerVerbosity.html
+    """
+    pass
+
+# ============================================================================
+# CLASS DEFINITIONS
+# ============================================================================
+
 class BoundingRect:
     """Houdini bounding rectangle object."""
     @overload
@@ -1667,6 +2622,148 @@ class ApexNodeType:
     """Type definition for APEX nodes."""
     def name(self) -> str: ...
     def category(self) -> str: ...
+
+class Bookmark:
+    """Represents an animation bookmark.
+
+    You cannot instantiate this object directly. Call hou.anim.newBookmark instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html
+    """
+    def name(self) -> str:
+        """Returns the name of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#name
+        """
+        ...
+
+    def setName(self, name: str) -> None:
+        """Updates the name of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setName
+        """
+        ...
+
+    def startFrame(self) -> int:
+        """Returns the start frame of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#startFrame
+        """
+        ...
+
+    def setStartFrame(self, start_frame: int) -> None:
+        """Updates the start frame of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setStartFrame
+        """
+        ...
+
+    def endFrame(self) -> int:
+        """Returns the end frame of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#endFrame
+        """
+        ...
+
+    def setEndFrame(self, end_frame: int) -> None:
+        """Updates the end frame of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setEndFrame
+        """
+        ...
+
+    def comment(self) -> str:
+        """Returns the comment of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#comment
+        """
+        ...
+
+    def setComment(self, comment: str) -> None:
+        """Updates the comment of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setComment
+        """
+        ...
+
+    def color(self) -> Color:
+        """Returns the color of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#color
+        """
+        ...
+
+    def setColor(self, color: Color) -> None:
+        """Updates the color of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setColor
+        """
+        ...
+
+    def visible(self) -> bool:
+        """Returns whether or not this bookmark is visible.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#visible
+        """
+        ...
+
+    def setVisible(self, visible: bool) -> None:
+        """Updates the visibility of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setVisible
+        """
+        ...
+
+    def isTemporary(self) -> bool:
+        """Returns whether or not this bookmark is marked as temporary.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#isTemporary
+        """
+        ...
+
+    def setTemporary(self, temporary: bool) -> None:
+        """Marks this bookmark as temporary or not.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setTemporary
+        """
+        ...
+
+    def isEnabled(self) -> bool:
+        """Returns whether or not this bookmark is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#isEnabled
+        """
+        ...
+
+    def enable(self, enabled: bool) -> None:
+        """Enable or disable this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#enable
+        """
+        ...
+
+    def metadata(self, key: str, default_value: Any = None) -> Any:
+        """Returns the metadata associated with the given key.
+
+        Returns default_value if no such key exists in the metadata.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#metadata
+        """
+        ...
+
+    def setMetadata(self, key: str, value: Any, type_hint: 'fieldType' = ...) -> None:
+        """Adds a metadata property to this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setMetadata
+        """
+        ...
+
+    def sessionId(self) -> int:
+        """Returns the ID of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#sessionId
+        """
+        ...
 
 class Color:
     """Houdini color object."""
@@ -3211,6 +4308,356 @@ class IndexPairPropertyTable:
     def setProperty(self, index1: int, index2: int, property_name: str, value: Any) -> None: ...
     def removeProperty(self, index1: int, index2: int, property_name: str) -> None: ...
 
+class AssetGalleryDataSource:
+    """Provides an interface to any data source that can be used with an asset or snapshot gallery UI.
+
+    Houdini's various asset catalog panels (the snapshot gallery attached to the LOP Scene Viewer,
+    the Working Set in the Layout LOP's brush panel, and the Asset Catalog pane) are all populated
+    by pulling data from this class.
+
+    This object is created by providing a source identifier, and an optional additional string
+    argument. The source identifier is used to find or create a shared underlying data source
+    implementation object (which may be a C++ or python object).
+
+    Houdini ships with three data source implementations:
+    - SQL database (.db, .sqlite, .sqlite3 file extensions) - read and write
+    - USD files (USD file extensions + primitive pattern argument) - read only
+    - LOP stages (op:/path/to/lop + primitive pattern argument) - read only
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html
+    """
+    def __init__(self, source_identifier: str, args: str | None = None) -> None:
+        """Constructs or finds a matching existing data source implementation object.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#__init__
+        """
+        ...
+
+    def isValid(self) -> bool:
+        """Return True if this data source has a valid implementation, otherwise return False.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#isValid
+        """
+        ...
+
+    def isReadOnly(self) -> bool:
+        """Return True if this data source only supports read operations, otherwise return False.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#isReadOnly
+        """
+        ...
+
+    def sourceIdentifier(self) -> str:
+        """Return the source identifier string used to create this data source object.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#sourceIdentifier
+        """
+        ...
+
+    def sourceArgs(self) -> str:
+        """Return the args string used to create this data source object.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#sourceArgs
+        """
+        ...
+
+    def startTransaction(self) -> None:
+        """For writable data sources, this method can be used to group multiple calls to edit the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#startTransaction
+        """
+        ...
+
+    def endTransaction(self, commit: bool = True) -> None:
+        """This method is always called after a call to startTransaction.
+
+        Indicates that the group of data source edits has been completed.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#endTransaction
+        """
+        ...
+
+    def itemIds(self) -> tuple[str, ...]:
+        """Return a unique identifier for each asset available in the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#itemIds
+        """
+        ...
+
+    def updatedItemIds(self) -> tuple[str, ...]:
+        """Return a unique identifier for any asset that has changed since the last call to this method.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#updatedItemIds
+        """
+        ...
+
+    def childItemIds(self, item_id: str) -> tuple[str, ...]:
+        """Return a list of unique identifier for all assets that have this item set as its parent.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#childItemIds
+        """
+        ...
+
+    def infoHtml(self) -> str:
+        """Return a string in HTML format that will be displayed at the top of the asset catalog window.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#infoHtml
+        """
+        ...
+
+    def sourceTypeName(self, item_id: str | None = None) -> str:
+        """Return the data source type of the asset identified by the id.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#sourceTypeName
+        """
+        ...
+
+    def typeName(self, item_id: str) -> str:
+        """Return the type of asset identified by the id.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#typeName
+        """
+        ...
+
+    def label(self, item_id: str) -> str:
+        """Return the user-facing string that identifies and describes the item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#label
+        """
+        ...
+
+    def thumbnail(self, item_id: str) -> bytes:
+        """Return the raw data for a thumbnail image that represents the item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#thumbnail
+        """
+        ...
+
+    def creationDate(self, item_id: str) -> int:
+        """Return a long integer representing the unix timestamp at which the item was created.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#creationDate
+        """
+        ...
+
+    def modificationDate(self, item_id: str) -> int:
+        """Return a long integer representing the unix timestamp at which the item was last modified.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#modificationDate
+        """
+        ...
+
+    def isStarred(self, item_id: str) -> bool:
+        """Return True if this item has been marked as a favorite by the user.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#isStarred
+        """
+        ...
+
+    def colorTag(self, item_id: str) -> str:
+        """Return a string indicating a special color tag value that has been assigned by the user.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#colorTag
+        """
+        ...
+
+    def tags(self, item_id: str) -> tuple[str, ...]:
+        """Return a tuple of user defined tag strings that have been assigned to this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#tags
+        """
+        ...
+
+    def metadata(self, item_id: str) -> dict[str, str | float]:
+        """Return a dictionary of metadata that has been associated with this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#metadata
+        """
+        ...
+
+    def filePath(self, item_id: str) -> str:
+        """Return a string that can be used to access the raw data associated with this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#filePath
+        """
+        ...
+
+    def ownsFile(self, item_id: str) -> bool:
+        """Return True if the filePath for this item is a file on disk that should be deleted if the item is deleted.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#ownsFile
+        """
+        ...
+
+    def blindData(self, item_id: str) -> bytes:
+        """Return a block of data source implementation specific binary data associated with the item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#blindData
+        """
+        ...
+
+    def status(self, item_id: str) -> str:
+        """Return a string describing the current status of this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#status
+        """
+        ...
+
+    def parentId(self, item_id: str) -> str:
+        """Return the unique identifier for this item's parent item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#parentId
+        """
+        ...
+
+    def prepareItemForUse(self, item_id: str) -> str:
+        """Make sure that the item is ready to be used.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#prepareItemForUse
+        """
+        ...
+
+    def setLabel(self, item_id: str, label: str) -> bool:
+        """Set the value of the label for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setLabel
+        """
+        ...
+
+    def setThumbnail(self, item_id: str, thumbnail: bytes) -> bool:
+        """Set the value of the thumbnail for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setThumbnail
+        """
+        ...
+
+    def setModificationDate(self, item_id: str, timestamp: int) -> bool:
+        """Set the value of the modificationDate for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setModificationDate
+        """
+        ...
+
+    def setIsStarred(self, item_id: str, isstarred: bool) -> bool:
+        """Set the value of the isStarred flag for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setIsStarred
+        """
+        ...
+
+    def setColorTag(self, item_id: str, color_tag: str) -> bool:
+        """Set the value of the colorTag for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setColorTag
+        """
+        ...
+
+    def setMetadata(self, item_id: str, metadata: dict[str, str | float]) -> bool:
+        """Set the value of the metadata dictionary for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setMetadata
+        """
+        ...
+
+    def setFilePath(self, item_id: str, file_path: str) -> bool:
+        """Set the value of the filePath for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setFilePath
+        """
+        ...
+
+    def setOwnsFile(self, item_id: str, owns_file: bool) -> bool:
+        """Set the value of the ownsFile flag for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setOwnsFile
+        """
+        ...
+
+    def setBlindData(self, item_id: str, data: bytes) -> bool:
+        """Set the value of the blindData for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setBlindData
+        """
+        ...
+
+    def setParentId(self, item_id: str, parent_item_id: str) -> bool:
+        """Set the value of the parent of this item to be parent_item_id.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setParentId
+        """
+        ...
+
+    def createTag(self, tag: str) -> bool:
+        """Create a tag in the data source, but do not assign it to any items.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#createTag
+        """
+        ...
+
+    def deleteTag(self, tag: str, delete_if_assigned: bool) -> bool:
+        """Delete a tag from the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#deleteTag
+        """
+        ...
+
+    def addTag(self, item_id: str, tag: str) -> bool:
+        """Adds a tag to a specific item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#addTag
+        """
+        ...
+
+    def removeTag(self, item_id: str, tag: str) -> bool:
+        """Removes a tag from a specific item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#removeTag
+        """
+        ...
+
+    def generateItemFilePath(self, item_id: str, file_ext: str) -> str:
+        """Return a unique file path with an extension provided in file_ext.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#generateItemFilePath
+        """
+        ...
+
+    def addItem(
+        self,
+        label: str,
+        file_path: str | None = None,
+        thumbnail: bytes = b'',
+        type_name: str = 'asset',
+        blind_data: bytes = b'',
+        creation_date: int = 0
+    ) -> str:
+        """Adds a new item to the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#addItem
+        """
+        ...
+
+    def markItemsForDeletion(self, item_ids: Sequence[str]) -> bool:
+        """Marks one or more items to be deleted.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#markItemsForDeletion
+        """
+        ...
+
+    def unmarkItemsForDeletion(self, item_ids: Sequence[str]) -> bool:
+        """Remove the indicator in the data source that the supplied items should be deleted.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#unmarkItemsForDeletion
+        """
+        ...
+
+    def saveAs(self, source_identifier: str) -> bool:
+        """Create a copy of the data source, if supported.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#saveAs
+        """
+        ...
+
 class BoundingBox:
     """Houdini 3D bounding box."""
     def __init__(self, xmin: float = 0, ymin: float = 0, zmin: float = 0, xmax: float = 0, ymax: float = 0, zmax: float = 0) -> None: ...
@@ -3734,18 +5181,241 @@ class Quaternion:
 # This allows cleaner separation and easier maintenance
 # Accessible as: hou.anim, hou.audio, hou.clone, etc.
 
-# Common exceptions that Houdini can raise
-class OperationFailed(Exception):
-    """Generic catch-all for operational failures in Houdini operations."""
+# ============================================================================
+# EXCEPTION CLASSES
+# ============================================================================
+
+class Error(Exception):
+    """Base class for all exceptions in the hou module.
+
+    All Houdini-specific exceptions inherit from this class. Catch this
+    exception to handle any Houdini-related error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/Error.html
+    """
     pass
 
-class InvalidInput(Exception):
-    """Raised when invalid input is provided to a Houdini operation."""
+class GeometryPermissionError(Error):
+    """Raised if you try to modify SOP geometry from outside of a Python SOP.
+
+    SOP geometry can only be modified within the context of a Python SOP node
+    or similar geometry manipulation context. Attempting to modify geometry
+    from outside these contexts will raise this error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/GeometryPermissionError.html
+    """
+    pass
+
+class HandleNotRegistered(Error):
+    """Raised if you try to use a custom handle that is not registered with the system.
+
+    Custom Python viewer handles must be registered before use. This error
+    indicates an attempt to use an unregistered handle.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/HandleNotRegistered.html
+    """
+    pass
+
+class InitScriptFailed(Error):
+    """Raised when an initialization script fails to execute.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InitScriptFailed.html
+    """
+    pass
+
+class InvalidGeometry(Error):
+    """Exception raised when you try to access a reference to SOP Geometry that has since failed to cook.
+
+    When a SOP node fails to cook, any Geometry objects referencing its
+    output become invalid. Attempting to use such objects raises this error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidGeometry.html
+    """
+    pass
+
+class InvalidInput(Error):
+    """Raised if you try to set a node's input to something invalid.
+
+    This error occurs when attempting to create invalid node connections,
+    such as connecting incompatible node types or creating circular dependencies.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidInput.html
+    """
+    pass
+
+class InvalidNodeType(Error):
+    """Raised if you try to call a method on a Node that doesn't support it.
+
+    Different node types have different methods available. This error indicates
+    an attempt to call a method not applicable to the specific node type.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidNodeType.html
+    """
+    pass
+
+class InvalidOutput(Error):
+    """Raised if you try to set a node's output to something invalid.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidOutput.html
+    """
+    pass
+
+class InvalidSize(Error):
+    """Raised when you pass a sequence of the wrong length to a function.
+
+    Many Houdini functions expect sequences of specific lengths (e.g., 3-tuples
+    for vectors). This error indicates a length mismatch.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidSize.html
+    """
+    pass
+
+class KeyframeValueNotSet(Error):
+    """Raised when attempting to access a keyframe value that hasn't been set.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/KeyframeValueNotSet.html
+    """
+    pass
+
+class LicenseError(Error):
+    """Raised when a licensing error occurs.
+
+    This error occurs when trying to access a feature or component without
+    the appropriate license, or when license validation fails.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/LicenseError.html
+    """
     pass
 
 class LoadWarning(Warning):
-    """Warning for non-fatal issues when loading hip files or assets."""
+    """Exception class for when loading a hip file in Houdini generates warnings.
+
+    This is a warning rather than an error, indicating non-fatal issues
+    encountered during file loading. The file loads successfully despite
+    the warnings.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/LoadWarning.html
+    """
     pass
+
+class MatchDefinitionError(Error):
+    """Raised when there's a match definition error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/MatchDefinitionError.html
+    """
+    pass
+
+class NameConflict(Error):
+    """Exception raised when a name conflict is detected during an operation.
+
+    This error occurs when attempting to create or rename something with
+    a name that already exists in the same namespace.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NameConflict.html
+    """
+    pass
+
+class NodeError(Error):
+    """Raise this exception in a Python node to signal that the node is in error.
+
+    When writing Python SOPs, DOPs, or other Python nodes, raise this exception
+    to put the node into an error state with a custom error message.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NodeError.html
+    """
+    pass
+
+class NodeWarning(Warning):
+    """Raise this exception in a Python node to signal that the node has a warning.
+
+    When writing Python SOPs, DOPs, or other Python nodes, raise this exception
+    to display a warning message without putting the node into an error state.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NodeWarning.html
+    """
+    pass
+
+class NotAvailable(Error):
+    """Raised when you try to call an API function/method that is not available.
+
+    Some API features may not be available depending on the Houdini license,
+    platform, or runtime context. This error indicates unavailable functionality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NotAvailable.html
+    """
+    pass
+
+class ObjectWasDeleted(Error):
+    """Raised when you try to access a reference to an object that has since been deleted.
+
+    When you hold a reference to a Houdini object (node, parameter, etc.) and
+    that object is deleted, subsequent attempts to use the reference raise
+    this error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ObjectWasDeleted.html
+    """
+    pass
+
+class OperationFailed(Error):
+    """Generic catch-all exception for various errors in Houdini that don't have their own dedicated exception classes.
+
+    This is used for operations that fail for various reasons when a more
+    specific exception type doesn't apply.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/OperationFailed.html
+    """
+    pass
+
+class OperationInterrupted(Error):
+    """Raised when an operation is interrupted by the user.
+
+    Long-running operations that can be interrupted (via Escape key or other
+    means) raise this exception when interrupted.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/OperationInterrupted.html
+    """
+    pass
+
+class PermissionError(Error):
+    """Raised when a permission error occurs.
+
+    This can occur when attempting file operations without proper permissions
+    or accessing restricted functionality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/PermissionError.html
+    """
+    pass
+
+class StateNotRegistered(Error):
+    """Raised if you try to unregister a Python state that was never registered.
+
+    Custom Python viewer states must be registered before they can be used
+    or unregistered. This error indicates an invalid unregistration attempt.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/StateNotRegistered.html
+    """
+    pass
+
+class SystemExit(Error):
+    """Raised when Houdini is exiting.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/SystemExit.html
+    """
+    pass
+
+class TypeConflict(Error):
+    """Raised if a type conflict occurs during an operation.
+
+    Type conflicts may occur during the registration of a python state or
+    python handle, or when attempting operations with incompatible types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/TypeConflict.html
+    """
+    pass
+
+# ============================================================================
+# ADDITIONAL SPECIALIZED CLASSES
+# ============================================================================
 
 # Additional specialized classes for different node types
 class Track:

@@ -2,6 +2,7 @@ addopts
 Affector
 agentic
 Agentic
+Aovs
 argparse
 Attribs
 attribwrangle
@@ -14,6 +15,7 @@ bclip
 bgeo
 bgeoc
 blosc
+camerapath
 Catmull
 cchain
 cctx
@@ -23,6 +25,7 @@ chsoplist
 cnode
 colorspace
 conftest
+controling
 CPIO
 CRGBA
 currentprim
@@ -120,15 +123,18 @@ oldeps
 oneline
 opdef
 orthowidth
+parametername
 parmdictionary
 parmname
 Parms
 parmtemplate
 parmtemplates
+parmtuple
 parmtype
 parmvalues
 Partitioner
 Perlin
+pickable
 playbar
 pointpattern
 popleft
@@ -138,6 +144,7 @@ primpath
 primpaths
 primpattern
 primtype
+propertyname
 ptgroup
 putenv
 pycache
@@ -162,6 +169,8 @@ rangey
 Rects
 Referer
 regkey
+renderpass
+rendersettings
 repeatt
 repr
 resim
@@ -191,6 +200,7 @@ soppath
 startfile
 startswith
 stype
+Sublayer
 subpaths
 testbox
 testgeo
@@ -202,7 +212,9 @@ topnet
 uncategorized
 undos
 unsetenv
+usdvaluetype
 venv
+viewports
 vmatch
 vmatchin
 vmatchout
