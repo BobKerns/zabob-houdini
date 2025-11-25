@@ -15,6 +15,7 @@ bclip
 bgeo
 bgeoc
 blosc
+BSDF
 camerapath
 Catmull
 cchain
@@ -27,9 +28,11 @@ cnode
 colorspace
 conftest
 controling
+Copnet
 CPIO
 CRGBA
 currentprim
+CVEX
 cycleoffset
 cycleoffsett
 cyclet
@@ -140,6 +143,7 @@ parmtuple
 parmtype
 parmvalues
 Partitioner
+Partitioners
 pathsegments
 Perlin
 pickable

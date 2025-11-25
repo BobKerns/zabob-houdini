@@ -785,55 +785,113 @@ class appearanceChangeType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/appearanceChangeType.html
     """
-    pass
+    Any: '_EnumValue[appearanceChangeType]'
+    ErrorState: '_EnumValue[appearanceChangeType]'
+    Pick: '_EnumValue[appearanceChangeType]'
+    Color: '_EnumValue[appearanceChangeType]'
+    DeleteScript: '_EnumValue[appearanceChangeType]'
+    Comment: '_EnumValue[appearanceChangeType]'
+    LockFlag: '_EnumValue[appearanceChangeType]'
+    CompressFlag: '_EnumValue[appearanceChangeType]'
+    OTLMatchState: '_EnumValue[appearanceChangeType]'
+    ActiveInput: '_EnumValue[appearanceChangeType]'
+    Connections: '_EnumValue[appearanceChangeType]'
+    ExpressionLanguage: '_EnumValue[appearanceChangeType]'
+    NetworkBox: '_EnumValue[appearanceChangeType]'
+    PostIt: '_EnumValue[appearanceChangeType]'
+    Dot: '_EnumValue[appearanceChangeType]'
+    Preview: '_EnumValue[appearanceChangeType]'
 
 class colorItemType(_Enum):
     """Enumeration for color item types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/colorItemType.html
     """
-    pass
+    NetworkBox: '_EnumValue[colorItemType]'
+    StickyNote: '_EnumValue[colorItemType]'
+    StickyNoteText: '_EnumValue[colorItemType]'
 
 class nodeEventType(_Enum):
     """Enumeration of types of events that can happen to nodes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/nodeEventType.html
     """
-    pass
+    BeingDeleted: '_EnumValue[nodeEventType]'  # Runs before node deleted (cannot cancel deletion)
+    NameChanged: '_EnumValue[nodeEventType]'  # Runs after node renamed
+    FlagChanged: '_EnumValue[nodeEventType]'  # Runs after node flag changed
+    AppearanceChanged: '_EnumValue[nodeEventType]'  # Runs after appearance change (includes change_type argument)
 
 class nodeFlag(_Enum):
     """Enumeration of the different node flags.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/nodeFlag.html
     """
-    pass
+    Audio: '_EnumValue[nodeFlag]'
+    Bypass: '_EnumValue[nodeFlag]'
+    ColorDefault: '_EnumValue[nodeFlag]'
+    Compress: '_EnumValue[nodeFlag]'
+    Current: '_EnumValue[nodeFlag]'
+    Debug: '_EnumValue[nodeFlag]'
+    Display: '_EnumValue[nodeFlag]'
+    DisplayComment: '_EnumValue[nodeFlag]'
+    DisplayDescriptiveName: '_EnumValue[nodeFlag]'
+    Export: '_EnumValue[nodeFlag]'
+    Expose: '_EnumValue[nodeFlag]'
+    Footprint: '_EnumValue[nodeFlag]'
+    Highlight: '_EnumValue[nodeFlag]'
+    InOutDetailLow: '_EnumValue[nodeFlag]'
+    InOutDetailMedium: '_EnumValue[nodeFlag]'
+    InOutDetailHigh: '_EnumValue[nodeFlag]'
+    Material: '_EnumValue[nodeFlag]'
+    Lock: '_EnumValue[nodeFlag]'
+    SoftLock: '_EnumValue[nodeFlag]'
+    Origin: '_EnumValue[nodeFlag]'
+    OutputForDisplay: '_EnumValue[nodeFlag]'
+    Pick: '_EnumValue[nodeFlag]'
+    Render: '_EnumValue[nodeFlag]'
+    Selectable: '_EnumValue[nodeFlag]'
+    Template: '_EnumValue[nodeFlag]'
+    Unload: '_EnumValue[nodeFlag]'
+    Visible: '_EnumValue[nodeFlag]'
+    XRay: '_EnumValue[nodeFlag]'
 
 class nodeTypeSource(_Enum):
     """Enumeration of node type sources.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/nodeTypeSource.html
     """
-    pass
+    Internal: '_EnumValue[nodeTypeSource]'
+    CompiledCode: '_EnumValue[nodeTypeSource]'
+    VexCode: '_EnumValue[nodeTypeSource]'
+    RslCode: '_EnumValue[nodeTypeSource]'
+    Subnet: '_EnumValue[nodeTypeSource]'
 
 class optionalBool(_Enum):
     """Enumeration of a generic tri-state value.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/optionalBool.html
     """
-    pass
+    Yes: '_EnumValue[optionalBool]'  # Equivalent to boolean True
+    No: '_EnumValue[optionalBool]'  # Equivalent to boolean False
+    NoOpinion: '_EnumValue[optionalBool]'  # Indicates lack of opinion
 
 class ropRenderEventType(_Enum):
     """Enumeration of types of events that can happen when a ROP node is rendering.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/ropRenderEventType.html
     """
-    pass
+    PreRender: '_EnumValue[ropRenderEventType]'  # Runs once before ROP begins rendering
+    PreFrame: '_EnumValue[ropRenderEventType]'  # Runs before each frame rendered
+    PostFrame: '_EnumValue[ropRenderEventType]'  # Runs after each frame finishes rendering
+    PostWrite: '_EnumValue[ropRenderEventType]'  # Runs after output files written to disk
+    PostRender: '_EnumValue[ropRenderEventType]'  # Runs once after ROP finishes rendering
 
 class videoDriver(_Enum):
     """Enumeration of drivers that provide video functionality.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/videoDriver.html
     """
+    # Note: No specific enum values documented - accessed via hou.videoEncoders()
     pass
 
 class nodeTypeFilter(_Enum):
@@ -841,7 +899,42 @@ class nodeTypeFilter(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/nodeTypeFilter.html
     """
-    pass
+    NoFilter: '_EnumValue[nodeTypeFilter]'  # Any node
+    Sop: '_EnumValue[nodeTypeFilter]'  # Any SOP
+    Dop: '_EnumValue[nodeTypeFilter]'  # Any DOP
+    Chop: '_EnumValue[nodeTypeFilter]'  # Any CHOP
+    Chopnet: '_EnumValue[nodeTypeFilter]'  # Any CHOP Network
+    Cop2: '_EnumValue[nodeTypeFilter]'  # Any COP2
+    Copnet: '_EnumValue[nodeTypeFilter]'  # Any COP2 Network
+    Vop: '_EnumValue[nodeTypeFilter]'  # Any VOP
+    Vopnet: '_EnumValue[nodeTypeFilter]'  # Any VOP Network
+    Rop: '_EnumValue[nodeTypeFilter]'  # Any ROP
+    Lop: '_EnumValue[nodeTypeFilter]'  # Any LOP
+    Top: '_EnumValue[nodeTypeFilter]'  # Any TOP
+    Shop: '_EnumValue[nodeTypeFilter]'  # Any SHOP
+    Obj: '_EnumValue[nodeTypeFilter]'  # Any Object
+    ObjBone: '_EnumValue[nodeTypeFilter]'  # Object: Bone Only
+    ObjCamera: '_EnumValue[nodeTypeFilter]'  # Object: Camera Only
+    ObjFog: '_EnumValue[nodeTypeFilter]'  # Object: Fog Only
+    ObjGeometry: '_EnumValue[nodeTypeFilter]'  # Object: Geometry Only
+    ObjGeometryOrFog: '_EnumValue[nodeTypeFilter]'  # Object: Geometry and Fog Only
+    ObjLight: '_EnumValue[nodeTypeFilter]'  # Object: Light Only
+    ObjMuscle: '_EnumValue[nodeTypeFilter]'  # Object: Muscle Only
+    ObjSubnet: '_EnumValue[nodeTypeFilter]'  # Object: Subnet Only
+    ShopAtmosphere: '_EnumValue[nodeTypeFilter]'  # Shop: Atmosphere Only
+    ShopCVEX: '_EnumValue[nodeTypeFilter]'  # Shop: CVEX Only
+    ShopDisplacement: '_EnumValue[nodeTypeFilter]'  # Shop: Displacement Only
+    ShopImage3D: '_EnumValue[nodeTypeFilter]'  # Shop: Image3D Only
+    ShopInterior: '_EnumValue[nodeTypeFilter]'  # Shop: Interior Only
+    ShopLight: '_EnumValue[nodeTypeFilter]'  # Shop: Light Only
+    ShopLightShadow: '_EnumValue[nodeTypeFilter]'  # Shop: Light Shadow Only
+    ShopMaterial: '_EnumValue[nodeTypeFilter]'  # Shop: Material Only
+    ShopPhoton: '_EnumValue[nodeTypeFilter]'  # Shop: Photon Only
+    ShopProperties: '_EnumValue[nodeTypeFilter]'  # Shop: Properties Only
+    ShopSurface: '_EnumValue[nodeTypeFilter]'  # Shop: Surface Only
+    TopScheduler: '_EnumValue[nodeTypeFilter]'  # Top: Schedulers Only
+    TopPartitioner: '_EnumValue[nodeTypeFilter]'  # Top: Partitioners Only
+    TopProcessor: '_EnumValue[nodeTypeFilter]'  # Top: Processors Only
 
 # ============================================================================
 # PARAMETERS ENUMERATIONS
@@ -852,7 +945,10 @@ class parmBakeChop(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/parmBakeChop.html
     """
-    pass
+    Off: '_EnumValue[parmBakeChop]'
+    KeepExportFlag: '_EnumValue[parmBakeChop]'
+    DisableExportFlag: '_EnumValue[parmBakeChop]'
+    CreateDeleteChop: '_EnumValue[parmBakeChop]'
 
 # ============================================================================
 # PLAYBAR ENUMERATIONS
@@ -863,14 +959,20 @@ class playMode(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/playMode.html
     """
-    pass
+    Loop: '_EnumValue[playMode]'  # Play through the frame range and loop back to the beginning
+    Once: '_EnumValue[playMode]'  # Play through the frame range and stop at the end
+    Zigzag: '_EnumValue[playMode]'  # Play through and reverse direction at the end
+    Forever: '_EnumValue[playMode]'  # Play through and keep playing past the end
 
 class playbarEvent(_Enum):
     """Enumeration of the playbar events that can be handled by callback functions.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/playbarEvent.html
     """
-    pass
+    FrameChanged: '_EnumValue[playbarEvent]'
+    RangeChanged: '_EnumValue[playbarEvent]'
+    ChannelListChanged: '_EnumValue[playbarEvent]'
+    KeyChanged: '_EnumValue[playbarEvent]'
 
 # ============================================================================
 # RADIAL MENUS ENUMERATIONS
@@ -881,7 +983,14 @@ class radialItemLocation(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/radialItemLocation.html
     """
-    pass
+    Top: '_EnumValue[radialItemLocation]'
+    TopLeft: '_EnumValue[radialItemLocation]'
+    Left: '_EnumValue[radialItemLocation]'
+    BottomLeft: '_EnumValue[radialItemLocation]'
+    Bottom: '_EnumValue[radialItemLocation]'
+    BottomRight: '_EnumValue[radialItemLocation]'
+    Right: '_EnumValue[radialItemLocation]'
+    TopRight: '_EnumValue[radialItemLocation]'
 
 # ============================================================================
 # SHADING ENUMERATIONS
@@ -892,7 +1001,27 @@ class shaderType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/shaderType.html
     """
-    pass
+    Invalid: '_EnumValue[shaderType]'
+    Surface: '_EnumValue[shaderType]'
+    SurfaceShadow: '_EnumValue[shaderType]'
+    Displacement: '_EnumValue[shaderType]'
+    Geometry: '_EnumValue[shaderType]'
+    Interior: '_EnumValue[shaderType]'
+    Light: '_EnumValue[shaderType]'
+    LightShadow: '_EnumValue[shaderType]'
+    Atmosphere: '_EnumValue[shaderType]'
+    Lens: '_EnumValue[shaderType]'
+    Output: '_EnumValue[shaderType]'
+    Background: '_EnumValue[shaderType]'
+    Photon: '_EnumValue[shaderType]'
+    Image3D: '_EnumValue[shaderType]'
+    BSDF: '_EnumValue[shaderType]'
+    CVEX: '_EnumValue[shaderType]'
+    Mutable: '_EnumValue[shaderType]'
+    Properties: '_EnumValue[shaderType]'
+    Material: '_EnumValue[shaderType]'
+    VopMaterial: '_EnumValue[shaderType]'
+    ShaderClass: '_EnumValue[shaderType]'
 
 # ============================================================================
 # UTILITY ENUMERATIONS
@@ -903,7 +1032,9 @@ class compressionType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/compressionType.html
     """
-    pass
+    Gzip: '_EnumValue[compressionType]'  # Compress using Gzip
+    Blosc: '_EnumValue[compressionType]'  # Compress using Blosc
+    NoCompression: '_EnumValue[compressionType]'  # Do not compress
 
 # ============================================================================
 # VEX ENUMERATIONS
@@ -914,7 +1045,9 @@ class vopParmGenType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/vopParmGenType.html
     """
-    pass
+    Constant: '_EnumValue[vopParmGenType]'  # Create a Constant VOP and connect it to the VOP node's input
+    Parameter: '_EnumValue[vopParmGenType]'  # Create a Parameter VOP and connect it to the VOP node's input (promoted to network interface)
+    SubnetInput: '_EnumValue[vopParmGenType]'  # Create a Parameter VOP with Subnet scope (promoted to owning Subnet VOP's interface)
 
 # ============================================================================
 # UI ENUMERATIONS
