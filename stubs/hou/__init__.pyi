@@ -1502,56 +1502,90 @@ class pickFacing(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/pickFacing.html
     """
-    pass
+    Front: '_EnumValue[pickFacing]'
+    Back: '_EnumValue[pickFacing]'
+    FrontAndBack: '_EnumValue[pickFacing]'
 
 class pickModifier(_Enum):
     """Enumeration of methods for modifying selections with new components.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/pickModifier.html
     """
-    pass
+    Add: '_EnumValue[pickModifier]'
+    Toggle: '_EnumValue[pickModifier]'
+    Remove: '_EnumValue[pickModifier]'
+    Replace: '_EnumValue[pickModifier]'
+    Intersect: '_EnumValue[pickModifier]'
 
 class pickStyle(_Enum):
     """Enumeration of pick styles.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/pickStyle.html
     """
-    pass
+    Box: '_EnumValue[pickStyle]'
+    Lasso: '_EnumValue[pickStyle]'
+    Brush: '_EnumValue[pickStyle]'
+    Laser: '_EnumValue[pickStyle]'
 
 class positionType(_Enum):
     """Enumeration of spaces.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/positionType.html
     """
-    pass
+    WorldSpace: '_EnumValue[positionType]'
+    ViewportXY: '_EnumValue[positionType]'
+    ViewportUV: '_EnumValue[positionType]'
 
 class resourceType(_Enum):
     """Enumeration of resources such as viewer states and viewer handles.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/resourceType.html
     """
-    pass
+    ViewerState: '_EnumValue[resourceType]'  # Viewer State resource
+    ViewerHandle: '_EnumValue[resourceType]'  # Viewer Handle resource
+    Package: '_EnumValue[resourceType]'  # Package resource
+    NoType: '_EnumValue[resourceType]'  # Not a valid type
 
 class sceneViewerEvent(_Enum):
     """Enumeration of the UI events a scene viewer can listen to via a callback.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/sceneViewerEvent.html
     """
-    pass
+    BeginResize: '_EnumValue[sceneViewerEvent]'  # Sent when the user has started resizing a viewer window
+    EndResize: '_EnumValue[sceneViewerEvent]'  # Sent when the user has ended resizing a viewer window
+    Resizing: '_EnumValue[sceneViewerEvent]'  # Sent whenever a viewer window is being resized interactively
+    SizeChanged: '_EnumValue[sceneViewerEvent]'  # Sent whenever a viewer window size has changed
+    LayoutChanged: '_EnumValue[sceneViewerEvent]'  # Sent when the viewport layout has been changed
+    ColorSchemeChanged: '_EnumValue[sceneViewerEvent]'  # Sent when the viewer color scheme has changed
+    SelectedViewportChanged: '_EnumValue[sceneViewerEvent]'  # Sent when a viewport has been selected
+    ViewerActivated: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer panel tab is selected
+    ViewerDeactivated: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer panel tab is deselected
+    ViewerTerminated: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer is terminated
+    StateInterrupted: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state is interrupted
+    StateResumed: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state is resumed
+    StateEntered: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state has entered
+    StateExited: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state has exited
+    PrefChanged: '_EnumValue[sceneViewerEvent]'  # Sent when a preference has been changed
 
 class selectionMode(_Enum):
     """Enumeration of selection modes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/selectionMode.html
     """
-    pass
+    Object: '_EnumValue[selectionMode]'
+    Geometry: '_EnumValue[selectionMode]'
+    Dynamics: '_EnumValue[selectionMode]'
 
 class snappingMode(_Enum):
     """Enumeration of snapping modes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/snappingMode.html
     """
-    pass
+    Off: '_EnumValue[snappingMode]'
+    Grid: '_EnumValue[snappingMode]'
+    Prim: '_EnumValue[snappingMode]'
+    Point: '_EnumValue[snappingMode]'
+    Multi: '_EnumValue[snappingMode]'
 
 class snappingPriority(_Enum):
     """Enumeration of snapping priority.
