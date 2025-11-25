@@ -33,7 +33,7 @@ import datetime
 
 
 from hrecipes.api.networkitems import SubnetIndirectInput
-#from searchbox.radialmenus import RadialMenus
+from searchbox.radialmenus import RadialMenus
 
 # Type variables for generic operations
 T = TypeVar('T')
