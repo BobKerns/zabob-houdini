@@ -46,6 +46,7 @@ coverage.xml
 cover/
 *.backup
 test-results*.xml
+.mypy_cache/
 
 # Virtual environments
 .venv
@@ -65,6 +66,8 @@ venv.bak/
 *.swp
 *.swo
 *~
+\#*
+*\#
 
 # VS Code - all configs are now tracked
 # Personal customizations can use .git/info/exclude if needed
@@ -100,6 +103,7 @@ sim/
 *.houdini_backup
 houdini.env.bak
 houdini*.env.bak
+hip/
 
 # Houdini temp/cache files
 *.tmp

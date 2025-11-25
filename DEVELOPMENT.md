@@ -93,6 +93,17 @@ uv sync  # Will use Python 3.11
 
 ## Testing
 
+### Test Architecture
+
+Zabob-houdini uses a **split testing architecture** to handle Houdini's Python environment requirements:
+
+- **[tests/README.md](tests/README.md)**: Pytest side - orchestrates test execution without importing `hou`
+- **[src/testing/README.md](src/testing/README.md)**: Hython side - implements tests that run in Houdini's environment
+
+This separation is necessary because importing `hou` outside of Houdini causes segmentation faults. See the README files above for detailed guidance on writing tests.
+
+### Running Tests
+
 The project uses a two-tier testing approach to support both local development and CI:
 
 **Quick Test Commands:**

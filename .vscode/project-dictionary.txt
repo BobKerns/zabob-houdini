@@ -38,6 +38,7 @@ destimage
 diffable
 docstrings
 dophints
+dopnet
 dotenv
 drawables
 dsolib
@@ -124,6 +125,7 @@ parmtemplate
 parmtemplates
 parmvalues
 Partitioner
+Perlin
 playbar
 pointpattern
 popleft
@@ -163,8 +165,12 @@ resultdatatag
 rtype
 sdist
 segfaulting
+SEGV
 selectionrule
 sesinetd
+shearx
+sheary
+shearz
 SIDEFX
 signum
 SIGPIPE
@@ -174,6 +180,7 @@ simdata
 sizex
 sizey
 sizez
+slerp
 softprops
 sopnode
 soppath
@@ -202,6 +209,7 @@ wirestyle
 worktree
 worktrees
 xform
+xforms
 xres
 XYWH
 XYZW
