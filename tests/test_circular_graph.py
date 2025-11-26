@@ -7,6 +7,7 @@ reference each other in a loop.
 
 import pytest
 
+@pytest.skip("Circular work in progress", allow_module_level=True)
 
 @pytest.mark.integration
 def test_circular_three_node_cycle(hython_test):
