@@ -14,6 +14,8 @@ bakpac
 bclip
 bgeo
 bgeoc
+blendshape
+blendshapes
 blosc
 BSDF
 camerapath
@@ -94,6 +96,7 @@ Hscript
 htmlcov
 hview
 hython
+inbetweens
 inputgeolist
 inputidx
 inputimagelist
@@ -197,6 +200,7 @@ segfaulting
 SEGV
 selectionrule
 sesinetd
+shapelib
 shearx
 sheary
 shearz

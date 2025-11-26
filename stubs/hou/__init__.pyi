@@ -6618,6 +6618,1664 @@ class PackedFragment(PackedPrim):
     """Packed primitive referencing an RBD fragment."""
     pass
 
+# ============================================================================
+# AGENT CLASSES (Crowd Simulation)
+# ============================================================================
+
+class Agent(PackedPrim):
+    """An agent primitive for crowd simulations.
+
+    Inheritance: hou.Prim → hou.PackedPrim → hou.Agent
+
+    An agent is a special type of packed primitive that contains animated characters
+    for crowd simulations. Each agent has a rig (skeleton), clips (animations), shapes
+    (geometry), and layers (shape bindings).
+
+    Example::
+
+        agent = geo.prims()[0]  # Get first agent primitive
+
+        # Access agent components
+        rig = agent.rig()
+        definition = agent.definition()
+        clips = agent.clips()
+
+        # Modify clip blending
+        agent.setClips(['walk', 'run'])
+        agent.setClipTimes([1.5, 0.5])
+        agent.setClipWeights([0.7, 0.3])
+
+        # Access transforms
+        transform = agent.localTransform(0)  # Get root transform
+        agent.setLocalTransform(0, new_transform)
+
+        # Channel values (animation channels)
+        value = agent.channelValue('speed')
+        agent.setChannelValue('speed', 2.5)
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html
+    See [Crowd Agents](https://www.sidefx.com/docs/houdini/crowds/agents.html) for more information.
+    """
+
+    def channelValue(self, channel_name: str) -> float:
+        """Return the value of an animation channel.
+
+        Args:
+            channel_name: Name of the channel to query
+
+        Returns:
+            The current channel value
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#channelValue
+        """
+        ...
+
+    def clipCatalog(self) -> tuple[str, ...]:
+        """Return the names of all clips in the agent's definition.
+
+        Returns:
+            Tuple of clip names available to this agent
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clipCatalog
+        """
+        ...
+
+    def clips(self) -> tuple['AgentClip', ...]:
+        """Return the current animation clips being played.
+
+        Returns:
+            Tuple of AgentClip objects currently active
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clips
+        """
+        ...
+
+    def clipTimes(self) -> tuple[float, ...]:
+        """Return the current time values for each active clip.
+
+        Returns:
+            Tuple of time values (in seconds) for each clip
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clipTimes
+        """
+        ...
+
+    def clipWeights(self) -> tuple[float, ...]:
+        """Return the blend weights for each active clip.
+
+        Returns:
+            Tuple of weights (0-1) for blending clips
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clipWeights
+        """
+        ...
+
+    def collisionLayer(self) -> str:
+        """Return the name of the collision layer (deprecated - use collisionLayers()).
+
+        Returns:
+            Name of the collision layer
+
+        .. deprecated:: Use collisionLayers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#collisionLayer
+        """
+        ...
+
+    def collisionLayers(self) -> tuple[str, ...]:
+        """Return the names of the collision layers.
+
+        Returns:
+            Tuple of collision layer names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#collisionLayers
+        """
+        ...
+
+    def currentLayer(self) -> str:
+        """Return the name of the current display layer (deprecated - use layers()).
+
+        Returns:
+            Name of the current layer
+
+        .. deprecated:: Use layers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#currentLayer
+        """
+        ...
+
+    def definition(self) -> 'AgentDefinition':
+        """Return the agent's definition (shared data).
+
+        Returns:
+            AgentDefinition containing rig, shapes, clips, and layers
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#definition
+        """
+        ...
+
+    def layers(self) -> tuple[str, ...]:
+        """Return the names of the current display layers.
+
+        Returns:
+            Tuple of layer names currently active for display
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#layers
+        """
+        ...
+
+    def localTransform(self, transform_index: int) -> Matrix4:
+        """Return the local transform for a specific joint.
+
+        Args:
+            transform_index: Index of the transform in the rig
+
+        Returns:
+            4x4 transformation matrix in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#localTransform
+        """
+        ...
+
+    def rig(self) -> 'AgentRig':
+        """Return the agent's rig (skeleton hierarchy).
+
+        Returns:
+            AgentRig defining the transform hierarchy
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#rig
+        """
+        ...
+
+    def setChannelValue(self, channel_name: str, value: float) -> None:
+        """Set the value of an animation channel.
+
+        Args:
+            channel_name: Name of the channel to set
+            value: New value for the channel
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setChannelValue
+        """
+        ...
+
+    def setClips(self, clip_names: Sequence[str]) -> None:
+        """Set the animation clips to play.
+
+        Args:
+            clip_names: Names of clips from the agent's clip catalog
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setClips
+        """
+        ...
+
+    def setClipTimes(self, times: Sequence[float]) -> None:
+        """Set the time values for each active clip.
+
+        Args:
+            times: Time values (in seconds) for each clip
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setClipTimes
+        """
+        ...
+
+    def setClipWeights(self, weights: Sequence[float]) -> None:
+        """Set the blend weights for each active clip.
+
+        Args:
+            weights: Weight values (0-1) for blending clips
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setClipWeights
+        """
+        ...
+
+    def setCollisionLayer(self, layer_name: str) -> None:
+        """Set the collision layer (deprecated - use setCollisionLayers()).
+
+        Args:
+            layer_name: Name of the collision layer
+
+        .. deprecated:: Use setCollisionLayers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCollisionLayer
+        """
+        ...
+
+    def setCollisionLayers(self, layer_names: Sequence[str]) -> None:
+        """Set the collision layers.
+
+        Args:
+            layer_names: Names of the collision layers
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCollisionLayers
+        """
+        ...
+
+    def setCurrentLayer(self, layer_name: str) -> None:
+        """Set the current display layer (deprecated - use setCurrentLayers()).
+
+        Args:
+            layer_name: Name of the layer to display
+
+        .. deprecated:: Use setCurrentLayers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCurrentLayer
+        """
+        ...
+
+    def setCurrentLayers(self, layer_names: Sequence[str]) -> None:
+        """Set the current display layers.
+
+        Args:
+            layer_names: Names of the layers to display
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCurrentLayers
+        """
+        ...
+
+    def setDefinition(self, definition: 'AgentDefinition') -> None:
+        """Set the agent's definition.
+
+        Args:
+            definition: New AgentDefinition to use
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setDefinition
+        """
+        ...
+
+    def setLocalTransform(self, transform_index: int, transform: Matrix4) -> None:
+        """Set the local transform for a specific joint.
+
+        Args:
+            transform_index: Index of the transform in the rig
+            transform: 4x4 transformation matrix in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setLocalTransform
+        """
+        ...
+
+    def worldTransform(self, transform_index: int) -> Matrix4:
+        """Return the world transform for a specific joint.
+
+        Args:
+            transform_index: Index of the transform in the rig
+
+        Returns:
+            4x4 transformation matrix in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#worldTransform
+        """
+        ...
+
+
+class AgentClip:
+    """An animation clip for agents in crowd simulations.
+
+    AgentClip stores animation data as a sequence of transform samples over time.
+    Clips can be loaded from files, created from CHOPs, or built programmatically.
+
+    Example::
+
+        # Load clip from file
+        clip = hou.AgentClip('/path/to/clip.bclip')
+
+        # Create from CHOP
+        chop = hou.node('/obj/agent/motion1')
+        clip = hou.AgentClip(chop, 'walk')
+
+        # Query clip properties
+        name = clip.name()
+        duration = clip.sampleCount() / clip.sampleRate()
+
+        # Access transform data
+        transforms = clip.localTransforms(0.5)  # At time 0.5
+        world_xforms = clip.worldTransforms(1.0)
+
+        # Sample specific transform
+        xform = clip.sampleLocal(0.5, 0)  # Time 0.5, transform index 0
+
+        # Channel data
+        channels = clip.channelNames()
+        value = clip.sample(0.5, 'speed')  # Sample channel at time 0.5
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html
+    """
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a clip from a .bclip or .clip file.
+
+        Args:
+            file_path: Path to the clip file
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, chop_node: 'Node', clip_name: str,
+                 sample_rate: float = 0.0, start_time: float = 0.0,
+                 end_time: float = -1.0, rig: 'AgentRig | None' = None) -> None:
+        """Create a clip from a CHOP node.
+
+        Args:
+            chop_node: CHOP node containing animation channels
+            clip_name: Name for the new clip
+            sample_rate: Samples per second (0 = use CHOP rate)
+            start_time: Start time in CHOP range
+            end_time: End time in CHOP range (-1 = use CHOP end)
+            rig: Optional rig for transform mapping
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, clip_name: str, rig: 'AgentRig',
+                 sample_count: int, sample_rate: float) -> None:
+        """Create an empty clip with specified properties.
+
+        Args:
+            clip_name: Name for the new clip
+            rig: Rig defining the transform hierarchy
+            sample_count: Number of samples in the clip
+            sample_rate: Samples per second
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, other_clip: 'AgentClip') -> None:
+        """Create a copy of an existing clip.
+
+        Args:
+            other_clip: Clip to copy
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    def addChannel(self, channel_name: str, default_value: float = 0.0) -> None:
+        """Add a custom animation channel to the clip.
+
+        Args:
+            channel_name: Name for the new channel
+            default_value: Default value for all samples
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#addChannel
+        """
+        ...
+
+    def allLocalTransformValues(self) -> tuple[float, ...]:
+        """Return all local transform values as a flat tuple.
+
+        Returns:
+            Flat tuple of transform matrix values for all samples
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#allLocalTransformValues
+        """
+        ...
+
+    def channelNames(self) -> tuple[str, ...]:
+        """Return the names of all custom channels in the clip.
+
+        Returns:
+            Tuple of channel names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#channelNames
+        """
+        ...
+
+    def data(self, binary: bool = False) -> str | bytes:
+        """Return the clip data in ASCII or binary format.
+
+        Args:
+            binary: If True, return binary format; otherwise ASCII JSON
+
+        Returns:
+            Clip data as string (ASCII) or bytes (binary)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#data
+        """
+        ...
+
+    def extractLocomotion(self, transform_index: int,
+                         convert_to_z_up: bool = False,
+                         convert_from_y_up: bool = True) -> 'AgentClip':
+        """Extract locomotion from a transform and bake it into a new clip.
+
+        Args:
+            transform_index: Index of the transform to extract from
+            convert_to_z_up: Convert locomotion to Z-up convention
+            convert_from_y_up: Assume source is Y-up convention
+
+        Returns:
+            New clip with extracted locomotion
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#extractLocomotion
+        """
+        ...
+
+    def localTransforms(self, time: float) -> tuple[Matrix4, ...]:
+        """Return all local transforms at a specific time.
+
+        Args:
+            time: Time in seconds to sample
+
+        Returns:
+            Tuple of 4x4 matrices for all transforms in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#localTransforms
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the clip's name.
+
+        Returns:
+            The clip name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#name
+        """
+        ...
+
+    def sample(self, time: float, channel_name: str) -> float:
+        """Sample a custom channel at a specific time.
+
+        Args:
+            time: Time in seconds to sample
+            channel_name: Name of the channel to sample
+
+        Returns:
+            Interpolated channel value at the given time
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sample
+        """
+        ...
+
+    def sampleCount(self) -> int:
+        """Return the number of samples in the clip.
+
+        Returns:
+            Sample count
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleCount
+        """
+        ...
+
+    def sampleLocal(self, time: float, transform_index: int) -> Matrix4:
+        """Sample a specific transform in local space at a given time.
+
+        Args:
+            time: Time in seconds to sample
+            transform_index: Index of the transform to sample
+
+        Returns:
+            4x4 matrix for the transform in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleLocal
+        """
+        ...
+
+    def sampleRate(self) -> float:
+        """Return the clip's sample rate (samples per second).
+
+        Returns:
+            Sample rate in Hz
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleRate
+        """
+        ...
+
+    def sampleWorld(self, time: float, transform_index: int) -> Matrix4:
+        """Sample a specific transform in world space at a given time.
+
+        Args:
+            time: Time in seconds to sample
+            transform_index: Index of the transform to sample
+
+        Returns:
+            4x4 matrix for the transform in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleWorld
+        """
+        ...
+
+    def setAllLocalTransformValues(self, values: Sequence[float]) -> None:
+        """Set all local transform values from a flat sequence.
+
+        Args:
+            values: Flat sequence of transform matrix values
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#setAllLocalTransformValues
+        """
+        ...
+
+    def setLocalTransforms(self, sample_index: int,
+                          transforms: Sequence[Matrix4]) -> None:
+        """Set the local transforms for a specific sample.
+
+        Args:
+            sample_index: Index of the sample to modify
+            transforms: Sequence of 4x4 matrices for all transforms
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#setLocalTransforms
+        """
+        ...
+
+    def startTime(self) -> float:
+        """Return the clip's start time.
+
+        Returns:
+            Start time in seconds
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#startTime
+        """
+        ...
+
+    def worldTransforms(self, time: float) -> tuple[Matrix4, ...]:
+        """Return all world transforms at a specific time.
+
+        Args:
+            time: Time in seconds to sample
+
+        Returns:
+            Tuple of 4x4 matrices for all transforms in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#worldTransforms
+        """
+        ...
+
+
+class AgentRig:
+    """A rig defining the transform hierarchy and channels for agents.
+
+    AgentRig defines the skeleton structure (transforms and their parent-child
+    relationships) and animation channels for an agent. It's the foundation that
+    clips animate and shapes are bound to.
+
+    Example::
+
+        # Load rig from file
+        rig = hou.AgentRig('/path/to/rig.json')
+
+        # Create from SOP hierarchy
+        subnet = hou.node('/obj/agent/skeleton')
+        rig = hou.AgentRig(subnet)
+
+        # Query structure
+        count = rig.transformCount()
+        names = rig.transformNames()
+        hierarchy = rig.transformHierarchy()
+
+        # Access transforms
+        rest_xform = rig.restLocalTransform(0)
+        world_xform = rig.restWorldTransform(0)
+
+        # Query channels
+        channel_count = rig.channelCount()
+        channel_name = rig.channelName(0)
+        default_val = rig.channelDefaultValue('speed')
+
+        # Find by name
+        xform_idx = rig.findTransform('spine')
+        channel_idx = rig.findChannel('speed')
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html
+    """
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a rig from a JSON file.
+
+        Args:
+            file_path: Path to the rig JSON file
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, subnet: 'Node') -> None:
+        """Create a rig from a subnet's transform hierarchy.
+
+        Args:
+            subnet: Subnet node containing transform hierarchy
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#__init__
+        """
+        ...
+
+    def addChannel(self, channel_name: str, default_value: float = 0.0,
+                   transform_index: int = -1) -> None:
+        """Add a custom channel to the rig.
+
+        Args:
+            channel_name: Name for the new channel
+            default_value: Default value for the channel
+            transform_index: Optional transform to associate with (-1 = none)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#addChannel
+        """
+        ...
+
+    def asJSON(self) -> str:
+        """Export the rig as JSON string.
+
+        Returns:
+            JSON representation of the rig
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#asJSON
+        """
+        ...
+
+    def channelCount(self) -> int:
+        """Return the number of channels in the rig.
+
+        Returns:
+            Channel count
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelCount
+        """
+        ...
+
+    def channelDefaultValue(self, channel_name: str) -> float:
+        """Return the default value for a channel.
+
+        Args:
+            channel_name: Name of the channel
+
+        Returns:
+            Default value
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelDefaultValue
+        """
+        ...
+
+    def channelName(self, channel_index: int) -> str:
+        """Return the name of a channel by index.
+
+        Args:
+            channel_index: Index of the channel
+
+        Returns:
+            Channel name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelName
+        """
+        ...
+
+    def channelTransform(self, channel_name: str) -> int:
+        """Return the transform index associated with a channel.
+
+        Args:
+            channel_name: Name of the channel
+
+        Returns:
+            Transform index (-1 if not associated with a transform)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelTransform
+        """
+        ...
+
+    def childIndices(self, transform_index: int) -> tuple[int, ...]:
+        """Return the child transform indices for a transform.
+
+        Args:
+            transform_index: Index of the parent transform
+
+        Returns:
+            Tuple of child transform indices
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#childIndices
+        """
+        ...
+
+    def fileName(self) -> str:
+        """Return the file path if the rig was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#fileName
+        """
+        ...
+
+    def findChannel(self, channel_name: str) -> int:
+        """Find a channel by name.
+
+        Args:
+            channel_name: Name of the channel to find
+
+        Returns:
+            Channel index or -1 if not found
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#findChannel
+        """
+        ...
+
+    def findTransform(self, transform_name: str) -> int:
+        """Find a transform by name.
+
+        Args:
+            transform_name: Name of the transform to find
+
+        Returns:
+            Transform index or -1 if not found
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#findTransform
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the rig to prevent further modifications.
+
+        This optimizes memory usage by making the rig immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#freeze
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the rig references an external file.
+
+        Returns:
+            True if the rig is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the rig's name.
+
+        Returns:
+            The rig name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#name
+        """
+        ...
+
+    def parentIndex(self, transform_index: int) -> int:
+        """Return the parent transform index for a transform.
+
+        Args:
+            transform_index: Index of the child transform
+
+        Returns:
+            Parent transform index (-1 for root transforms)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#parentIndex
+        """
+        ...
+
+    def restLocalTransform(self, transform_index: int) -> Matrix4:
+        """Return the rest transform in local space.
+
+        Args:
+            transform_index: Index of the transform
+
+        Returns:
+            4x4 rest transform matrix in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#restLocalTransform
+        """
+        ...
+
+    def restWorldTransform(self, transform_index: int) -> Matrix4:
+        """Return the rest transform in world space.
+
+        Args:
+            transform_index: Index of the transform
+
+        Returns:
+            4x4 rest transform matrix in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#restWorldTransform
+        """
+        ...
+
+    def setRestLocalTransforms(self, transforms: Sequence[Matrix4]) -> None:
+        """Set the rest transforms for all transforms.
+
+        Args:
+            transforms: Sequence of 4x4 matrices for all transforms
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#setRestLocalTransforms
+        """
+        ...
+
+    def transformCount(self) -> int:
+        """Return the number of transforms in the rig.
+
+        Returns:
+            Transform count
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformCount
+        """
+        ...
+
+    def transformName(self, transform_index: int) -> str:
+        """Return the name of a transform by index.
+
+        Args:
+            transform_index: Index of the transform
+
+        Returns:
+            Transform name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformName
+        """
+        ...
+
+    def transformNames(self) -> tuple[str, ...]:
+        """Return all transform names.
+
+        Returns:
+            Tuple of transform names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformNames
+        """
+        ...
+
+    def transformHierarchy(self) -> tuple[int, ...]:
+        """Return the parent indices for all transforms.
+
+        Returns:
+            Tuple where each value is the parent index for that transform
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformHierarchy
+        """
+        ...
+
+
+class AgentDefinition:
+    """Shared data container for agents (rig, shapes, clips, layers).
+
+    AgentDefinition is the central data structure for agents, containing:
+    - One rig (skeleton hierarchy)
+    - One shape library (geometry shapes)
+    - Multiple clips (animations)
+    - Multiple layers (shape bindings)
+    - Transform groups (named sets of transforms)
+    - Metadata
+
+    Multiple agent primitives can share the same definition for efficiency.
+
+    Example::
+
+        # Create definition from rig and shape library
+        rig = hou.AgentRig('/path/to/rig.json')
+        shapelib = hou.AgentShapeLibrary()
+        definition = hou.AgentDefinition(rig, shapelib)
+
+        # Add clips
+        walk_clip = hou.AgentClip('/path/to/walk.bclip')
+        definition.addClip(walk_clip)
+
+        # Add layers
+        layer = hou.AgentLayer('/path/to/layer.json')
+        definition.addLayer(layer)
+
+        # Query components
+        clips = definition.clips()
+        layers = definition.layers()
+        walk = definition.findClip('walk')
+
+        # Manage transform groups
+        group = hou.AgentTransformGroup(...)
+        definition.addTransformGroup(group)
+
+        # Freeze for optimization
+        definition.freeze()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html
+    """
+
+    def __init__(self, rig: 'AgentRig', shape_library: 'AgentShapeLibrary') -> None:
+        """Create an agent definition from a rig and shape library.
+
+        Args:
+            rig: AgentRig defining the transform hierarchy
+            shape_library: AgentShapeLibrary containing shapes
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#__init__
+        """
+        ...
+
+    def addClip(self, clip: 'AgentClip') -> None:
+        """Add an animation clip to the definition.
+
+        Args:
+            clip: AgentClip to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#addClip
+        """
+        ...
+
+    def addLayer(self, layer: 'AgentLayer') -> None:
+        """Add a layer to the definition.
+
+        Args:
+            layer: AgentLayer to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#addLayer
+        """
+        ...
+
+    def addTransformGroup(self, group: 'AgentTransformGroup') -> None:
+        """Add a transform group to the definition.
+
+        Args:
+            group: AgentTransformGroup to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#addTransformGroup
+        """
+        ...
+
+    def clips(self) -> tuple[str, ...]:
+        """Return the names of all clips in the definition.
+
+        Returns:
+            Tuple of clip names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#clips
+        """
+        ...
+
+    def findClip(self, clip_name: str) -> 'AgentClip | None':
+        """Find a clip by name.
+
+        Args:
+            clip_name: Name of the clip to find
+
+        Returns:
+            AgentClip if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#findClip
+        """
+        ...
+
+    def findLayer(self, layer_name: str) -> 'AgentLayer | None':
+        """Find a layer by name.
+
+        Args:
+            layer_name: Name of the layer to find
+
+        Returns:
+            AgentLayer if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#findLayer
+        """
+        ...
+
+    def findTransformGroup(self, group_name: str) -> 'AgentTransformGroup | None':
+        """Find a transform group by name.
+
+        Args:
+            group_name: Name of the transform group to find
+
+        Returns:
+            AgentTransformGroup if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#findTransformGroup
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the definition to prevent further modifications.
+
+        This optimizes memory usage by making the definition immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#freeze
+        """
+        ...
+
+    def layers(self) -> tuple[str, ...]:
+        """Return the names of all layers in the definition.
+
+        Returns:
+            Tuple of layer names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#layers
+        """
+        ...
+
+    def metadata(self) -> 'AgentMetadata':
+        """Return the definition's metadata.
+
+        Returns:
+            AgentMetadata object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#metadata
+        """
+        ...
+
+    def removeClip(self, clip_name: str) -> None:
+        """Remove a clip from the definition.
+
+        Args:
+            clip_name: Name of the clip to remove
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#removeClip
+        """
+        ...
+
+    def removeLayer(self, layer_name: str) -> None:
+        """Remove a layer from the definition.
+
+        Args:
+            layer_name: Name of the layer to remove
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#removeLayer
+        """
+        ...
+
+    def removeTransformGroup(self, group_name: str) -> None:
+        """Remove a transform group from the definition.
+
+        Args:
+            group_name: Name of the transform group to remove
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#removeTransformGroup
+        """
+        ...
+
+    def rig(self) -> 'AgentRig':
+        """Return the definition's rig.
+
+        Returns:
+            AgentRig object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#rig
+        """
+        ...
+
+    def setMetadata(self, metadata: 'AgentMetadata') -> None:
+        """Set the definition's metadata.
+
+        Args:
+            metadata: AgentMetadata object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#setMetadata
+        """
+        ...
+
+    def shapeLibrary(self) -> 'AgentShapeLibrary':
+        """Return the definition's shape library.
+
+        Returns:
+            AgentShapeLibrary object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#shapeLibrary
+        """
+        ...
+
+
+class AgentShape:
+    """A geometry shape for agents in crowd simulations.
+
+    AgentShape represents a piece of geometry (mesh, curves, etc.) that can be
+    bound to an agent's rig. Shapes can have blendshape deformations and in-between
+    shapes for smooth blending.
+
+    Example::
+
+        shape = shape_library.findShape('body')
+
+        # Access shape properties
+        name = shape.name()
+        unique_id = shape.uniqueId()
+        geo = shape.geometry()
+
+        # Modify geometry
+        new_geo = hou.Geometry()
+        # ... modify geometry ...
+        shape.setGeometry(new_geo)
+
+        # Add blendshapes
+        blendshape_geos = [geo1, geo2, geo3]
+        channel_names = ['smile', 'frown', 'blink']
+        shape.addBlendshapeInputs(blendshape_geos, channel_names)
+
+        # Query blendshapes
+        inputs = shape.blendshapeInputShapeNames()
+        channels = shape.blendshapeInputChannels()
+
+        # Add in-between shapes
+        inbetween_geos = [geo_50, geo_75]
+        weights = [0.5, 0.75]
+        shape.addInBetweenShapes('smile', inbetween_geos, weights)
+
+        # Freeze for optimization
+        shape.freeze()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html
+    """
+
+    def addBlendshapeInputs(self, shapes: Sequence['Geometry'],
+                           channel_names: Sequence[str]) -> None:
+        """Add blendshape inputs to the shape.
+
+        Args:
+            shapes: Sequence of geometry objects for blendshapes
+            channel_names: Names for the blendshape channels
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#addBlendshapeInputs
+        """
+        ...
+
+    def addInBetweenShapes(self, channel_name: str, shapes: Sequence['Geometry'],
+                          weights: Sequence[float]) -> None:
+        """Add in-between shapes for a blendshape channel.
+
+        In-between shapes provide intermediate targets for smoother blending.
+
+        Args:
+            channel_name: Name of the blendshape channel
+            shapes: Sequence of geometry objects for in-betweens
+            weights: Weight values (0-1) for each in-between
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#addInBetweenShapes
+        """
+        ...
+
+    def blendshapeInputChannels(self) -> tuple[str, ...]:
+        """Return the channel names for blendshape inputs.
+
+        Returns:
+            Tuple of blendshape channel names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#blendshapeInputChannels
+        """
+        ...
+
+    def blendshapeInputShapeNames(self) -> tuple[str, ...]:
+        """Return the names of blendshape input shapes.
+
+        Returns:
+            Tuple of shape names used as blendshape inputs
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#blendshapeInputShapeNames
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the shape to prevent further modifications.
+
+        This optimizes memory usage by making the shape immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#freeze
+        """
+        ...
+
+    def geometry(self) -> 'Geometry':
+        """Return the shape's geometry.
+
+        Returns:
+            Geometry object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#geometry
+        """
+        ...
+
+    def inBetweenShapeNames(self, channel_name: str) -> tuple[str, ...]:
+        """Return the names of in-between shapes for a blendshape channel.
+
+        Args:
+            channel_name: Name of the blendshape channel
+
+        Returns:
+            Tuple of in-between shape names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#inBetweenShapeNames
+        """
+        ...
+
+    def inBetweenShapeWeights(self, channel_name: str) -> tuple[float, ...]:
+        """Return the weights of in-between shapes for a blendshape channel.
+
+        Args:
+            channel_name: Name of the blendshape channel
+
+        Returns:
+            Tuple of in-between shape weights (0-1)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#inBetweenShapeWeights
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the shape's name.
+
+        Returns:
+            Shape name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#name
+        """
+        ...
+
+    def setBlendshapeDeformerParms(self, attribs: str = "P N",
+                                  point_id_attrib: str = "id",
+                                  prim_id_attrib: str = "id") -> None:
+        """Set parameters for the blendshape deformer.
+
+        Args:
+            attribs: Space-separated list of attributes to deform (e.g., "P N")
+            point_id_attrib: Point attribute name for ID matching
+            prim_id_attrib: Primitive attribute name for ID matching
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#setBlendshapeDeformerParms
+        """
+        ...
+
+    def setGeometry(self, geometry: 'Geometry') -> None:
+        """Set the shape's geometry.
+
+        Args:
+            geometry: New geometry object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#setGeometry
+        """
+        ...
+
+    def uniqueId(self) -> str:
+        """Return the shape's unique identifier.
+
+        Returns:
+            Unique ID string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#uniqueId
+        """
+        ...
+
+
+class AgentLayer:
+    """A layer defining shape bindings for agents.
+
+    AgentLayer maps shapes from the shape library to transforms in the rig,
+    defining which geometry pieces are attached to which bones and how they
+    should be deformed.
+
+    Example::
+
+        # Load layer from file
+        layer = hou.AgentLayer('/path/to/layer.json')
+
+        # Create from bindings
+        bindings = [binding1, binding2, binding3]
+        layer = hou.AgentLayer('default', bindings)
+
+        # Query layer properties
+        name = layer.name()
+        all_bindings = layer.bindings()
+
+        # Get specific binding types
+        deforming = layer.deformingBindings()
+        static = layer.staticBindings()
+
+        # Export as JSON
+        json_str = layer.asJSON()
+
+        # Check if external reference
+        is_external = layer.isExternalReference()
+        if is_external:
+            path = layer.fileName()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html
+    """
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a layer from a JSON file.
+
+        Args:
+            file_path: Path to the layer JSON file
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, layer_name: str, bindings: Sequence['AgentShapeBinding']) -> None:
+        """Create a layer from shape bindings.
+
+        Args:
+            layer_name: Name for the layer
+            bindings: Sequence of AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#__init__
+        """
+        ...
+
+    def asJSON(self) -> str:
+        """Export the layer as JSON string.
+
+        Returns:
+            JSON representation of the layer
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#asJSON
+        """
+        ...
+
+    def bindings(self) -> tuple['AgentShapeBinding', ...]:
+        """Return all shape bindings in the layer.
+
+        Returns:
+            Tuple of AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#bindings
+        """
+        ...
+
+    def deformingBindings(self) -> tuple['AgentShapeBinding', ...]:
+        """Return only the deforming shape bindings.
+
+        Returns:
+            Tuple of deforming AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#deformingBindings
+        """
+        ...
+
+    def fileName(self) -> str:
+        """Return the file path if the layer was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#fileName
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the layer references an external file.
+
+        Returns:
+            True if the layer is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the layer's name.
+
+        Returns:
+            Layer name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#name
+        """
+        ...
+
+    def staticBindings(self) -> tuple['AgentShapeBinding', ...]:
+        """Return only the static shape bindings.
+
+        Returns:
+            Tuple of static AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#staticBindings
+        """
+        ...
+
+
+class AgentShapeLibrary:
+    """A collection of shapes for agents.
+
+    AgentShapeLibrary stores all the geometry shapes that can be used by agents.
+    Shapes are referenced by name and can be shared across multiple agents.
+
+    Example::
+
+        # Create empty library
+        shapelib = hou.AgentShapeLibrary()
+
+        # Create from geometry
+        geo = hou.node('/obj/agent/shapes').geometry()
+        shapelib = hou.AgentShapeLibrary('mylib', geo)
+
+        # Load from file
+        shapelib = hou.AgentShapeLibrary('/path/to/shapelib.bgeo')
+
+        # Add shapes
+        shape = hou.AgentShape(...)
+        shapelib.addShape(shape)
+
+        # Query shapes
+        names = shapelib.shapeNames()
+        shape = shapelib.findShape('body')
+
+        # Access as geometry
+        geo = shapelib.data()
+
+        # Freeze for optimization
+        shapelib.freeze()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html
+    """
+
+    @overload
+    def __init__(self) -> None:
+        """Create an empty shape library.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, name: str, geometry: 'Geometry') -> None:
+        """Create a shape library from geometry.
+
+        Args:
+            name: Name for the shape library
+            geometry: Geometry containing shapes
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a shape library from a file.
+
+        Args:
+            file_path: Path to the shape library file (e.g., .bgeo)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#__init__
+        """
+        ...
+
+    def addShape(self, shape: 'AgentShape') -> None:
+        """Add a shape to the library.
+
+        Args:
+            shape: AgentShape to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#addShape
+        """
+        ...
+
+    def data(self) -> 'Geometry':
+        """Return the shape library data as geometry.
+
+        Returns:
+            Geometry object containing all shapes
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#data
+        """
+        ...
+
+    def fileName(self) -> str:
+        """Return the file path if the library was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#fileName
+        """
+        ...
+
+    def findShape(self, shape_name: str) -> 'AgentShape | None':
+        """Find a shape by name.
+
+        Args:
+            shape_name: Name of the shape to find
+
+        Returns:
+            AgentShape if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#findShape
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the library to prevent further modifications.
+
+        This optimizes memory usage by making the library immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#freeze
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the library references an external file.
+
+        Returns:
+            True if the library is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the library's name.
+
+        Returns:
+            Library name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#name
+        """
+        ...
+
+    def shapeNames(self) -> tuple[str, ...]:
+        """Return the names of all shapes in the library.
+
+        Returns:
+            Tuple of shape names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#shapeNames
+        """
+        ...
+
+
+class AgentTransformGroup:
+    """A named group of transforms with optional weights.
+
+    AgentTransformGroup defines a named subset of transforms in a rig,
+    optionally with per-transform weights. This is useful for operations
+    that should only affect specific parts of the skeleton.
+
+    Example::
+
+        group = definition.findTransformGroup('spine')
+
+        # Query group properties
+        name = group.name()
+        indices = group.transformIndices()
+        weights = group.weights()
+
+        # Check if external reference
+        if group.isExternalReference():
+            path = group.fileName()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html
+    """
+
+    def fileName(self) -> str:
+        """Return the file path if the group was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#fileName
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the group references an external file.
+
+        Returns:
+            True if the group is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the group's name.
+
+        Returns:
+            Group name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#name
+        """
+        ...
+
+    def transformIndices(self) -> tuple[int, ...]:
+        """Return the transform indices in the group.
+
+        Returns:
+            Tuple of transform indices
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#transformIndices
+        """
+        ...
+
+    def weights(self) -> tuple[float, ...]:
+        """Return the weights for each transform in the group.
+
+        Returns:
+            Tuple of weights (one per transform)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#weights
+        """
+        ...
+
+
+class AgentShapeBinding:
+    """Binds a shape to transforms in an agent's rig.
+
+    AgentShapeBinding defines how a shape from the shape library is attached
+    to one or more transforms in the rig, and what deformation method is used.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeBinding.html
+    """
+    pass
+
+
+class AgentShapeDeformer:
+    """Shape deformation system for agents.
+
+    AgentShapeDeformer defines how shapes are deformed based on rig transforms.
+    The deformer type determines the skinning algorithm used (linear, dual quaternion,
+    blendshapes, etc.).
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeDeformer.html
+    See hou.agentShapeDeformerType for deformer type enumeration.
+    """
+    pass
+
+
+class AgentMetadata:
+    """Metadata storage for agent definitions.
+
+    AgentMetadata stores arbitrary key-value metadata that can be attached
+    to agent definitions for custom data storage and retrieval.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentMetadata.html
+    """
+    pass
+
 class Edge:
     """Houdini edge connecting two points."""
     def prims(self) -> tuple[Prim, ...]: ...
@@ -8019,6 +9677,125 @@ class ScriptEvalContext:
     def node(self) -> 'OpNode': ...
     def parm(self) -> 'Parm': ...
 
+class InterruptableOperation:
+    """Context manager to make a Python code block interruptable.
+
+    Use this class to allow long-running operations to be interrupted by the user
+    via Escape key. The operation should periodically check if interruption has been
+    requested and handle it gracefully.
+
+    Example:
+        with hou.InterruptableOperation("Processing", "Processing nodes", open_interrupt_dialog=True):
+            for i, node in enumerate(nodes):
+                if i % 10 == 0:
+                    percent = float(i) / len(nodes)
+                    hou.InterruptableOperation.updateProgress(percent)
+                # ... process node ...
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/InterruptableOperation.html
+    """
+    def __init__(self, operation_name: str, long_operation_name: str = "",
+                 open_interrupt_dialog: bool = False) -> None:
+        """Initialize an interruptable operation context.
+
+        Args:
+            operation_name: Short name for the operation.
+            long_operation_name: Longer descriptive name. Defaults to operation_name.
+            open_interrupt_dialog: If True, shows a progress dialog.
+        """
+        ...
+
+    def __enter__(self) -> 'InterruptableOperation': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
+    @staticmethod
+    def updateProgress(percentage: float = -1.0) -> None:
+        """Update the progress of the current operation.
+
+        Args:
+            percentage: Value from 0.0 to 1.0, or -1.0 for indeterminate progress.
+
+        Raises:
+            OperationInterrupted: If the user has requested interruption.
+        """
+        ...
+
+    @staticmethod
+    def updateLongProgress(percentage: float = -1.0, long_op_status: str = "") -> None:
+        """Update progress with additional status message.
+
+        Args:
+            percentage: Value from 0.0 to 1.0, or -1.0 for indeterminate progress.
+            long_op_status: Status message to display.
+
+        Raises:
+            OperationInterrupted: If the user has requested interruption.
+        """
+        ...
+
+class RedrawBlock:
+    """Context manager to collect multiple UI redraws into a single redraw.
+
+    Use this class when performing multiple operations that would each trigger
+    a redraw. The UI will only redraw once when the context exits, improving
+    performance.
+
+    Example:
+        with hou.RedrawBlock():
+            for parm in node.parms():
+                parm.set(some_value)  # Each set normally triggers redraw
+            # All changes redraw only once here
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/RedrawBlock.html
+    """
+    def __init__(self) -> None: ...
+    def __enter__(self) -> 'RedrawBlock': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
+class UndosDisabler:
+    """Context manager to disable undo recording within a code block.
+
+    Use this class when performing operations that should not be undoable,
+    or when doing temporary operations that don't need to be in the undo stack.
+
+    Example:
+        with hou.UndosDisabler():
+            # These operations won't be added to undo stack
+            node.parm("tx").set(1.0)
+            node.parm("ty").set(2.0)
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/UndosDisabler.html
+    """
+    def __init__(self) -> None: ...
+    def __enter__(self) -> 'UndosDisabler': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
+class UndosGroup:
+    """Context manager to group multiple operations into a single undo action.
+
+    Use this class to bundle multiple Houdini operations into a single entry
+    in the undo stack, so they can be undone/redone together.
+
+    Example:
+        with hou.UndosGroup("Create and connect nodes"):
+            node1 = parent.createNode("geo")
+            node2 = parent.createNode("geo")
+            node2.setInput(0, node1)
+            # All three operations undo as one action
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/UndosGroup.html
+    """
+    def __init__(self, description: str = "Change") -> None:
+        """Initialize an undos group.
+
+        Args:
+            description: Description for the undo entry.
+        """
+        ...
+
+    def __enter__(self) -> 'UndosGroup': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
 class ShellIO:
     """Proxy object that replaces Python's stdin, stdout, and stderr streams within Houdini.
 
@@ -8360,6 +10137,15 @@ def item(item_path: str) -> NetworkMovableItem|None:
 
 def setPwd(node: Node) -> None:
     """Set current working directory node."""
+    ...
+
+def phm() -> HDAModule:
+    """A shortcut for hou.pwd().hdaModule().
+
+    Returns the HDA module of the current node (from hou.pwd()).
+    This is commonly used in HDA Python callbacks to access functions
+    defined in the HDA's Python module section.
+    """
     ...
 
 def parent() -> Node:
