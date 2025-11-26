@@ -43,7 +43,6 @@ import subprocess
 import hou
 
 from zabob_houdini.utils import JsonObject
-
 from zabob_houdini.houdini_bridge import minimal_env
 
 

@@ -16,7 +16,7 @@
         {
             "label": "Generate Test List",
             "type": "shell",
-            "command": "npm run list-hython-tests 2>/dev/null | grep -E '^(test_|\\._exit)' > .vscode/tmp/test-functions.txt",
+            "command": "npm run update-hython-tests",
             "group": "build",
             "presentation": {
                 "echo": false,
@@ -30,7 +30,7 @@
         {
             "label": "Generate Example List",
             "type": "shell",
-            "command": "npm run list-examples 2>/dev/null | grep -v '^>' > .vscode/tmp/example-files.txt",
+            "command": "npm run update-examples",
             "group": "build",
             "presentation": {
                 "echo": false,

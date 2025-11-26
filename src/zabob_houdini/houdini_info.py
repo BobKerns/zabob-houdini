@@ -7,9 +7,9 @@ from collections import defaultdict
 from collections.abc import Callable, Hashable, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from re import subn
 from typing import Any, NotRequired, TypeAlias, TypeVar, TypedDict
 from weakref import WeakKeyDictionary
+
 import click
 import hou
 
@@ -463,4 +463,3 @@ def types(category: str):
         click.echo(f"{node.name:<{name_width}} {desc:<{desc_width}} {inputs:<8} {outputs:<8} {categories_str:<{categories_width}} {flags_str}")
 
     click.echo(f"\nTotal: {len(node_types)} node types")
-
