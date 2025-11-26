@@ -30,6 +30,12 @@
         ".venv/**"
     ],
 
+    // Suppress diagnostics for PySide6 stubs (still allows IntelliSense)
+    "python.analysis.ignore": [
+        "stubs/PySide6/**",
+        ".venv/**"
+    ],
+
     // Markdown linting configuration - suppress overly strict formatting rules
     // MD013: Line length (overly restrictive for documentation)
     // MD021: Multiple spaces inside hashes on closed ATX style headings
@@ -67,7 +73,30 @@
         "DEVELOPMENT.md": "API.md,TODO.md,FORWARD_REFERENCES.md",
         "README.md": "SECURITY.md,CHANGELOG.md,CODE_OF_CONDUCT.md,LICENSE,CONTRIBUTING.md"
     },
-    "explorer.fileNesting.enabled": true
+    "explorer.fileNesting.enabled": true,
+    "github.copilot.chat.newWorkspace.useContext7": true,
+    "cSpell.ignorePaths": [
+        "package-lock.json",
+        "node_modules",
+        "vscode-extension",
+        ".git/{info,lfs,logs,refs,objects}/**",
+        ".git/{index,*refs,*HEAD}",
+        ".vscode",
+        ".vscode-insiders",
+        "*.pyi"
+    ],
+
+    // XML validation - disable for LICENSE files
+    "xml.validation.enable": false,
+    "xml.validation.excludedPaths": [
+        "stubs/PySide6/LICENSE"
+    ],
+
+    // File associations - treat LICENSE files as plain text
+    "files.associations": {
+        "**/LICENSE": "plaintext",
+        "**/LICENSE.*": "plaintext"
+    }
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,
