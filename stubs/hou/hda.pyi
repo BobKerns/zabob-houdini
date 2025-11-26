@@ -4,7 +4,7 @@ Module containing functions related to Houdini Digital Assets.
 """
 
 from __future__ import annotations
-from typing import Optional, Callable, Any
+from typing import Callable, Any
 import hou
 
 
@@ -17,7 +17,7 @@ def definitionsInFile(file_path: str) -> tuple[hou.HDADefinition, ...]:
 
 def installFile(
     file_path: str,
-    oplibraries_file: Optional[str] = None,
+    oplibraries_file: str | None = None,
     change_oplibraries_file: bool = True,
     force_use_assets: bool = False
 ) -> None:
@@ -27,7 +27,7 @@ def installFile(
 
 def uninstallFile(
     file_path: str,
-    oplibraries_file: Optional[str] = None,
+    oplibraries_file: str | None = None,
     change_oplibraries_file: bool = True
 ) -> None:
     """Uninstall an hda file and all the node type definitions it provides from
@@ -45,7 +45,7 @@ def reloadFile(file_path: str) -> None:
 
 def installFiles(
     file_paths: list[str],
-    oplibraries_file: Optional[str] = None,
+    oplibraries_file: str | None = None,
     change_oplibraries_file: bool = True,
     force_use_assets: bool = False
 ) -> None:
@@ -57,7 +57,7 @@ def installFiles(
 
 def uninstallFiles(
     file_paths: list[str],
-    oplibraries_file: Optional[str] = None,
+    oplibraries_file: str | None = None,
     change_oplibraries_file: bool = True
 ) -> None:
     """Batch uninstall a list of hda file and all the node type definitions it
@@ -110,7 +110,7 @@ def collapseFromDirectory(file_path: str, directory_path: str) -> None:
 
 # Source naming functions
 
-def renameSource(oplibraries_file: str, source_name: Optional[str] = None) -> None:
+def renameSource(oplibraries_file: str, source_name: str | None = None) -> None:
     """Give a name to an OPlibraries file."""
     ...
 

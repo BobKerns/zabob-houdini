@@ -1,7 +1,6 @@
 """Inverse kinematics module (hou.ik)."""
 
 from __future__ import annotations
-from typing import Optional
 import hou
 
 
@@ -19,7 +18,7 @@ class Joint:
         """Sets the joint's world space transform (a hou.Matrix4)."""
         ...
 
-    def parent(self) -> Optional[Joint]:
+    def parent(self) -> Joint | None:
         """Returns the joint's parent, or None for a root joint."""
         ...
 
@@ -77,7 +76,7 @@ class Joint:
         """Returns whether the joint has translation limits."""
         ...
 
-    def restTransform(self) -> Optional[hou.Matrix4]:
+    def restTransform(self) -> hou.Matrix4 | None:
         """Returns the joint's rest pose, or None if it has not been set."""
         ...
 
@@ -128,7 +127,7 @@ class Skeleton:
     def addJoint(
         self,
         world_transform: hou.Matrix4 = ...,
-        parent: Optional[Joint] = None,
+        parent: Joint | None = None,
         rotation_weights: hou.Vector3 = ...,
         translation_weights: hou.Vector3 = ...,
         mass: float = 1.0,
@@ -151,7 +150,7 @@ class Target:
 
     def __init__(
         self,
-        joint: Optional[Joint] = None,
+        joint: Joint | None = None,
         goal_transform: hou.Matrix4 = ...,
         joint_offset: hou.Matrix4 = ...,
         target_type: targetType = ...,
@@ -162,7 +161,7 @@ class Target:
         """Creates a new target."""
         ...
 
-    def joint(self) -> Optional[Joint]:
+    def joint(self) -> Joint | None:
         """Returns the joint that the target is attached to, or None."""
         ...
 
@@ -260,7 +259,7 @@ def solveFBIK(
 def solvePhysFBIK(
     skeleton: Skeleton,
     targets: list[Target],
-    com_target: Optional[Target] = None,
+    com_target: Target | None = None,
     iters: int = 30,
     damping: float = 0.5,
     tolerance: float = 1e-5

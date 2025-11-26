@@ -26,7 +26,7 @@ If this approach causes type-checking issues, consider falling back to simpler c
 definitions without generic typing, or using typing.Literal for specific enum values.
 """
 
-from typing import Any, Generic, Sequence,  TypeAlias, overload, Type, TypeVar, Callable
+from typing import Any, Generic, Sequence,  TypeAlias, overload, TypeVar, Callable
 from collections.abc import Iterator
 import types
 import datetime
@@ -34,6 +34,11 @@ import datetime
 
 from hrecipes.api.networkitems import SubnetIndirectInput
 from searchbox.radialmenus import RadialMenus
+
+JsonAtomic: TypeAlias = str | int | float | bool | None
+JsonList: TypeAlias = 'list[JsonValue]'
+JsonObject: TypeAlias = 'dict[str, JsonValue]'
+JsonValue: TypeAlias = 'JsonAtomic | JsonList | JsonObject'
 
 # Type variables for generic operations
 T = TypeVar('T')
@@ -66,18 +71,32 @@ A sequence of floats representing a 4D point (x, y, z, w).
 Useful for functions that accept 4D coordinates in any of these forms.
 """
 
+
+_OptionValueNoBool: TypeAlias = """(
+    int | float | str | tuple[float, ...] | tuple[int, ...]
+    | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4
+    | Quaternion
+)"""
+'''
+Valid option values for such objects as DopRecord.
+'''
+
+_OptionValue: TypeAlias = "_OptionValueNoBool | bool"
+'''
+Valid option values for such objects as PointGroup
+'''
+
 class EnumValue:
     """A simple class to represent enum values in Houdini."""
     def name(self) -> str: ...
 
 
 class _Enum:
-    pass
+    ...
 
 E = TypeVar('E', bound=_Enum)
 class _EnumValue(EnumValue, Generic[E]):
-    pass
-
+    ...
 
 
 class saveMode(_Enum):
@@ -901,7 +920,6 @@ class videoDriver(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/videoDriver.html
     """
-    # Note: No specific enum values documented - accessed via hou.videoEncoders()
     pass
 
 class nodeTypeFilter(_Enum):
@@ -1966,8 +1984,6 @@ class viewportVisualizerScope(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerScope.html
     """
-
-    # Note: Documentation shows only the class-level description with no specific VALUES section
     pass
 
 class viewportVolumeBSplines(_Enum):
@@ -2193,7 +2209,7 @@ class ApexStickyNote(StickyNote):
     APEX sticky notes have the same interface as OP sticky notes but operate
     in APEX graph contexts.
     """
-    pass
+    ...
 
 class NetworkBox(NetworkMovableItem):
     """
@@ -2666,7 +2682,7 @@ class HDAModule(types.ModuleType):
     # HDAModule is essentially a Python module wrapper with no specific methods beyond
     # what's available in types.ModuleType. The module's attributes are defined by
     # the user's code in the Python Module section of the digital asset.
-    pass
+    ...
 
 class HDAViewerStateModule(types.ModuleType):
     """
@@ -2684,7 +2700,7 @@ class HDAViewerStateModule(types.ModuleType):
     # HDAViewerStateModule is essentially a Python module wrapper with no specific methods
     # beyond what's available in types.ModuleType. The module's attributes are defined by
     # the user's code in the ViewerState Module section of the digital asset.
-    pass
+    ...
 
 class HDAViewerHandleModule(types.ModuleType):
     """
@@ -2702,7 +2718,7 @@ class HDAViewerHandleModule(types.ModuleType):
     # HDAViewerHandleModule is essentially a Python module wrapper with no specific methods
     # beyond what's available in types.ModuleType. The module's attributes are defined by
     # the user's code in the ViewerHandle Module section of the digital asset.
-    pass
+    ...
 
 class HDADefinition:
     """
@@ -2835,9 +2851,9 @@ class Parm:
     def evalAsRampAtFrame(self, frame: float) -> Any: ...  # Returns Ramp
     def evalAsGeometry(self) -> 'Geometry': ...
     def evalAsGeometryAtFrame(self, frame: float) -> 'Geometry': ...
-    def evalAsImageLayer(self) -> Any: ...  # Returns ImageLayer
-    def evalAsImageLayerAtFrame(self, frame: float) -> Any: ...  # Returns ImageLayer
-    def evalAsNanoVDB(self) -> Any: ...  # Returns NanoVDB
+    def evalAsImageLayer(self) -> 'ImageLayer': ...
+    def evalAsImageLayerAtFrame(self, frame: float) -> 'ImageLayer': ...
+    def evalAsNanoVDB(self) -> 'NanoVDB': ...
     def evalAsNodePath(self) -> str: ...
     def evalAsNodePathAtFrame(self, frame: float) -> str: ...
     def evalAsNodePaths(self) -> tuple[str, ...]: ...
@@ -2947,10 +2963,10 @@ class ParmTuple:
     def evalAsStringsAtFrame(self, frame: float) -> tuple[str, ...]: ...
     def evalAsGeometries(self) -> tuple['Geometry', ...]: ...
     def evalAsGeometriesAtFrame(self, frame: float) -> tuple['Geometry', ...]: ...
-    def evalAsImageLayers(self) -> tuple[Any, ...]: ...  # Returns tuple of ImageLayer
-    def evalAsImageLayersAtFrame(self, frame: float) -> tuple[Any, ...]: ...  # Returns tuple of ImageLayer
-    def evalAsNanoVDBs(self) -> tuple[Any, ...]: ...  # Returns tuple of NanoVDB
-    def evalAsNanoVDBsAtFrame(self, frame: float) -> tuple[Any, ...]: ...  # Returns tuple of NanoVDB
+    def evalAsImageLayers(self) -> tuple['ImageLayer', ...]: ...
+    def evalAsImageLayersAtFrame(self, frame: float) -> tuple['ImageLayer', ...]: ...
+    def evalAsNanoVDBs(self) -> tuple['NanoVDB', ...]: ...
+    def evalAsNanoVDBsAtFrame(self, frame: float) -> tuple['NanoVDB', ...]: ...
     def evalAsJSONMaps(self) -> tuple[dict[str, str], ...]: ...
     def evalAsJSONMapsAtFrame(self, frame: float) -> tuple[dict[str, str], ...]: ...
 
@@ -5187,6 +5203,34 @@ class Color:
     @staticmethod
     def ocio_DefaultDisplay() -> str: ...
 
+class GeometryViewport:
+    """Represents a 3D viewport for viewing geometry in Houdini.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/GeometryViewport.html
+    """
+    pass
+
+class ViewportVisualizer:
+    """Represents a viewport visualizer for displaying data overlays in the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ViewportVisualizer.html
+    """
+    pass
+
+class ViewportVisualizerType:
+    """Represents a type of viewport visualizer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ViewportVisualizerType.html
+    """
+    pass
+
+class PythonPanelInterface:
+    """Represents a Python panel interface definition.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/PythonPanelInterface.html
+    """
+    pass
+
 class Ramp:
     """Interpolated ramp function for float or color values.
 
@@ -5909,16 +5953,57 @@ class Cop2Node(OpNode):
     def displayNode(self) -> Node: ...
 
 class CopCableStructure:
-    """Describes the structure of image data flowing through COP connections."""
-    pass
+    """Describes the structure of image data flowing through COP connections.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/CopCableStructure.html
+    """
+    def dataType(self) -> str: ...
+    def resolution(self) -> tuple[int, int]: ...
+    def numPlanes(self) -> int: ...
+    def planeNames(self) -> tuple[str, ...]: ...
+    def planeInfo(self, plane_name: str) -> dict[str, Any]: ...
 
 class ImageLayer:
-    """Represents an image layer in compositor operations."""
-    pass
+    """Represents an image layer in compositor operations.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ImageLayer.html
+    """
+    def name(self) -> str: ...
+    def resolution(self) -> tuple[int, int]: ...
+    def size(self) -> tuple[int, int]: ...
+    def numComponents(self) -> int: ...
+    def componentNames(self) -> tuple[str, ...]: ...
+    def storageType(self) -> imageLayerStorageType: ...
+    def typeInfo(self) -> imageLayerTypeInfo: ...
+    def border(self) -> imageLayerBorder: ...
+    def projection(self) -> imageLayerProjection: ...
+    def pixelData(self, component: int = 0) -> bytes: ...
+    def allPixelData(self) -> bytes: ...
+    def setPixelData(self, data: bytes, component: int = 0) -> None: ...
+    def setAllPixelData(self, data: bytes) -> None: ...
+    def pixel(self, x: int, y: int, component: int = 0) -> float: ...
+    def setPixel(self, x: int, y: int, value: float, component: int = 0) -> None: ...
+    def sample(self, u: float, v: float, component: int = 0) -> float: ...
+    def transform(self) -> Matrix3: ...
+    def setTransform(self, xform: Matrix3) -> None: ...
 
 class NanoVDB:
-    """NanoVDB volume representation for compositor operations."""
-    pass
+    """NanoVDB volume representation for compositor operations.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/NanoVDB.html
+    """
+    def name(self) -> str: ...
+    def gridClass(self) -> str: ...
+    def gridType(self) -> str: ...
+    def resolution(self) -> tuple[int, int, int]: ...
+    def indexBBox(self) -> tuple[tuple[int, int, int], tuple[int, int, int]]: ...
+    def worldBBox(self) -> tuple[Vector3, Vector3]: ...
+    def voxelSize(self) -> Vector3: ...
+    def transform(self) -> Matrix4: ...
+    def setTransform(self, xform: Matrix4) -> None: ...
+    def activeVoxelCount(self) -> int: ...
+    def memoryUsage(self) -> int: ...
+    def toVDB(self) -> 'VDB': ...
 
 class LopNode(OpNode):
     """Houdini lighting operator (LOP/Solaris) node for USD scene graph operations."""
@@ -6487,7 +6572,7 @@ class Polygon(Face):
 
     Currently Face and Prim contain all necessary methods for polygon inspection and manipulation.
     """
-    pass
+    ...
 
 class Face(Prim):
     """Houdini NURBS/Bezier curve face primitive.
@@ -7026,14 +7111,14 @@ class AgentClip:
         """
         ...
 
-    def data(self, binary: bool = False) -> str | bytes:
+    def data(self, binary: bool = False) -> bytes:
         """Return the clip data in ASCII or binary format.
 
         Args:
-            binary: If True, return binary format; otherwise ASCII JSON
+            binary: If True, save in binary format; otherwise ASCII
 
         Returns:
-            Clip data as string (ASCII) or bytes (binary)
+            Clip data bytes. If binary is False, data is ASCII-encoded.
 
         See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#data
         """
@@ -8294,8 +8379,8 @@ class PointGroup:
     def clear(self) -> None: ...
     def contains(self, point: Point | int) -> bool: ...
     def destroy(self) -> None: ...
-    def options(self) -> dict[str, Any]: ...
-    def setOptions(self, options: dict[str, Any]) -> None: ...
+    def options(self) -> dict[str, _OptionValue]: ...
+    def setOptions(self, options: dict[str, _OptionValue]) -> None: ...
 
 class PrimGroup:
     """Group of geometry primitives."""
@@ -8307,8 +8392,8 @@ class PrimGroup:
     def clear(self) -> None: ...
     def contains(self, prim: Prim | int) -> bool: ...
     def destroy(self) -> None: ...
-    def options(self) -> dict[str, Any]: ...
-    def setOptions(self, options: dict[str, Any]) -> None: ...
+    def options(self) -> dict[str, _OptionValue]: ...
+    def setOptions(self, options: dict[str, _OptionValue]) -> None: ...
 
 class EdgeGroup:
     """Group of geometry edges."""
@@ -9246,7 +9331,7 @@ class GeometryPermissionError(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/GeometryPermissionError.html
     """
-    pass
+    ...
 
 class HandleNotRegistered(Error):
     """Raised if you try to use a custom handle that is not registered with the system.
@@ -9256,14 +9341,14 @@ class HandleNotRegistered(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/HandleNotRegistered.html
     """
-    pass
+    ...
 
 class InitScriptFailed(Error):
     """Raised when an initialization script fails to execute.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/InitScriptFailed.html
     """
-    pass
+    ...
 
 class InvalidGeometry(Error):
     """Exception raised when you try to access a reference to SOP Geometry that has since failed to cook.
@@ -9273,7 +9358,7 @@ class InvalidGeometry(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidGeometry.html
     """
-    pass
+    ...
 
 class InvalidInput(Error):
     """Raised if you try to set a node's input to something invalid.
@@ -9283,7 +9368,7 @@ class InvalidInput(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidInput.html
     """
-    pass
+    ...
 
 class InvalidNodeType(Error):
     """Raised if you try to call a method on a Node that doesn't support it.
@@ -9293,14 +9378,14 @@ class InvalidNodeType(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidNodeType.html
     """
-    pass
+    ...
 
 class InvalidOutput(Error):
     """Raised if you try to set a node's output to something invalid.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidOutput.html
     """
-    pass
+    ...
 
 class InvalidSize(Error):
     """Raised when you pass a sequence of the wrong length to a function.
@@ -9310,14 +9395,14 @@ class InvalidSize(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidSize.html
     """
-    pass
+    ...
 
 class KeyframeValueNotSet(Error):
     """Raised when attempting to access a keyframe value that hasn't been set.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/KeyframeValueNotSet.html
     """
-    pass
+    ...
 
 class LicenseError(Error):
     """Raised when a licensing error occurs.
@@ -9327,7 +9412,7 @@ class LicenseError(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/LicenseError.html
     """
-    pass
+    ...
 
 class LoadWarning(Warning):
     """Exception class for when loading a hip file in Houdini generates warnings.
@@ -9338,14 +9423,14 @@ class LoadWarning(Warning):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/LoadWarning.html
     """
-    pass
+    ...
 
 class MatchDefinitionError(Error):
     """Raised when there's a match definition error.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/MatchDefinitionError.html
     """
-    pass
+    ...
 
 class NameConflict(Error):
     """Exception raised when a name conflict is detected during an operation.
@@ -9355,7 +9440,7 @@ class NameConflict(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/NameConflict.html
     """
-    pass
+    ...
 
 class NodeError(Error):
     """Raise this exception in a Python node to signal that the node is in error.
@@ -9365,7 +9450,7 @@ class NodeError(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/NodeError.html
     """
-    pass
+    ...
 
 class NodeWarning(Warning):
     """Raise this exception in a Python node to signal that the node has a warning.
@@ -9375,7 +9460,7 @@ class NodeWarning(Warning):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/NodeWarning.html
     """
-    pass
+    ...
 
 class NotAvailable(Error):
     """Raised when you try to call an API function/method that is not available.
@@ -9385,7 +9470,7 @@ class NotAvailable(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/NotAvailable.html
     """
-    pass
+    ...
 
 class ObjectWasDeleted(Error):
     """Raised when you try to access a reference to an object that has since been deleted.
@@ -9396,7 +9481,7 @@ class ObjectWasDeleted(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/ObjectWasDeleted.html
     """
-    pass
+    ...
 
 class OperationFailed(Error):
     """Generic catch-all exception for various errors in Houdini that don't have their own dedicated exception classes.
@@ -9406,7 +9491,7 @@ class OperationFailed(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/OperationFailed.html
     """
-    pass
+    ...
 
 class OperationInterrupted(Error):
     """Raised when an operation is interrupted by the user.
@@ -9416,7 +9501,7 @@ class OperationInterrupted(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/OperationInterrupted.html
     """
-    pass
+    ...
 
 class PermissionError(Error):
     """Raised when a permission error occurs.
@@ -9426,7 +9511,7 @@ class PermissionError(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/PermissionError.html
     """
-    pass
+    ...
 
 class StateNotRegistered(Error):
     """Raised if you try to unregister a Python state that was never registered.
@@ -9436,7 +9521,7 @@ class StateNotRegistered(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/StateNotRegistered.html
     """
-    pass
+    ...
 
 class SystemExit(Error):
     """Raised when Houdini is exiting.
@@ -9453,7 +9538,7 @@ class TypeConflict(Error):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/TypeConflict.html
     """
-    pass
+    ...
 
 # ============================================================================
 # ADDITIONAL SPECIALIZED CLASSES
@@ -9483,7 +9568,9 @@ class Track:
     def evalAtTime(self, time: float) -> float: ...
     def evalAtFrame(self, frame: float) -> float: ...
     def evalAtSample(self, sample: float) -> float: ...
-    def evalAtSampleIndex(self, index: int) -> float: ...  # Deprecated: Use evalAtSample()
+    def evalAtSampleIndex(self, index: int) -> float:
+        "Deprecated: Use evalAtSample()"
+        ...
 
     # Range evaluation
     def evalAtTimeRange(self, start: float, end: float) -> tuple[float, ...]: ...
@@ -9579,7 +9666,7 @@ class DopData:
 class DopRecord:
     """Table of values stored inside DopData."""
     # Field access
-    def field(self, field_name: str) -> int|bool|float|str|Vector2|Vector3|Vector4|Any|Matrix3|Matrix4|None: ...  # Any includes Quaternion
+    def field(self, field_name: str) -> _OptionValue: ...
     def fieldNames(self) -> tuple[str, ...]: ...
     def fieldType(self, field_name: str) -> 'fieldType': ...
 
@@ -9588,7 +9675,8 @@ class DopRecord:
     def recordType(self) -> str: ...
 
     # Field modification
-    def setField(self, field_name: str, value: Any) -> None: ...
+    def setField(self, field_name: str, value: _OptionValueNoBool) -> None: ...
+    'Use setFieldBool for bool values'
     def setFieldBool(self, field_name: str, value: bool) -> None: ...
 
 class DopRelationship(DopData):
@@ -9651,12 +9739,6 @@ class DopObject(DopData):
 
     # Transform
     def transform(self, include_geometry_transform: bool=True) -> Matrix4: ...
-
-class Image:
-    """COP image object."""
-    def __init__(self) -> None: ...
-    def resolution(self) -> tuple[int, int]: ...
-    def pixels(self) -> Any: ...  # NumPy array if available
 
 class WorkItem:
     """TOP/PDG work item."""
@@ -9873,55 +9955,46 @@ class ShellIO:
         """
         ...
 
-class LogEntry:
-    """Represents a single log message sent by a source to a sink."""
-    def __init__(
-        self,
-        message: str | None = None,
-        source: str | None = None,
-        source_context: str | None = None,
-        severity: severityType | None = None,
-        verbosity: int = 0,
-        time: float = 0.0,
-        thread_id: int = 0,
-        has_external_info: bool = False,
-        external_host_name: str | None = None,
-        external_identifier: str | None = None,
-        external_command_line: str | None = None,
-        external_process_id: int = 0
-    ) -> None: ...
-    def source(self) -> str: ...
-    def sourceContext(self) -> str: ...
-    def message(self) -> str: ...
-    def severity(self) -> severityType: ...
-    def verbosity(self) -> int: ...
-    def time(self) -> float: ...
-    def threadId(self) -> int: ...
-    def hasExternalInfo(self) -> bool: ...
-    def externalHostName(self) -> str: ...
-    def externalIdentifier(self) -> str: ...
-    def externalCommandLine(self) -> str: ...
-    def externalProcessId(self) -> int: ...
+class Desktop:
+    """Represents a desktop layout containing panes.
 
-class FileSink:
-    """File-based sink that writes log entries to a file.
-
-    FileSink is a logging sink that writes log entries to a file on disk.
-    Used by hou.logging.defaultFileSink().
-
-    See https://www.sidefx.com/docs/houdini/hom/hou/logging.html
+    See https://www.sidefx.com/docs/houdini/hom/hou/Desktop.html
     """
-    pass
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def panes(self) -> tuple[Pane, ...]: ...
+    def paneTabOfType(self, pane_type: paneTabType, index: int = 0) -> PaneTab | None: ...
+    def floatingPanels(self) -> tuple[FloatingPanel, ...]: ...
 
-class MemorySink:
-    """Memory-based sink that stores log entries in memory.
+class Pane:
+    """Container for pane tabs.
 
-    MemorySink is a logging sink that stores log entries in memory for
-    later retrieval. Used by hou.logging.defaultSink().
-
-    See https://www.sidefx.com/docs/houdini/hom/hou/logging.html
+    See https://www.sidefx.com/docs/houdini/hom/hou/Pane.html
     """
-    pass
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def tabs(self) -> tuple[PaneTab, ...]: ...
+    def currentTab(self) -> PaneTab | None: ...
+    def setCurrentTab(self, tab: PaneTab) -> None: ...
+    def desktop(self) -> Desktop: ...
+
+class FloatingPanel:
+    """Represents a floating window.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/FloatingPanel.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def panes(self) -> tuple[Pane, ...]: ...
+    def close(self) -> None: ...
+
+class Dialog:
+    """Houdini dialog window.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Dialog.html
+    """
+    def name(self) -> str: ...
+    def close(self) -> None: ...
 
 class PaneTab:
     """Base class for pane tabs in the Houdini UI."""
@@ -9940,6 +10013,68 @@ class PaneTab:
     def setPin(self, pin: bool) -> None: ...
     def size(self) -> tuple[int, int]: ...
     def contentSize(self) -> tuple[int, int]: ...
+
+class ParameterEditor(PaneTab):
+    """Parameter editor pane tab.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ParameterEditor.html
+    """
+    def currentNode(self) -> Node | None: ...
+    def setCurrentNode(self, node: Node) -> None: ...
+
+class Shelf:
+    """Represents a shelf tab containing tools.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Shelf.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def label(self) -> str: ...
+    def setLabel(self, label: str) -> None: ...
+    def tools(self) -> tuple[Tool, ...]: ...
+    def setTools(self, tools: Sequence[Tool]) -> None: ...
+    def destroy(self) -> None: ...
+
+class ShelfSet:
+    """Collection of shelf tabs.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ShelfSet.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def shelves(self) -> tuple[Shelf, ...]: ...
+    def setShelves(self, shelves: Sequence[Shelf]) -> None: ...
+    def destroy(self) -> None: ...
+
+class Tool:
+    """Individual shelf tool.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Tool.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def label(self) -> str: ...
+    def setLabel(self, label: str) -> None: ...
+    def script(self) -> str: ...
+    def setScript(self, script: str) -> None: ...
+    def scriptLanguage(self) -> scriptLanguage: ...
+    def setScriptLanguage(self, language: scriptLanguage) -> None: ...
+    def icon(self) -> str: ...
+    def setIcon(self, icon: str) -> None: ...
+    def helpText(self) -> str: ...
+    def setHelpText(self, text: str) -> None: ...
+    def destroy(self) -> None: ...
+
+class PluginHotkeyDefinitions:
+    """Plugin hotkey definitions for registering commands and bindings.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/PluginHotkeyDefinitions.html
+    """
+    def __init__(self) -> None: ...
+    def addCategory(self, name: str, label: str, help: str = "") -> None: ...
+    def addCommand(self, name: str, label: str, help: str = "", category: str = "") -> None: ...
+    def addContext(self, name: str, label: str, parent: str = "") -> None: ...
+    def addAssignment(self, context: str, command: str, key: str) -> None: ...
 
 class NetworkEditor(PaneTab):
     """Represents a Network Editor pane tab.

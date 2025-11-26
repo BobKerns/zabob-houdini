@@ -4,8 +4,7 @@ This module provides functions and classes for running a web server inside a
 graphical or non-graphical Houdini session.
 """
 
-from typing import Any, Callable, Optional
-from typing_extensions import Literal
+from typing import Any, Callable
 
 
 class Request:
@@ -31,7 +30,7 @@ class Request:
         """Returns the query string in the request, not including the leading ?."""
         ...
 
-    def absoluteURI(self, location: Optional[str] = None) -> str:
+    def absoluteURI(self, location: str | None = None) -> str:
         """Returns the full URI used to make the current request.
 
         Args:
@@ -187,11 +186,11 @@ def run(
     port: int = 8008,
     debug: bool = False,
     max_num_threads: int = 4,
-    in_background: Optional[bool] = None,
-    reload_source_changes: Optional[bool] = None,
-    max_in_memory_file_upload_size: Optional[int] = None,
-    max_request_size: Optional[int] = None,
-    settings: Optional[str] = None,
+    in_background: bool | None = None,
+    reload_source_changes: bool | None = None,
+    max_in_memory_file_upload_size: int | None = None,
+    max_request_size: int | None = None,
+    settings: str | None = None,
     ports: list[int] = [],
 ) -> None:
     """Starts Houdini's web server.
@@ -248,9 +247,9 @@ def urlHandler(
 
 
 def apiFunction(
-    namespace: Optional[str] = None,
+    namespace: str | None = None,
     return_binary: bool = False,
-    arg_types: Optional[dict[str, type]] = None,
+    arg_types: dict[str, type] | None = None,
     ports: list[int] = [],
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator for functions callable through API endpoint on web server.
@@ -309,9 +308,9 @@ def notFoundResponse(request: Request) -> Response:
 
 def fileResponse(
     file_path: str,
-    content_type: Optional[str] = None,
+    content_type: str | None = None,
     delete_file: bool = False,
-    download_as_filename: Optional[str] = None,
+    download_as_filename: str | None = None,
 ) -> Response:
     """Generates a Response object that sends the contents of a file.
 

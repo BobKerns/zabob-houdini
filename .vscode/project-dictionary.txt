@@ -1,3 +1,4 @@
+actionitem
 addopts
 Affector
 agentic
@@ -19,6 +20,7 @@ blendshapes
 blosc
 BSDF
 camerapath
+captureoverride
 Catmull
 cchain
 cctx
@@ -89,6 +91,7 @@ hiplc
 hipnc
 hmath
 hnode
+hotkeymanager
 houdinicore
 houdinifx
 hrecipes
@@ -106,8 +109,11 @@ isinstance
 isstarred
 itemcount
 keepachangelog
+keymaps
+keystring
 KHTML
 kwargs
+labelsize
 libname
 lookupable
 lopnode
@@ -140,6 +146,7 @@ oneline
 opdef
 oplibraries
 OPNAMESPACE
+orbolt
 orthowidth
 panetab
 panetype
@@ -181,6 +188,7 @@ Pythonic
 PYTHONPATH
 pythonscript
 pyversion
+qcolor
 qlinear
 radialmenus
 radx
@@ -209,6 +217,7 @@ shapelib
 shearx
 sheary
 shearz
+Shiboken
 SIDEFX
 signum
 SIGPIPE
@@ -226,6 +235,7 @@ sopnode
 soppath
 startfile
 startswith
+stowbars
 stype
 subframe
 Sublayer
@@ -240,6 +250,7 @@ topnet
 uncategorized
 undoable
 undos
+Unregisters
 unregistration
 unsetenv
 Untextured
@@ -259,6 +270,9 @@ worktree
 worktrees
 xform
 xforms
+xmlfile
+xmlfilename
+xmlstring
 xres
 XYWH
 XYZW

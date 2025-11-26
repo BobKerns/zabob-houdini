@@ -38,8 +38,11 @@ See https://www.sidefx.com/docs/houdini/hom/hou/crowds.html
 """
 
 from typing import Any, Sequence
-from hou import Geometry, AgentRig, Matrix4, AgentDefinition, AgentShapeDeformer, geometryType
-
+from hou import (
+    Geometry, AgentRig, LopSelectionRule, Matrix4,
+    AgentDefinition, AgentShapeDeformer, geometryType
+)
+from pxr.Usd import Stage
 
 def addBlendshapeInputs(
     base_shape_geo: Geometry,
@@ -100,8 +103,8 @@ def addInBetweenShapes(
 
 
 def applyUsdProcedural(
-    stage: 'Any',  # pxr.Usd.Stage but avoiding import
-    selection_rule: str,
+    stage: Stage,
+    selection_rule: LopSelectionRule,
     camera_path: str,
     resolution: tuple[int, int],
     lod_threshold: float,
