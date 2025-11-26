@@ -517,16 +517,26 @@ class clipMode(_Enum):
     CookRealTime: '_EnumValue[clipMode]'
 
 class lopTraversalDemands(_Enum):
-    """Specifies which primitives should be included/excluded during USD scene graph traversal."""
-    # Values for specifying traversal behavior in LOP operations
-    # See: https://www.sidefx.com/docs/houdini/hom/hou/lopTraversalDemands.html
-    pass
+    """Specifies which primitives should be included/excluded during USD scene graph traversal.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/lopTraversalDemands.html
+    """
+
+    NoDemands: _EnumValue[lopTraversalDemands]  # A value that includes none of the above demands
 
 class lopViewportOverridesLayer(_Enum):
-    """Specifies choice between various pxr.Sdf.Layer objects in LopViewportOverrides."""
-    # Values for selecting which layer to use for viewport overrides
-    # See: https://www.sidefx.com/docs/houdini/hom/hou/lopViewportOverridesLayer.html
-    pass
+    """Specifies choice between various pxr.Sdf.Layer objects in LopViewportOverrides.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/lopViewportOverridesLayer.html
+    """
+
+    Base: _EnumValue[lopViewportOverridesLayer]
+    Selectable: _EnumValue[lopViewportOverridesLayer]
+    SoloLights: _EnumValue[lopViewportOverridesLayer]
+    SoloGeometry: _EnumValue[lopViewportOverridesLayer]
+    Purpose: _EnumValue[lopViewportOverridesLayer]
+    Expansion: _EnumValue[lopViewportOverridesLayer]
+    Custom: _EnumValue[lopViewportOverridesLayer]
 
 # ============================================================================
 # ANIMATION ENUMERATIONS
@@ -1306,42 +1316,67 @@ class boundaryDisplay(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/boundaryDisplay.html
     """
-    pass
+    Off: _EnumValue[boundaryDisplay]  # The boundary is disabled
+    View3D: _EnumValue[boundaryDisplay]  # The boundary is shown in 3D viewports only
+    ViewUV: _EnumValue[boundaryDisplay]  # The boundary is shown in UV viewports only
+    On: _EnumValue[boundaryDisplay]  # The boundary is shown in all viewports
 
 class connectivityType(_Enum):
     """Enumeration of connectivity types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/connectivityType.html
     """
-    pass
+    NoConnectivity: _EnumValue[connectivityType]
+    Texture: _EnumValue[connectivityType]
+    Position: _EnumValue[connectivityType]
 
 class displaySetType(_Enum):
     """Enum of viewport geometry contexts.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/displaySetType.html
     """
-    pass
+    SceneObject: _EnumValue[displaySetType]  # Objects which are displayed but not selected, when the scene is viewing objects. In LOPs, this affects unselected primitives
+    SelectedObject: _EnumValue[displaySetType]  # Objects which are displayed and selected, when the scene is viewing objects. In LOPs, this affects selected primitives
+    GhostObject: _EnumValue[displaySetType]  # Objects which are not the currently edited object when Ghost other Objects display mode is active. Not used in LOPs
+    DisplayModel: _EnumValue[displaySetType]  # The currently displayed surface operator when editing an object. Not used in LOPs
+    CurrentModel: _EnumValue[displaySetType]  # The currently selected surface operator when editing an object. Not used in LOPs
+    TemplateModel: _EnumValue[displaySetType]  # Surface operators that have their template flag set when editing an object. Not used in LOPs
 
 class drawable2DCapStyle(_Enum):
     """Enumerator for 2D drawable cap styles.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DCapStyle.html
     """
-    pass
+    Arrow: _EnumValue[drawable2DCapStyle]  # Filled arrow shape type
+    BackwardArrow: _EnumValue[drawable2DCapStyle]  # Filled arrow shape type drawn backward
+    Bar: _EnumValue[drawable2DCapStyle]  # Vertical bar shape type
+    Butt: _EnumValue[drawable2DCapStyle]  # No shape attached to the drawable
+    Diamond: _EnumValue[drawable2DCapStyle]  # Filled diamond shape type
+    Dot: _EnumValue[drawable2DCapStyle]  # Filled circle shape type
+    HollowArrow: _EnumValue[drawable2DCapStyle]  # Unfilled arrow shape type
+    HollowBackwardArrow: _EnumValue[drawable2DCapStyle]  # Unfilled arrow shape type drawn backward
+    HollowDiamond: _EnumValue[drawable2DCapStyle]  # Unfilled diamond shape type
+    HollowDot: _EnumValue[drawable2DCapStyle]  # Unfilled circle shape type
+    HollowSquare: _EnumValue[drawable2DCapStyle]  # Unfilled square shape type
+    Square: _EnumValue[drawable2DCapStyle]  # Filled square shape type
 
 class drawable2DLineStyle(_Enum):
     """Enumerator for 2D drawable line styles.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DLineStyle.html
     """
-    pass
+    Dashed: _EnumValue[drawable2DLineStyle]  # Draw lines with a dashed line style
+    Solid: _EnumValue[drawable2DLineStyle]  # Draw lines with a solid line style
 
 class drawable2DMarkerSize(_Enum):
     """Enumerator for 2D drawable marker size.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DMarkerSize.html
     """
-    pass
+    Large: _EnumValue[drawable2DMarkerSize]  # Large marker drawable size
+    Medium: _EnumValue[drawable2DMarkerSize]  # Medium marker drawable size
+    Tiny: _EnumValue[drawable2DMarkerSize]  # Tiny marker drawable size
+    Small: _EnumValue[drawable2DMarkerSize]  # Small marker drawable size
 
 class drawable2DMarkerStyle(_Enum):
     """Enumerator for 2D drawable marker style.
