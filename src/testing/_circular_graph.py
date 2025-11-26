@@ -4,7 +4,7 @@ Houdini integration tests for circular graph construction.
 These tests run in hython and create actual circular node graphs.
 """
 
-from zabob_houdini.core import node, context
+from zabob_houdini.core import context
 import hou
 
 
