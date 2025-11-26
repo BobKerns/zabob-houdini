@@ -1771,56 +1771,68 @@ class viewportLighting(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportLighting.html
     """
-    pass
+    Off: _EnumValue[viewportLighting]  # No lighting, constant shaded.
+    Headlight: _EnumValue[viewportLighting]  # Basic lighting from a single directional light defined in the display options.
+    Normal: _EnumValue[viewportLighting]  # Good quality lighting from up to 10 basic lights (area lights modeled as point lights, limited environment lights).
+    HighQuality: _EnumValue[viewportLighting]  # High quality lighting from an unlimited number of lights including area, geometry, environment and ambient occlusion.
+    HighQualityWithShadows: _EnumValue[viewportLighting]  # High quality lighting with shadows.
 
 class viewportMaterialUpdate(_Enum):
     """Enum for the update frequency of viewport material assignments.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportMaterialUpdate.html
     """
-    pass
+    Always: _EnumValue[viewportMaterialUpdate]  # Update assignments whenever needeed.
+    Manual: _EnumValue[viewportMaterialUpdate]  # Only update assignments when Update Materials is pressed.
+    OffForPlayback: _EnumValue[viewportMaterialUpdate]  # Update assignments whenever needed, but not during playback.
 
 class viewportPackedBoxMode(_Enum):
     """Enum for the culled packed geometry display mode.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportPackedBoxMode.html
     """
-    pass
+    NoDisplay: _EnumValue[viewportPackedBoxMode]  # Culled packed primitives are not displayed at all.
+    Wireframe: _EnumValue[viewportPackedBoxMode]  # A wireframe bounding box replaces the packed primitive.
+    Shaded: _EnumValue[viewportPackedBoxMode]  # A shaded bounding box replaces the packed primitive.
+    CurrentShadingMode: _EnumValue[viewportPackedBoxMode]  # A bounding box replaces the packed primitive, drawn wireframe in wireframe shading modes and shaded otherwise.
 
 class viewportParticleDisplay(_Enum):
     """Viewport display option for particle display visualization.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportParticleDisplay.html
     """
-    pass
+    # TODO: Documentation VALUES section incomplete - needs manual research
 
 class viewportShadowQuality(_Enum):
     """The quality of shadows produced in the viewport.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportShadowQuality.html
     """
-    pass
+    # TODO: Documentation VALUES section incomplete - needs manual research
 
 class viewportStandInGeometry(_Enum):
     """Replacement geometry for instances culled in the viewport.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStandInGeometry.html
     """
-    pass
+    # TODO: Documentation VALUES section incomplete - needs manual research
 
 class viewportStereoMode(_Enum):
     """Stereoscopic viewport display modes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStereoMode.html
     """
-    pass
+    # TODO: Documentation VALUES section incomplete - needs manual research
 
 class viewportTextureDepth(_Enum):
     """Enum for the viewport texture bit depth limit.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportTextureDepth.html
     """
-    pass
+    Compressed8: _EnumValue[viewportTextureDepth]  # Compressed, 8b SDR texture format. Smallest memory use.
+    Fixed8: _EnumValue[viewportTextureDepth]  # 8b SDR texture format. Good balance between memory and quality.
+    FullHDR: _EnumValue[viewportTextureDepth]  # 16b HDR texture format. Excellent dynamic range, but more memory use and slower texturing performance.
+    HDR16: _EnumValue[viewportTextureDepth]  # 32b HDR texture format. Extreme dynamic range, but very high memory use and slow texturing performance. Use with care.
 
 class viewportTransparency(_Enum):
     """Transparency rendering quality for the viewport.
