@@ -9903,6 +9903,26 @@ class LogEntry:
     def externalCommandLine(self) -> str: ...
     def externalProcessId(self) -> int: ...
 
+class FileSink:
+    """File-based sink that writes log entries to a file.
+
+    FileSink is a logging sink that writes log entries to a file on disk.
+    Used by hou.logging.defaultFileSink().
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/logging.html
+    """
+    pass
+
+class MemorySink:
+    """Memory-based sink that stores log entries in memory.
+
+    MemorySink is a logging sink that stores log entries in memory for
+    later retrieval. Used by hou.logging.defaultSink().
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/logging.html
+    """
+    pass
+
 class PaneTab:
     """Base class for pane tabs in the Houdini UI."""
     def name(self) -> str: ...

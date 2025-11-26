@@ -96,6 +96,7 @@ Hscript
 htmlcov
 hview
 hython
+inbetween
 inbetweens
 inputgeolist
 inputidx
@@ -120,6 +121,7 @@ Mult
 multiparm
 Multiparms
 mygeometry
+mylib
 mypy
 mytransform
 needeed
@@ -136,6 +138,8 @@ ocio
 oldeps
 oneline
 opdef
+oplibraries
+OPNAMESPACE
 orthowidth
 panetab
 panetype
@@ -191,6 +195,7 @@ renderpass
 rendersettings
 repeatt
 repr
+rescan
 resim
 resultdatatag
 rtype
@@ -233,6 +238,7 @@ timeclass
 timestep
 topnet
 uncategorized
+undoable
 undos
 unregistration
 unsetenv
