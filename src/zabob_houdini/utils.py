@@ -61,28 +61,67 @@ JsonValue: TypeAlias = 'JsonAtomicValue | JsonArray | JsonObject'
 '''A JSON value, which can be an atomic value, array, or object.'''
 
 
+class Location(TypedDict):
+    """Location information for errors."""
+    file: str
+    name: str
+    line: int
+
 class HoudiniResult(TypedDict):
     """Result structure from Houdini function calls."""
     success: bool
     result: NotRequired[JsonObject]
+    test_location: Location
     error: NotRequired[str]
     traceback: NotRequired[str]
+    error_location: NotRequired[Location | None]
 
+def frame_location(frame: traceback.FrameSummary) -> Location:
+    """Convert a traceback FrameSummary to a Location dict."""
+    return {
+        'file': frame.filename,
+        'name': frame.name,
+        'line': frame.lineno or 9
+    }
+
+def test_location(stack: traceback.StackSummary, skip: int = 1) -> Location:
+    i: int = len(stack) - skip
+    frame = stack[i - 1]
+    error_location: Location = frame_location(frame)
+    while i > 0:
+        if frame is None:
+            break
+        old_frame = frame
+        if (frame.name == "invoke_houdini_function"
+            or frame.filename.endswith("houdini_bridge.py")
+            or frame.filename.endswith("conftest.py")
+        ):
+            frame = old_frame
+            break
+        i -= 1
+    i = max(i, len(stack) - 1) - 1
+    frame = stack[i + 1]
+    return frame_location(frame)
 
 def error_result(message: str, with_traceback: bool = True) -> HoudiniResult:
     """Helper to create an error result."""
+    trace = traceback.format_exc().splitlines()
+    tb = sys.exc_info()[2]
+    stack = traceback.extract_tb(tb)
+    error_location: Location = frame_location(stack[-1])
+    test_loc: Location  = test_location(stack)
     if not with_traceback:
         return {
             'success': False,
             'error': message,
+            'test_location': test_loc,
         }
-    trace = traceback.format_exc().splitlines()
-    # Don't show the invoking code in the traceback
-    #trace = trace[0:1] + trace[4:]
     return {
         'success': False,
         'error': message,
         'traceback': '\n'.join(trace),
+        'error_location': error_location,
+        'test_location': test_loc,
     }
 
 

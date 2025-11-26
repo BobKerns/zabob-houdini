@@ -70,6 +70,7 @@ filepattern
 fillvalue
 filterby
 filterbyrange
+firstlineno
 flagclass
 flipbook
 fromlist

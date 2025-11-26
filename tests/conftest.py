@@ -16,7 +16,9 @@ import subprocess
 import json
 import shutil
 
-from zabob_houdini.utils import JsonValue, HoudiniResult, JsonObject
+from zabob_houdini.utils import (
+    JsonValue, JsonObject, HoudiniResult, Location,
+)
 
 
 class HythonSessionFn(Protocol):
@@ -25,8 +27,17 @@ class HythonSessionFn(Protocol):
                  module: str = "") -> JsonObject: ...
 
 
+def fmt_location(name: str, loc: Location | None) -> str:
+    if loc is None:
+        return "<unknown location>"
+    file = str(Path(loc.get("file", "")))
+    line = loc.get("line", 0)
+    fn = loc.get("name", "<unknown>")
+    return f'{name} "{file}", line {line}, in {fn}'
+
+
 @pytest.fixture
-def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
+def hython_test(hython_session: 'HythonSession', request) -> HythonSessionFn:
     """
     Fixture that provides a function to run test functions in hython.
 
@@ -78,14 +89,20 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
             error_msg = result.get("error", "Unknown error")
             separator = "------Hython Error Traceback------"
             traceback_info = result.get("traceback", "")
+            loc_sep = "------ Location (Test, Error) ------"
+            test_loc = fmt_location("Tst>", result.get('test_location'))
+            error_loc = fmt_location("Err>", result.get('error_location'))
             msg = "\n".join((
                 heading, error_msg, "",
-                separator, traceback_info))
+                separator, traceback_info,
+                loc_sep, test_loc, error_loc
+            ))
             pytest.fail(msg)
 
         # At this point we know success=True, so result field must be present
         if "result" not in result:
             pytest.fail("Houdini test did not return a result field")
+        print(fmt_location('Tst>', result['test_location']), file=sys.stderr)
         return result['result']
 
     return run_houdini_test

@@ -47,7 +47,7 @@ from typing import Any, ParamSpec, cast
 import click
 
 from zabob_houdini.utils import (
-    JsonValue, HoudiniResult, error_result, _is_houdini_result
+    JsonValue, HoudiniResult, Location, error_result, _is_houdini_result
 )
 
 
@@ -226,50 +226,41 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
         else:
             houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
         func = getattr(houdini_module, function_name)
+        location: Location = {
+            'file': func.__code__.co_filename,
+            'name': func.__name__,
+            'line': func.__code__.co_firstlineno
+        }
+        def success(result: JsonValue) -> HoudiniResult:
+            return {
+                'success': True,
+                'result': {
+                    'value': result,
+                },
+                'test_location': location
+            }
 
         # Call function with arguments and capture result
         result = func(*args)
         match result:
             case str():
-                yield {
-                    'success': True,
-                    'result': {
-                        'message': result
-                    }
-                }
+                yield success({
+                    'message': result
+                })
             case int()|float()|bool()|list():
-                yield {
-                    'success': True,
-                    'result': {
-                        'value': result
-                    }
-                }
+                yield success({'value': result})
             case tuple():
-                yield {
-                    'success': True,
-                    'result': {
-                        'value': list(result)
-                    }
-                }
+                yield success({'value': list(result)})
             case Path():
-                yield {
-                    'success': True,
-                    'result': {
-                        'path': str(result)
-                    }
-                }
+                yield success({'path': str(result)})
             case dict() if _is_houdini_result(result):
-                yield cast(HoudiniResult, result)
+                result = result['result']
+                yield success(result)
             case dict():
-                yield {
-                    'success': True,
-                    'result': result
-                }
+                yield success(result)
             case _:
-                yield {
-                    'success': False,
-                    'error': f"Unexpected return type from {module_name}.{function_name}: {type(result)}"
-                }
+                msg = f"Unexpected return type from {module_name}.{function_name}: {type(result)}"
+                yield error_result(msg)
 
     except ImportError as e:
         yield error_result(f"Module 'zabob_houdini.{module_name}' not found: {e}")
