@@ -1801,28 +1801,40 @@ class viewportParticleDisplay(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportParticleDisplay.html
     """
-    # TODO: Documentation VALUES section incomplete - needs manual research
+    Points: _EnumValue[viewportParticleDisplay]  # Fixed size points in screen space
+    Lines: _EnumValue[viewportParticleDisplay]  # Points with streaks indicating velocity
+    Pixels: _EnumValue[viewportParticleDisplay]  # Single pixel particle (fixed size)
+    Discs: _EnumValue[viewportParticleDisplay]  # Circular disc, variable world size
+    Spheres: _EnumValue[viewportParticleDisplay]  # Spheres which have material assignments and lighting, variable world size
 
 class viewportShadowQuality(_Enum):
     """The quality of shadows produced in the viewport.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportShadowQuality.html
     """
-    # TODO: Documentation VALUES section incomplete - needs manual research
+    Point: _EnumValue[viewportShadowQuality]  # Area lights treated as point lights (fastest)
+    PointAA: _EnumValue[viewportShadowQuality]  # Antialiased shadow edges, area lights treated as point lights
+    Area: _EnumValue[viewportShadowQuality]  # Area lights generate multiple shadow maps with blurred shadows
+    AreaAA: _EnumValue[viewportShadowQuality]  # Area lights with antialiased lookups
 
 class viewportStandInGeometry(_Enum):
     """Replacement geometry for instances culled in the viewport.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStandInGeometry.html
     """
-    # TODO: Documentation VALUES section incomplete - needs manual research
+    Point: _EnumValue[viewportStandInGeometry]  # Point at instance position
+    BoundingBox: _EnumValue[viewportStandInGeometry]  # Bounding box of culled geometry
+    StandIn: _EnumValue[viewportStandInGeometry]  # Stand-in geometry specified in instance properties
 
 class viewportStereoMode(_Enum):
     """Stereoscopic viewport display modes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStereoMode.html
     """
-    # TODO: Documentation VALUES section incomplete - needs manual research
+    Anaglyph: _EnumValue[viewportStereoMode]  # Anaglyph display of left/right as red/cyan
+    HorizontalInterlace: _EnumValue[viewportStereoMode]  # Interlace left and right on alternating scanlines
+    HorizontalInterlaceReverse: _EnumValue[viewportStereoMode]  # Interlace left and right on alternating scanlines, swapped
+    QuadBufferGL: _EnumValue[viewportStereoMode]  # Use OpenGL quad buffer stereo (professional cards)
 
 class viewportTextureDepth(_Enum):
     """Enum for the viewport texture bit depth limit.
@@ -1867,21 +1879,32 @@ class viewportVolumeBSplines(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVolumeBSplines.html
     """
-    pass
+
+    Off: _EnumValue[viewportVolumeBSplines]  # Never use higher-order volume interpolation (fastest, blocky)
+    NonInteractive: _EnumValue[viewportVolumeBSplines]  # Use higher-order interpolation when not interacting, linear while interacting
+    On: _EnumValue[viewportVolumeBSplines]  # Always use higher-order volume interpolation (slowest, highest quality)
 
 class viewportVolumeQuality(_Enum):
     """Display options for viewport volume rendering quality.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVolumeQuality.html
     """
-    pass
+
+    VeryLow: _EnumValue[viewportVolumeQuality]  # Quick volume preview
+    Low: _EnumValue[viewportVolumeQuality]  # Minor quality loss for performance
+    Normal: _EnumValue[viewportVolumeQuality]  # Balanced quality/performance setting
+    High: _EnumValue[viewportVolumeQuality]  # Jittered, high quality volume with more passes
 
 class viewportWorkLight(_Enum):
     """Work light type for the viewer.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportWorkLight.html
     """
-    pass
+
+    Headlight: _EnumValue[viewportWorkLight]  # Over-the-shoulder single distant light
+    Domelight: _EnumValue[viewportWorkLight]  # Environment light with optional file map
+    PhysicalSky: _EnumValue[viewportWorkLight]  # Sun and sky map lighting based on sun position and atmospheric parameters
+    ThreePoint: _EnumValue[viewportWorkLight]  # Three distant lights arranged in a common three-point lighting setup
 
 # ============================================================================
 # VIEWER ENUMERATIONS

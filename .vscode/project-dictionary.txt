@@ -44,6 +44,7 @@ destgeo
 destimage
 diffable
 docstrings
+Domelight
 dophints
 dopnet
 dotenv
@@ -190,6 +191,7 @@ repr
 resim
 resultdatatag
 rtype
+scanlines
 sdist
 segfaulting
 SEGV
