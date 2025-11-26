@@ -26,14 +26,24 @@ If this approach causes type-checking issues, consider falling back to simpler c
 definitions without generic typing, or using typing.Literal for specific enum values.
 """
 
-from typing import Any, Generic, Sequence,  TypeAlias, overload, Type, TypeVar, Callable
-from collections.abc import Iterator
+from contextlib import AbstractContextManager
+from typing import TYPE_CHECKING, Any, Generic, Sequence,  TypeAlias, overload, TypeVar, Callable
+from collections.abc import Generator, Iterator
 import types
 import datetime
 
 
 from hrecipes.api.networkitems import SubnetIndirectInput
 from searchbox.radialmenus import RadialMenus
+import pxr.Sdf
+import pxr.Usd
+
+from hou import pdg
+
+JsonAtomic: TypeAlias = str | int | float | bool | None
+JsonList: TypeAlias = 'list[JsonValue]'
+JsonObject: TypeAlias = 'dict[str, JsonValue]'
+JsonValue: TypeAlias = 'JsonAtomic | JsonList | JsonObject'
 
 # Type variables for generic operations
 T = TypeVar('T')
@@ -45,10 +55,41 @@ ParameterDict = dict[str, ParameterValue]
 NodePath = str | 'Node'
 TransformValue = float | Sequence[float]
 
-_Floats2: TypeAlias = 'tuple[float, float]|Sequence[float]|Vector2'  # A sequence of floats representing a point (x, y)
+_Floats2: TypeAlias = 'tuple[float, float]|Sequence[float]|Vector2'
+"""
+A sequence of floats representing a 2D point (x, y).
+
+Useful for functions that accept 2D coordinates in any of these forms.
+"""
 
 _Floats3: TypeAlias = 'tuple[float, float, float]|Sequence[float]|Vector3'
+"""
+A sequence of floats representing a 3D point (x, y, z).
 
+Useful for functions that accept 3D coordinates in any of these forms.
+"""
+
+_FFloats4: TypeAlias = 'tuple[float, float, float, float]|Sequence[float]|Vector4'
+"""
+A sequence of floats representing a 4D point (x, y, z, w).
+
+Useful for functions that accept 4D coordinates in any of these forms.
+"""
+
+
+_OptionValueNoBool: TypeAlias = """(
+    int | float | str | tuple[float, ...] | tuple[int, ...]
+    | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4
+    | Quaternion
+)"""
+'''
+Valid option values for such objects as DopRecord.
+'''
+
+_OptionValue: TypeAlias = "_OptionValueNoBool | bool"
+'''
+Valid option values for such objects as PointGroup
+'''
 
 class EnumValue:
     """A simple class to represent enum values in Houdini."""
@@ -56,13 +97,17 @@ class EnumValue:
 
 
 class _Enum:
-    pass
+    ...
 
 E = TypeVar('E', bound=_Enum)
 class _EnumValue(EnumValue, Generic[E]):
-    pass
+    ...
 
 
+T_Node = TypeVar('T_Node', bound='Node')
+T_Event = TypeVar('T_Event', bound='_Enum')
+T_3 = TypeVar('T_3')
+_EventCallback: TypeAlias = Callable[[T_Node, _EnumValue[T_Event], T_3], None]
 
 class saveMode(_Enum):
     """Enumeration of hip file save modes."""
@@ -212,6 +257,17 @@ class rampParmType(_Enum):
     Color: '_EnumValue[rampParmType]'
     Float: '_EnumValue[rampParmType]'
 
+class scaleInheritanceMode(_Enum):
+    """Enumeration of scale inheritance modes for transforms.
+
+    Controls how child objects inherit scale transformations from parent objects.
+    """
+    Default: '_EnumValue[scaleInheritanceMode]'  # Simple inheritance: world = local * parent_world
+    OffsetOnly: '_EnumValue[scaleInheritanceMode]'  # Child doesn't scale with parent local scales, but local translation is scaled
+    OffsetAndScale: '_EnumValue[scaleInheritanceMode]'  # Local translation is scaled and parent local scaling is reapplied by child in local space
+    ScaleOnly: '_EnumValue[scaleInheritanceMode]'  # Local translation is not scaled, but parent local scaling is reapplied by child in local space
+    Ignore: '_EnumValue[scaleInheritanceMode]'  # Child completely ignores any parent local scaling
+
 class parmData(_Enum):
     """Enumeration of parameter data types."""
     Int: '_EnumValue[parmData]'
@@ -342,6 +398,11 @@ class parmTemplateInterfaceType(_Enum):
     UV: '_EnumValue[parmTemplateInterfaceType]'
     UVW: '_EnumValue[parmTemplateInterfaceType]'
 
+class radialItemType(_Enum):
+    """Enumeration of types for radial menu items in Houdini."""
+    Script: '_EnumValue[radialItemType]'
+    Submenu: '_EnumValue[radialItemType]'
+
 class rampBasis(_Enum):
     """Enumeration of ramp interpolation types."""
     Linear: '_EnumValue[rampBasis]'
@@ -351,6 +412,54 @@ class rampBasis(_Enum):
     Bezier: '_EnumValue[rampBasis]'
     BSpline: '_EnumValue[rampBasis]'
     Hermite: '_EnumValue[rampBasis]'
+
+class renderMethod(_Enum):
+    """Enumeration of dependency rendering methods."""
+    RopByRop: '_EnumValue[renderMethod]'
+    FrameByFrame: '_EnumValue[renderMethod]'
+
+class severityType(_Enum):
+    """Enumeration of log message severity levels."""
+    Message: '_EnumValue[severityType]'
+    Warning: '_EnumValue[severityType]'
+    Error: '_EnumValue[severityType]'
+    Fatal: '_EnumValue[severityType]'
+
+class paneTabType(_Enum):
+    """Enumeration of pane tab types."""
+    NetworkEditor: '_EnumValue[paneTabType]'
+    SceneViewer: '_EnumValue[paneTabType]'
+    ChannelEditor: '_EnumValue[paneTabType]'
+    CompositorViewer: '_EnumValue[paneTabType]'
+    PythonShell: '_EnumValue[paneTabType]'
+    ParameterEditor: '_EnumValue[paneTabType]'
+    PythonPanel: '_EnumValue[paneTabType]'
+    PerformanceMonitor: '_EnumValue[paneTabType]'
+
+class paneLinkType(_Enum):
+    """Enumeration of pane link types for synchronizing pane tabs."""
+    Pinned: '_EnumValue[paneLinkType]'
+    Linked1: '_EnumValue[paneLinkType]'
+    Linked2: '_EnumValue[paneLinkType]'
+    Linked3: '_EnumValue[paneLinkType]'
+
+class parmFilterMode(_Enum):
+    """Enumeration of parameter filter modes."""
+    ShowAll: '_EnumValue[parmFilterMode]'
+    ShowMatching: '_EnumValue[parmFilterMode]'
+    HideMatching: '_EnumValue[parmFilterMode]'
+
+class parmFilterCriteria(_Enum):
+    """Enumeration of parameter filter criteria."""
+    AllParameters: '_EnumValue[parmFilterCriteria]'
+    AnimatedParameters: '_EnumValue[parmFilterCriteria]'
+    ChangedParameters: '_EnumValue[parmFilterCriteria]'
+
+class scrollPosition(_Enum):
+    """Enumeration of scroll positions for parameter editor."""
+    Top: '_EnumValue[scrollPosition]'
+    Center: '_EnumValue[scrollPosition]'
+    Bottom: '_EnumValue[scrollPosition]'
 
 class stringParmType(_Enum):
     """Enumeration of string parameter types."""
@@ -436,6 +545,1588 @@ class clipMode(_Enum):
     CookFrame: '_EnumValue[clipMode]'
     CookRealTime: '_EnumValue[clipMode]'
 
+class lopTraversalDemands(_Enum):
+    """Specifies which primitives should be included/excluded during USD scene graph traversal.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/lopTraversalDemands.html
+    """
+
+    NoDemands: _EnumValue[lopTraversalDemands]  # A value that includes none of the above demands
+
+class lopViewportOverridesLayer(_Enum):
+    """Specifies choice between various pxr.Sdf.Layer objects in LopViewportOverrides.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/lopViewportOverridesLayer.html
+    """
+
+    Base: _EnumValue[lopViewportOverridesLayer]
+    Selectable: _EnumValue[lopViewportOverridesLayer]
+    SoloLights: _EnumValue[lopViewportOverridesLayer]
+    SoloGeometry: _EnumValue[lopViewportOverridesLayer]
+    Purpose: _EnumValue[lopViewportOverridesLayer]
+    Expansion: _EnumValue[lopViewportOverridesLayer]
+    Custom: _EnumValue[lopViewportOverridesLayer]
+
+# ============================================================================
+# ANIMATION ENUMERATIONS
+# ============================================================================
+
+class animBarToolSize(_Enum):
+    """Enumeration of values for the size options for Animation Toolbar tools.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/animBarToolSize.html
+    """
+    Compact: '_EnumValue[animBarToolSize]'
+    Standard: '_EnumValue[animBarToolSize]'
+    Wide: '_EnumValue[animBarToolSize]'
+    ExtraWide: '_EnumValue[animBarToolSize]'
+
+class bookmarkEvent(_Enum):
+    """Enumeration of the bookmark events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/bookmarkEvent.html
+    """
+    Created: '_EnumValue[bookmarkEvent]'  # Triggered when a new bookmark has been created
+    Modified: '_EnumValue[bookmarkEvent]'  # Triggered when a bookmark has been modified
+    Deleted: '_EnumValue[bookmarkEvent]'  # Triggered when a bookmark has been deleted
+    Reset: '_EnumValue[bookmarkEvent]'  # Triggered when the list of bookmarks has been reset or cleared
+    InteractionStarted: '_EnumValue[bookmarkEvent]'  # Triggered when a new user interaction begins on a bookmark
+    InteractionFinished: '_EnumValue[bookmarkEvent]'  # Triggered when releasing the bookmark after interacting with it
+
+class segmentType(_Enum):
+    """Enumeration of values for segment types used by channel primitives.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/segmentType.html
+    """
+    Bezier: '_EnumValue[segmentType]'
+    Constant: '_EnumValue[segmentType]'
+    Linear: '_EnumValue[segmentType]'
+    Cubic: '_EnumValue[segmentType]'
+    Ease: '_EnumValue[segmentType]'
+    EaseIn: '_EnumValue[segmentType]'
+    EaseOut: '_EnumValue[segmentType]'
+    Quintic: '_EnumValue[segmentType]'
+
+class slopeMode(_Enum):
+    """Enumeration of values for default Slope Mode when inserting new keys into a channel.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/slopeMode.html
+    """
+    Manual: '_EnumValue[slopeMode]'
+    Automatic: '_EnumValue[slopeMode]'
+
+# ============================================================================
+# DIGITAL ASSETS ENUMERATIONS
+# ============================================================================
+
+class hdaEventType(_Enum):
+    """Enumeration of types of events that can happen for digital asset libraries.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hdaEventType.html
+    """
+    AssetCreated: '_EnumValue[hdaEventType]'  # A new asset was created
+    AssetDeleted: '_EnumValue[hdaEventType]'  # An asset was deleted
+    AssetSaved: '_EnumValue[hdaEventType]'  # An asset was saved
+    BeforeAssetCreated: '_EnumValue[hdaEventType]'  # A new asset is about to be created
+    BeforeAssetSaved: '_EnumValue[hdaEventType]'  # An asset is about to be saved
+    LibraryInstalled: '_EnumValue[hdaEventType]'  # A digital asset library has been installed
+    LibraryUninstalled: '_EnumValue[hdaEventType]'  # A digital asset library has been uninstalled
+
+class hdaLicenseType(_Enum):
+    """Enumeration of digital asset license permission levels.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hdaLicenseType.html
+    """
+    Execute: '_EnumValue[hdaLicenseType]'  # Execute permission level
+    Read: '_EnumValue[hdaLicenseType]'  # Read permission level
+    Full: '_EnumValue[hdaLicenseType]'  # Full permission level
+
+# ============================================================================
+# CHANNELS ENUMERATIONS
+# ============================================================================
+
+class channelListChangedReason(_Enum):
+    """Enumeration of the reasons the hou.playbarEvent.ChannelListChanged event can be triggered.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/channelListChangedReason.html
+    """
+    Replaced: '_EnumValue[channelListChangedReason]'  # Triggered when the channel list has been fully replaced
+    Filtered: '_EnumValue[channelListChangedReason]'  # Triggered when the channel list has been filtered
+
+# ============================================================================
+# COOKING ENUMERATIONS
+# ============================================================================
+
+class updateMode(_Enum):
+    """Enumeration of interface update modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/updateMode.html
+    """
+    AutoUpdate: '_EnumValue[updateMode]'  # Automatically update the interface
+    OnMouseUp: '_EnumValue[updateMode]'  # Update the interface when the mouse button is released
+    Manual: '_EnumValue[updateMode]'  # Manually update the interface
+
+# ============================================================================
+# CROWDS ENUMERATIONS
+# ============================================================================
+
+class agentShapeDeformerType(_Enum):
+    """Enumeration of agent shape deformer types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/agentShapeDeformerType.html
+    """
+    LinearSkinning: '_EnumValue[agentShapeDeformerType]'  # Linear skinning deformer
+    DualQuatSkinning: '_EnumValue[agentShapeDeformerType]'  # Dual quaternion skinning deformer
+    DualQuatBlendSkinning: '_EnumValue[agentShapeDeformerType]'  # Dual quaternion blend skinning deformer
+    BlendShape: '_EnumValue[agentShapeDeformerType]'  # Blend shape deformer
+    BlendShapeAndLinearSkinning: '_EnumValue[agentShapeDeformerType]'  # Blend shape and linear skinning deformer
+    BlendShapeAndDualQuatSkinning: '_EnumValue[agentShapeDeformerType]'  # Blend shape and dual quaternion skinning deformer
+    BlendShapeAndDualQuatBlendSkinning: '_EnumValue[agentShapeDeformerType]'  # Blend shape and dual quaternion blend skinning deformer
+
+# ============================================================================
+# GENERAL ENUMERATIONS
+# ============================================================================
+
+class hipFileEventType(_Enum):
+    """Enumeration of the hip file event types that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hipFileEventType.html
+    """
+    BeforeClear: '_EnumValue[hipFileEventType]'  # Triggered immediately before the current .hip file is cleared
+    AfterClear: '_EnumValue[hipFileEventType]'  # Triggered immediately after the current .hip file is cleared
+    BeforeLoad: '_EnumValue[hipFileEventType]'  # Triggered immediately before a .hip file is loaded
+    AfterLoad: '_EnumValue[hipFileEventType]'  # Triggered immediately after a .hip file is loaded
+    BeforeMerge: '_EnumValue[hipFileEventType]'  # Triggered immediately before a .hip file is merged
+    AfterMerge: '_EnumValue[hipFileEventType]'  # Triggered immediately after a .hip file is merged
+    BeforeSave: '_EnumValue[hipFileEventType]'  # Triggered immediately before the current .hip file is saved
+    AfterSave: '_EnumValue[hipFileEventType]'  # Triggered immediately after the current .hip file is saved
+
+class licenseCategoryType(_Enum):
+    """Enumeration of license category values.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/licenseCategoryType.html
+    """
+    Commercial: '_EnumValue[licenseCategoryType]'  # Commercial license
+    Indie: '_EnumValue[licenseCategoryType]'  # Indie license
+    Education: '_EnumValue[licenseCategoryType]'  # Education license
+    ApprenticeHD: '_EnumValue[licenseCategoryType]'  # Apprentice HD license
+    Apprentice: '_EnumValue[licenseCategoryType]'  # Apprentice license
+
+# ============================================================================
+# GEOMETRY ENUMERATIONS
+# ============================================================================
+
+class keyHalf(_Enum):
+    """Enumeration of the halves of a key, used when setting keyframe data in a Channel Primitive.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/keyHalf.html
+    """
+    In: '_EnumValue[keyHalf]'  # Used to set only the in (left) side of a key
+    Out: '_EnumValue[keyHalf]'  # Used to set only the out (right) side of a key
+    InOut: '_EnumValue[keyHalf]'  # Used to set both sides of a key
+
+class vdbData(_Enum):
+    """Enumeration of voxel data types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/vdbData.html
+    """
+    Boolean: '_EnumValue[vdbData]'  # Boolean voxel data type
+    Float: '_EnumValue[vdbData]'  # Float voxel data type
+    Int: '_EnumValue[vdbData]'  # Integer voxel data type
+    Vector3: '_EnumValue[vdbData]'  # Vector3 voxel data type
+
+class vdbType(_Enum):
+    """Enumeration of VDB types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/vdbType.html
+    """
+    Bool: '_EnumValue[vdbType]'  # Boolean VDB type
+    Double: '_EnumValue[vdbType]'  # Double precision VDB type
+    Float: '_EnumValue[vdbType]'  # Float VDB type
+    Int32: '_EnumValue[vdbType]'  # 32-bit integer VDB type
+    Int64: '_EnumValue[vdbType]'  # 64-bit integer VDB type
+    Invalid: '_EnumValue[vdbType]'  # Invalid VDB type
+    PointData: '_EnumValue[vdbType]'  # Point data VDB type
+    PointIndex: '_EnumValue[vdbType]'  # Point index VDB type
+    Vec3d: '_EnumValue[vdbType]'  # 3D double vector VDB type
+    Vec3f: '_EnumValue[vdbType]'  # 3D float vector VDB type
+    Vec3i: '_EnumValue[vdbType]'  # 3D integer vector VDB type
+
+# ============================================================================
+# IMAGES/LAYER ENUMERATIONS
+# ============================================================================
+
+class imageDepth(_Enum):
+    """Enumeration of image depths (data formats) for representing the pixels in an image plane.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageDepth.html
+    """
+    Int8: '_EnumValue[imageDepth]'  # 8-bit integer format
+    Int16: '_EnumValue[imageDepth]'  # 16-bit integer format
+    Int32: '_EnumValue[imageDepth]'  # 32-bit integer format
+    Float16: '_EnumValue[imageDepth]'  # 16-bit float format
+    Float32: '_EnumValue[imageDepth]'  # 32-bit float format
+
+class imageLayerBorder(_Enum):
+    """Enumeration of ImageLayer Borders.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerBorder.html
+    """
+    Clamp: '_EnumValue[imageLayerBorder]'  # Clamp to nearest valid location
+    Constant: '_EnumValue[imageLayerBorder]'  # Use constant value (usually 0) for out of bound reads
+    Mirror: '_EnumValue[imageLayerBorder]'  # Mirror across border to find valid internal location
+    Wrap: '_EnumValue[imageLayerBorder]'  # Wrap around to far side
+
+class imageLayerProjection(_Enum):
+    """Enumeration of ImageLayer Projections.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerProjection.html
+    """
+    Orthographic: '_EnumValue[imageLayerProjection]'  # Orthographic projection along local Z direction
+    Perspective: '_EnumValue[imageLayerProjection]'  # Perspective transform focusing to camera position
+
+class imageLayerStorageType(_Enum):
+    """Enumeration of ImageLayer StorageTypes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerStorageType.html
+    """
+    Float16: '_EnumValue[imageLayerStorageType]'  # 16-bit floats
+    Float32: '_EnumValue[imageLayerStorageType]'  # 32-bit floats
+    Int16: '_EnumValue[imageLayerStorageType]'  # 16-bit integers
+    Int32: '_EnumValue[imageLayerStorageType]'  # 32-bit integers
+    Int8: '_EnumValue[imageLayerStorageType]'  # 8-bit integers
+    Fixed8: '_EnumValue[imageLayerStorageType]'  # Fractional 0-1 using 8 bits fixed precision
+    Fixed16: '_EnumValue[imageLayerStorageType]'  # Fractional 0-1 using 16 bits fixed precision
+
+class imageLayerTypeInfo(_Enum):
+    """Enumeration of ImageLayer TypeInfos.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/imageLayerTypeInfo.html
+    """
+    Color: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as RGB
+    Height: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as height map (usually Mono)
+    ID: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as ID map (usually ID)
+    Mask: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as 0-1 mask (usually Mono)
+    Normal: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as signed normal (RGB, -1 to 1, normalized)
+    OffsetNormal: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as offset normal (RGB, 0 to 1, normalized around 0.5)
+    Position: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as XYZ location (3-tuples: space, 2-tuples: Image space)
+    Raw: '_EnumValue[imageLayerTypeInfo]'  # Data not interpreted, no specific type hint
+    SDF: '_EnumValue[imageLayerTypeInfo]'  # Data stores signed distance to curve (usually Mono)
+    Texture: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as UV location (2-tuples: Texture space)
+    Vector: '_EnumValue[imageLayerTypeInfo]'  # Data interpreted as direction with magnitude (UV or RGB)
+
+# ============================================================================
+# NODES ENUMERATIONS
+# ============================================================================
+
+class appearanceChangeType(_Enum):
+    """Enumeration of types of appearance change events that can happen to nodes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/appearanceChangeType.html
+    """
+    Any: '_EnumValue[appearanceChangeType]'
+    ErrorState: '_EnumValue[appearanceChangeType]'
+    Pick: '_EnumValue[appearanceChangeType]'
+    Color: '_EnumValue[appearanceChangeType]'
+    DeleteScript: '_EnumValue[appearanceChangeType]'
+    Comment: '_EnumValue[appearanceChangeType]'
+    LockFlag: '_EnumValue[appearanceChangeType]'
+    CompressFlag: '_EnumValue[appearanceChangeType]'
+    OTLMatchState: '_EnumValue[appearanceChangeType]'
+    ActiveInput: '_EnumValue[appearanceChangeType]'
+    Connections: '_EnumValue[appearanceChangeType]'
+    ExpressionLanguage: '_EnumValue[appearanceChangeType]'
+    NetworkBox: '_EnumValue[appearanceChangeType]'
+    PostIt: '_EnumValue[appearanceChangeType]'
+    Dot: '_EnumValue[appearanceChangeType]'
+    Preview: '_EnumValue[appearanceChangeType]'
+
+class colorItemType(_Enum):
+    """Enumeration for color item types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/colorItemType.html
+    """
+    NetworkBox: '_EnumValue[colorItemType]'
+    StickyNote: '_EnumValue[colorItemType]'
+    StickyNoteText: '_EnumValue[colorItemType]'
+
+class nodeEventType(_Enum):
+    """Enumeration of types of events that can happen to nodes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeEventType.html
+    """
+    BeingDeleted: '_EnumValue[nodeEventType]'  # Runs before node deleted (cannot cancel deletion)
+    NameChanged: '_EnumValue[nodeEventType]'  # Runs after node renamed
+    FlagChanged: '_EnumValue[nodeEventType]'  # Runs after node flag changed
+    AppearanceChanged: '_EnumValue[nodeEventType]'  # Runs after appearance change (includes change_type argument)
+
+class nodeFlag(_Enum):
+    """Enumeration of the different node flags.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeFlag.html
+    """
+    Audio: '_EnumValue[nodeFlag]'
+    Bypass: '_EnumValue[nodeFlag]'
+    ColorDefault: '_EnumValue[nodeFlag]'
+    Compress: '_EnumValue[nodeFlag]'
+    Current: '_EnumValue[nodeFlag]'
+    Debug: '_EnumValue[nodeFlag]'
+    Display: '_EnumValue[nodeFlag]'
+    DisplayComment: '_EnumValue[nodeFlag]'
+    DisplayDescriptiveName: '_EnumValue[nodeFlag]'
+    Export: '_EnumValue[nodeFlag]'
+    Expose: '_EnumValue[nodeFlag]'
+    Footprint: '_EnumValue[nodeFlag]'
+    Highlight: '_EnumValue[nodeFlag]'
+    InOutDetailLow: '_EnumValue[nodeFlag]'
+    InOutDetailMedium: '_EnumValue[nodeFlag]'
+    InOutDetailHigh: '_EnumValue[nodeFlag]'
+    Material: '_EnumValue[nodeFlag]'
+    Lock: '_EnumValue[nodeFlag]'
+    SoftLock: '_EnumValue[nodeFlag]'
+    Origin: '_EnumValue[nodeFlag]'
+    OutputForDisplay: '_EnumValue[nodeFlag]'
+    Pick: '_EnumValue[nodeFlag]'
+    Render: '_EnumValue[nodeFlag]'
+    Selectable: '_EnumValue[nodeFlag]'
+    Template: '_EnumValue[nodeFlag]'
+    Unload: '_EnumValue[nodeFlag]'
+    Visible: '_EnumValue[nodeFlag]'
+    XRay: '_EnumValue[nodeFlag]'
+
+class nodeTypeSource(_Enum):
+    """Enumeration of node type sources.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeTypeSource.html
+    """
+    Internal: '_EnumValue[nodeTypeSource]'
+    CompiledCode: '_EnumValue[nodeTypeSource]'
+    VexCode: '_EnumValue[nodeTypeSource]'
+    RslCode: '_EnumValue[nodeTypeSource]'
+    Subnet: '_EnumValue[nodeTypeSource]'
+
+class optionalBool(_Enum):
+    """Enumeration of a generic tri-state value.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/optionalBool.html
+    """
+    Yes: '_EnumValue[optionalBool]'  # Equivalent to boolean True
+    No: '_EnumValue[optionalBool]'  # Equivalent to boolean False
+    NoOpinion: '_EnumValue[optionalBool]'  # Indicates lack of opinion
+
+class ropRenderEventType(_Enum):
+    """Enumeration of types of events that can happen when a ROP node is rendering.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ropRenderEventType.html
+    """
+    PreRender: '_EnumValue[ropRenderEventType]'  # Runs once before ROP begins rendering
+    PreFrame: '_EnumValue[ropRenderEventType]'  # Runs before each frame rendered
+    PostFrame: '_EnumValue[ropRenderEventType]'  # Runs after each frame finishes rendering
+    PostWrite: '_EnumValue[ropRenderEventType]'  # Runs after output files written to disk
+    PostRender: '_EnumValue[ropRenderEventType]'  # Runs once after ROP finishes rendering
+
+class videoDriver(_Enum):
+    """Enumeration of drivers that provide video functionality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/videoDriver.html
+    """
+    FFmpeg: '_EnumValue[videoDriver]'  # FFmpeg video driver
+    ImageMagick: '_EnumValue[videoDriver]'  # ImageMagick driver
+
+class nodeTypeFilter(_Enum):
+    """Enumeration of available node type filters.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeTypeFilter.html
+    """
+    NoFilter: '_EnumValue[nodeTypeFilter]'  # Any node
+    Sop: '_EnumValue[nodeTypeFilter]'  # Any SOP
+    Dop: '_EnumValue[nodeTypeFilter]'  # Any DOP
+    Chop: '_EnumValue[nodeTypeFilter]'  # Any CHOP
+    Chopnet: '_EnumValue[nodeTypeFilter]'  # Any CHOP Network
+    Cop2: '_EnumValue[nodeTypeFilter]'  # Any COP2
+    Copnet: '_EnumValue[nodeTypeFilter]'  # Any COP2 Network
+    Vop: '_EnumValue[nodeTypeFilter]'  # Any VOP
+    Vopnet: '_EnumValue[nodeTypeFilter]'  # Any VOP Network
+    Rop: '_EnumValue[nodeTypeFilter]'  # Any ROP
+    Lop: '_EnumValue[nodeTypeFilter]'  # Any LOP
+    Top: '_EnumValue[nodeTypeFilter]'  # Any TOP
+    Shop: '_EnumValue[nodeTypeFilter]'  # Any SHOP
+    Obj: '_EnumValue[nodeTypeFilter]'  # Any Object
+    ObjBone: '_EnumValue[nodeTypeFilter]'  # Object: Bone Only
+    ObjCamera: '_EnumValue[nodeTypeFilter]'  # Object: Camera Only
+    ObjFog: '_EnumValue[nodeTypeFilter]'  # Object: Fog Only
+    ObjGeometry: '_EnumValue[nodeTypeFilter]'  # Object: Geometry Only
+    ObjGeometryOrFog: '_EnumValue[nodeTypeFilter]'  # Object: Geometry and Fog Only
+    ObjLight: '_EnumValue[nodeTypeFilter]'  # Object: Light Only
+    ObjMuscle: '_EnumValue[nodeTypeFilter]'  # Object: Muscle Only
+    ObjSubnet: '_EnumValue[nodeTypeFilter]'  # Object: Subnet Only
+    ShopAtmosphere: '_EnumValue[nodeTypeFilter]'  # Shop: Atmosphere Only
+    ShopCVEX: '_EnumValue[nodeTypeFilter]'  # Shop: CVEX Only
+    ShopDisplacement: '_EnumValue[nodeTypeFilter]'  # Shop: Displacement Only
+    ShopImage3D: '_EnumValue[nodeTypeFilter]'  # Shop: Image3D Only
+    ShopInterior: '_EnumValue[nodeTypeFilter]'  # Shop: Interior Only
+    ShopLight: '_EnumValue[nodeTypeFilter]'  # Shop: Light Only
+    ShopLightShadow: '_EnumValue[nodeTypeFilter]'  # Shop: Light Shadow Only
+    ShopMaterial: '_EnumValue[nodeTypeFilter]'  # Shop: Material Only
+    ShopPhoton: '_EnumValue[nodeTypeFilter]'  # Shop: Photon Only
+    ShopProperties: '_EnumValue[nodeTypeFilter]'  # Shop: Properties Only
+    ShopSurface: '_EnumValue[nodeTypeFilter]'  # Shop: Surface Only
+    TopScheduler: '_EnumValue[nodeTypeFilter]'  # Top: Schedulers Only
+    TopPartitioner: '_EnumValue[nodeTypeFilter]'  # Top: Partitioners Only
+    TopProcessor: '_EnumValue[nodeTypeFilter]'  # Top: Processors Only
+
+# ============================================================================
+# PARAMETERS ENUMERATIONS
+# ============================================================================
+
+class parmBakeChop(_Enum):
+    """Enumeration of Bake Chop modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/parmBakeChop.html
+    """
+    Off: '_EnumValue[parmBakeChop]'
+    KeepExportFlag: '_EnumValue[parmBakeChop]'
+    DisableExportFlag: '_EnumValue[parmBakeChop]'
+    CreateDeleteChop: '_EnumValue[parmBakeChop]'
+
+# ============================================================================
+# PLAYBAR ENUMERATIONS
+# ============================================================================
+
+class playMode(_Enum):
+    """Enumeration of play modes for the main playbar in Houdini.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/playMode.html
+    """
+    Loop: '_EnumValue[playMode]'  # Play through the frame range and loop back to the beginning
+    Once: '_EnumValue[playMode]'  # Play through the frame range and stop at the end
+    Zigzag: '_EnumValue[playMode]'  # Play through and reverse direction at the end
+    Forever: '_EnumValue[playMode]'  # Play through and keep playing past the end
+
+class playbarEvent(_Enum):
+    """Enumeration of the playbar events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/playbarEvent.html
+    """
+    FrameChanged: '_EnumValue[playbarEvent]'
+    RangeChanged: '_EnumValue[playbarEvent]'
+    ChannelListChanged: '_EnumValue[playbarEvent]'
+    KeyChanged: '_EnumValue[playbarEvent]'
+
+# ============================================================================
+# RADIAL MENUS ENUMERATIONS
+# ============================================================================
+
+class radialItemLocation(_Enum):
+    """Enumeration of locations for radial menu items in Houdini.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/radialItemLocation.html
+    """
+    Top: '_EnumValue[radialItemLocation]'
+    TopLeft: '_EnumValue[radialItemLocation]'
+    Left: '_EnumValue[radialItemLocation]'
+    BottomLeft: '_EnumValue[radialItemLocation]'
+    Bottom: '_EnumValue[radialItemLocation]'
+    BottomRight: '_EnumValue[radialItemLocation]'
+    Right: '_EnumValue[radialItemLocation]'
+    TopRight: '_EnumValue[radialItemLocation]'
+
+# ============================================================================
+# SHADING ENUMERATIONS
+# ============================================================================
+
+class shaderType(_Enum):
+    """Enumeration of SHOP shader types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/shaderType.html
+    """
+    Invalid: '_EnumValue[shaderType]'
+    Surface: '_EnumValue[shaderType]'
+    SurfaceShadow: '_EnumValue[shaderType]'
+    Displacement: '_EnumValue[shaderType]'
+    Geometry: '_EnumValue[shaderType]'
+    Interior: '_EnumValue[shaderType]'
+    Light: '_EnumValue[shaderType]'
+    LightShadow: '_EnumValue[shaderType]'
+    Atmosphere: '_EnumValue[shaderType]'
+    Lens: '_EnumValue[shaderType]'
+    Output: '_EnumValue[shaderType]'
+    Background: '_EnumValue[shaderType]'
+    Photon: '_EnumValue[shaderType]'
+    Image3D: '_EnumValue[shaderType]'
+    BSDF: '_EnumValue[shaderType]'
+    CVEX: '_EnumValue[shaderType]'
+    Mutable: '_EnumValue[shaderType]'
+    Properties: '_EnumValue[shaderType]'
+    Material: '_EnumValue[shaderType]'
+    VopMaterial: '_EnumValue[shaderType]'
+    ShaderClass: '_EnumValue[shaderType]'
+
+# ============================================================================
+# UTILITY ENUMERATIONS
+# ============================================================================
+
+class compressionType(_Enum):
+    """Enumeration of compression types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/compressionType.html
+    """
+    Gzip: '_EnumValue[compressionType]'  # Compress using Gzip
+    Blosc: '_EnumValue[compressionType]'  # Compress using Blosc
+    NoCompression: '_EnumValue[compressionType]'  # Do not compress
+
+# ============================================================================
+# VEX ENUMERATIONS
+# ============================================================================
+
+class vopParmGenType(_Enum):
+    """Enumeration of the different node configurations that can be created for the inputs of a VOP node.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/vopParmGenType.html
+    """
+    Constant: '_EnumValue[vopParmGenType]'  # Create a Constant VOP and connect it to the VOP node's input
+    Parameter: '_EnumValue[vopParmGenType]'  # Create a Parameter VOP and connect it to the VOP node's input (promoted to network interface)
+    SubnetInput: '_EnumValue[vopParmGenType]'  # Create a Parameter VOP with Subnet scope (promoted to owning Subnet VOP's interface)
+
+# ============================================================================
+# UI ENUMERATIONS
+# ============================================================================
+
+class confirmType(_Enum):
+    """Enumeration of confirmation dialog suppression options.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/confirmType.html
+    """
+    NoConfirmType: '_EnumValue[confirmType]'
+    OverwriteFile: '_EnumValue[confirmType]'
+    UnlockNode: '_EnumValue[confirmType]'
+    DeleteSpareParameters: '_EnumValue[confirmType]'
+    DeleteWithoutReferences: '_EnumValue[confirmType]'
+    NestedChannelGroups: '_EnumValue[confirmType]'
+    SiblingChannelGroups: '_EnumValue[confirmType]'
+    DeleteShelfElement: '_EnumValue[confirmType]'
+    DeleteGalleryEntry: '_EnumValue[confirmType]'
+    InactiveSnapMode: '_EnumValue[confirmType]'
+    BackgroundSave: '_EnumValue[confirmType]'
+    LockMultiNode: '_EnumValue[confirmType]'
+    SaveEmbeddedDefinitions: '_EnumValue[confirmType]'
+    OCIOChangeReminder: '_EnumValue[confirmType]'
+    OCIOPackageExists: '_EnumValue[confirmType]'
+    OverwriteRecipe: '_EnumValue[confirmType]'
+    TopCookSave: '_EnumValue[confirmType]'
+    TopDeleteResults: '_EnumValue[confirmType]'
+    TopDeleteTempDir: '_EnumValue[confirmType]'
+    TopHotKeyCancelCook: '_EnumValue[confirmType]'
+    TopViewResults: '_EnumValue[confirmType]'
+    TopTerminateRemoteSession: '_EnumValue[confirmType]'
+
+class drawableDisplayMode(_Enum):
+    """Enumerator for the drawable display mode.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableDisplayMode.html
+    """
+    CurrentViewportMode: '_EnumValue[drawableDisplayMode]'  # Specifies the display mode currently active in the viewport
+    WireframeMode: '_EnumValue[drawableDisplayMode]'  # Specifies the display mode as wireframe
+
+class drawableGeometryPointStyle(_Enum):
+    """Enumeration used to specify the style of points to draw.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryPointStyle.html
+    """
+    LinearCircle: '_EnumValue[drawableGeometryPointStyle]'  # Linear circle
+    LinearSquare: '_EnumValue[drawableGeometryPointStyle]'  # Linear square
+    LinearDiamond: '_EnumValue[drawableGeometryPointStyle]'  # Linear Diamond
+    RingsCircle: '_EnumValue[drawableGeometryPointStyle]'  # Circular rings
+    RingsSquare: '_EnumValue[drawableGeometryPointStyle]'  # Square rings
+    RingsDiamond: '_EnumValue[drawableGeometryPointStyle]'  # Rings Diamond
+    SmoothCircle: '_EnumValue[drawableGeometryPointStyle]'  # Smooth circle
+    SmoothSquare: '_EnumValue[drawableGeometryPointStyle]'  # Smooth square
+    SmoothDiamond: '_EnumValue[drawableGeometryPointStyle]'  # Smooth Diamond
+    ArrowUp: '_EnumValue[drawableGeometryPointStyle]'  # Arrow pointing up
+    Cross: '_EnumValue[drawableGeometryPointStyle]'  # Cross
+    Cube: '_EnumValue[drawableGeometryPointStyle]'  # 3D cube
+    Diamond: '_EnumValue[drawableGeometryPointStyle]'  # Diamond shape
+    Diamond2: '_EnumValue[drawableGeometryPointStyle]'  # Diamond shape with dash lines
+    Diamond3: '_EnumValue[drawableGeometryPointStyle]'  # Diamond-cross shape with dash lines
+    Flare: '_EnumValue[drawableGeometryPointStyle]'  # Flare shape
+    Frame: '_EnumValue[drawableGeometryPointStyle]'  # Simple frame
+    Frame2: '_EnumValue[drawableGeometryPointStyle]'  # Frame with dash lines
+    Frame3: '_EnumValue[drawableGeometryPointStyle]'  # Frame with dotted line
+    Locate: '_EnumValue[drawableGeometryPointStyle]'  # Locate-arrow shape
+    Locate2: '_EnumValue[drawableGeometryPointStyle]'  # Simple locate shape
+    Plus: '_EnumValue[drawableGeometryPointStyle]'  # Plus sign
+    Ring: '_EnumValue[drawableGeometryPointStyle]'  # Simple ring
+    Ring2: '_EnumValue[drawableGeometryPointStyle]'  # Simple ring with dashed line
+    Ring3: '_EnumValue[drawableGeometryPointStyle]'  # Two color ring
+    Ring4: '_EnumValue[drawableGeometryPointStyle]'  # Ring with triple lines
+    Ring5: '_EnumValue[drawableGeometryPointStyle]'  # Dotted ring
+    Target1: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 1
+    Target2: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 2
+    Target3: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 3
+    Target4: '_EnumValue[drawableGeometryPointStyle]'  # Target shape 4
+    TriangleDown: '_EnumValue[drawableGeometryPointStyle]'  # Triangle pointing down
+    TriangleUp: '_EnumValue[drawableGeometryPointStyle]'  # Triangle pointing up
+
+class drawablePrimitive(_Enum):
+    """Enumerator for the drawable primitive types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawablePrimitive.html
+    """
+    Circle: '_EnumValue[drawablePrimitive]'
+    Sphere: '_EnumValue[drawablePrimitive]'
+    Tube: '_EnumValue[drawablePrimitive]'
+
+class drawableTextOrigin(_Enum):
+    """Enumeration used to specify the reference point of the text within its bounding box.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableTextOrigin.html
+    """
+    BottomLeft: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the bottom left position of the bounding box
+    BottomCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the bottom center position of the bounding box
+    BottomRight: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the bottom right position of the bounding box
+    LeftCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the left center position of the bounding box
+    RightCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the right center position of the bounding box
+    UpperLeft: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the upper left position of the bounding box
+    UpperCenter: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the upper center position of the bounding box
+    UpperRight: '_EnumValue[drawableTextOrigin]'  # Set the text reference point at the upper right position of the bounding box
+
+class fileChooserMode(_Enum):
+    """Enumeration of possible read/write modes for the file chooser.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/fileChooserMode.html
+    """
+    Read: '_EnumValue[fileChooserMode]'
+    Write: '_EnumValue[fileChooserMode]'
+    ReadAndWrite: '_EnumValue[fileChooserMode]'
+
+class nodeFootprint(_Enum):
+    """Enumeration of the specialized node footprints supported by the network editor.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/nodeFootprint.html
+    """
+    InsertionPoint: '_EnumValue[nodeFootprint]'  # Draw a footprint around the LOP node that is currently set as the insertion point
+
+class perfMonObjectView(_Enum):
+    """Enumeration of the different structures that are used to view objects in the Performance Monitor panetab.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonObjectView.html
+    """
+    List: '_EnumValue[perfMonObjectView]'
+    Tree: '_EnumValue[perfMonObjectView]'
+    EventLog: '_EnumValue[perfMonObjectView]'
+
+class perfMonTimeFormat(_Enum):
+    """Enumeration of the different formats used when viewing times in the Performance Monitor panetab.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonTimeFormat.html
+    """
+    Absolute: '_EnumValue[perfMonTimeFormat]'
+    Percent: '_EnumValue[perfMonTimeFormat]'
+
+class perfMonTimeUnit(_Enum):
+    """Enumeration of the different units used when viewing times in the Performance Monitor panetab.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/perfMonTimeUnit.html
+    """
+    Seconds: '_EnumValue[perfMonTimeUnit]'  # Display times in seconds
+    Milliseconds: '_EnumValue[perfMonTimeUnit]'  # Display times in milliseconds
+
+class resourceEventMessage(_Enum):
+    """Enumeration of the resource events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/resourceEventMessage.html
+    """
+    OnActivate: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer handle has been activated
+    OnCustomEvent: '_EnumValue[resourceEventMessage]'  # Event triggered when hou.ui.fireResourceCustomEvent is called
+    OnDeactivate: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer handle has been deactivated
+    OnEnter: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state begins
+    OnExit: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state ends
+    OnGenerate: '_EnumValue[resourceEventMessage]'  # Event triggered after a nodeless viewer state begins
+    OnInterrupt: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has been interrupted
+    OnLoad: '_EnumValue[resourceEventMessage]'  # Event triggered after a package has been successfully loaded
+    OnPreEnter: '_EnumValue[resourceEventMessage]'  # Event triggered before a viewer state begins
+    OnPrintMessage: '_EnumValue[resourceEventMessage]'  # Event triggered when hou.ui.printViewerStateMessage is called
+    OnReload: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state or package has been successfully reloaded
+    OnResume: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has resumed after an interruption
+    OnRegister: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has been successfully registered
+    OnUnload: '_EnumValue[resourceEventMessage]'  # Event triggered after a package has been successfully unloaded
+    OnUnregister: '_EnumValue[resourceEventMessage]'  # Event triggered after a viewer state has been successfully un-registered
+    OnRuntimeError: '_EnumValue[resourceEventMessage]'  # Event triggered when a runtime error occurs during a viewer state operation
+    NoEventType: '_EnumValue[resourceEventMessage]'  # An invalid viewer state event type
+
+class secureSelectionOption(_Enum):
+    """Enumeration of the secure selection options used by viewer state selectors.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/secureSelectionOption.html
+    """
+    Ignore: '_EnumValue[secureSelectionOption]'  # Selector ignores the viewer's secure selection setting
+    Obey: '_EnumValue[secureSelectionOption]'  # Selector obeys the viewer's secure selection setting
+    On: '_EnumValue[secureSelectionOption]'  # Selector sets the viewer's secure selection to On when it starts
+    Off: '_EnumValue[secureSelectionOption]'  # Selector sets the viewer's secure selection to Off when it starts
+
+class stateGenerateMode(_Enum):
+    """Enumeration of possible node generation modes by states.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/stateGenerateMode.html
+    """
+    Insert: '_EnumValue[stateGenerateMode]'
+    Branch: '_EnumValue[stateGenerateMode]'
+    Enter: '_EnumValue[stateGenerateMode]'
+
+class stateViewerType(_Enum):
+    """Enumeration of state viewer types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/stateViewerType.html
+    """
+    Scene: '_EnumValue[stateViewerType]'
+    Compositor: '_EnumValue[stateViewerType]'
+
+class triggerSelectorAction(_Enum):
+    """Enumerator representing the type of action a state selector can perform if triggered.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/triggerSelectorAction.html
+    """
+    Start: '_EnumValue[triggerSelectorAction]'  # Activate a selector
+    Stop: '_EnumValue[triggerSelectorAction]'  # Deactivate a selector
+    Toggle: '_EnumValue[triggerSelectorAction]'  # Start or stop a selector depending on the current selector state
+
+class uiEventReason(_Enum):
+    """Values representing reasons Houdini generated a particular UI event.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/uiEventReason.html
+    """
+    Picked: '_EnumValue[uiEventReason]'  # Quick mouse click without dragging
+    Start: '_EnumValue[uiEventReason]'  # Left mouse button pressed (mouse down)
+    Active: '_EnumValue[uiEventReason]'  # Mouse dragged with the left mouse button down
+    Changed: '_EnumValue[uiEventReason]'  # Left mouse button released (mouse up)
+    Located: '_EnumValue[uiEventReason]'  # Mouse pointer hovered over something in the interface
+    ItemsChanged: '_EnumValue[uiEventReason]'  # Event generated as a change of values in hou.UIEvent
+    New: '_EnumValue[uiEventReason]'  # Event generated when a UI element was assigned a different value
+    RangeChanged: '_EnumValue[uiEventReason]'  # Event generated when a slider or scrollbar has changed
+    NoReason: '_EnumValue[uiEventReason]'  # Event was likely explicitly generated
+
+class uiEventValueType(_Enum):
+    """Enumerator for UI event value types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/uiEventValueType.html
+    """
+    Float: '_EnumValue[uiEventValueType]'  # float value type
+    FloatArray: '_EnumValue[uiEventValueType]'  # Array of float values
+    IntArray: '_EnumValue[uiEventValueType]'  # Array of int values
+    Integer: '_EnumValue[uiEventValueType]'  # int value type
+    NoType: '_EnumValue[uiEventValueType]'  # invalid value type
+    String: '_EnumValue[uiEventValueType]'  # string value type
+    StringArray: '_EnumValue[uiEventValueType]'  # Array of string values
+
+class valueLadderDataType(_Enum):
+    """Enumeration of the different data types that may be manipulated by a value ladder.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/valueLadderDataType.html
+    """
+    Float: '_EnumValue[valueLadderDataType]'  # The ladder is being used to manipulate a single floating point value
+    Int: '_EnumValue[valueLadderDataType]'  # The ladder is being used to manipulate a single integer value
+    FloatArray: '_EnumValue[valueLadderDataType]'  # Array of floating point values
+    IntArray: '_EnumValue[valueLadderDataType]'  # Array of integer values
+
+class valueLadderType(_Enum):
+    """Enumeration of the different value ladder types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/valueLadderType.html
+    """
+    Generic: '_EnumValue[valueLadderType]'  # Generic numeric value. Step sizes range from 0.0001 to 100.0
+    Angle: '_EnumValue[valueLadderType]'  # Value representing an angle. Step sizes range from 1.0 to 45.0
+
+# ============================================================================
+# VIEWS/VIEWPORT ENUMERATIONS
+# ============================================================================
+
+class boundaryDisplay(_Enum):
+    """Enum for viewport boundary overlay.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/boundaryDisplay.html
+    """
+    Off: _EnumValue[boundaryDisplay]  # The boundary is disabled
+    View3D: _EnumValue[boundaryDisplay]  # The boundary is shown in 3D viewports only
+    ViewUV: _EnumValue[boundaryDisplay]  # The boundary is shown in UV viewports only
+    On: _EnumValue[boundaryDisplay]  # The boundary is shown in all viewports
+
+class connectivityType(_Enum):
+    """Enumeration of connectivity types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/connectivityType.html
+    """
+    NoConnectivity: _EnumValue[connectivityType]
+    Texture: _EnumValue[connectivityType]
+    Position: _EnumValue[connectivityType]
+
+class displaySetType(_Enum):
+    """Enum of viewport geometry contexts.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/displaySetType.html
+    """
+    SceneObject: _EnumValue[displaySetType]  # Objects which are displayed but not selected, when the scene is viewing objects. In LOPs, this affects unselected primitives
+    SelectedObject: _EnumValue[displaySetType]  # Objects which are displayed and selected, when the scene is viewing objects. In LOPs, this affects selected primitives
+    GhostObject: _EnumValue[displaySetType]  # Objects which are not the currently edited object when Ghost other Objects display mode is active. Not used in LOPs
+    DisplayModel: _EnumValue[displaySetType]  # The currently displayed surface operator when editing an object. Not used in LOPs
+    CurrentModel: _EnumValue[displaySetType]  # The currently selected surface operator when editing an object. Not used in LOPs
+    TemplateModel: _EnumValue[displaySetType]  # Surface operators that have their template flag set when editing an object. Not used in LOPs
+
+class drawable2DCapStyle(_Enum):
+    """Enumerator for 2D drawable cap styles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DCapStyle.html
+    """
+    Arrow: _EnumValue[drawable2DCapStyle]  # Filled arrow shape type
+    BackwardArrow: _EnumValue[drawable2DCapStyle]  # Filled arrow shape type drawn backward
+    Bar: _EnumValue[drawable2DCapStyle]  # Vertical bar shape type
+    Butt: _EnumValue[drawable2DCapStyle]  # No shape attached to the drawable
+    Diamond: _EnumValue[drawable2DCapStyle]  # Filled diamond shape type
+    Dot: _EnumValue[drawable2DCapStyle]  # Filled circle shape type
+    HollowArrow: _EnumValue[drawable2DCapStyle]  # Unfilled arrow shape type
+    HollowBackwardArrow: _EnumValue[drawable2DCapStyle]  # Unfilled arrow shape type drawn backward
+    HollowDiamond: _EnumValue[drawable2DCapStyle]  # Unfilled diamond shape type
+    HollowDot: _EnumValue[drawable2DCapStyle]  # Unfilled circle shape type
+    HollowSquare: _EnumValue[drawable2DCapStyle]  # Unfilled square shape type
+    Square: _EnumValue[drawable2DCapStyle]  # Filled square shape type
+
+class drawable2DLineStyle(_Enum):
+    """Enumerator for 2D drawable line styles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DLineStyle.html
+    """
+    Dashed: _EnumValue[drawable2DLineStyle]  # Draw lines with a dashed line style
+    Solid: _EnumValue[drawable2DLineStyle]  # Draw lines with a solid line style
+
+class drawable2DMarkerSize(_Enum):
+    """Enumerator for 2D drawable marker size.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DMarkerSize.html
+    """
+    Large: _EnumValue[drawable2DMarkerSize]  # Large marker drawable size
+    Medium: _EnumValue[drawable2DMarkerSize]  # Medium marker drawable size
+    Tiny: _EnumValue[drawable2DMarkerSize]  # Tiny marker drawable size
+    Small: _EnumValue[drawable2DMarkerSize]  # Small marker drawable size
+
+class drawable2DMarkerStyle(_Enum):
+    """Enumerator for 2D drawable marker style.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DMarkerStyle.html
+    """
+    Cross: _EnumValue[drawable2DMarkerStyle]  # Cross shape type
+    Diamond: _EnumValue[drawable2DMarkerStyle]  # Filled diamond shape type
+    Dot: _EnumValue[drawable2DMarkerStyle]  # Filled circle shape type
+    HollowDiamond: _EnumValue[drawable2DMarkerStyle]  # Unfilled diamond shape type
+    HollowDot: _EnumValue[drawable2DMarkerStyle]  # Unfilled circle shape type
+    HollowSquare: _EnumValue[drawable2DMarkerStyle]  # Unfilled square shape type
+    Square: _EnumValue[drawable2DMarkerStyle]  # Filled square shape type
+    SquareCross: _EnumValue[drawable2DMarkerStyle]  # A hollow square marker with a cross shape inside
+    XShape: _EnumValue[drawable2DMarkerStyle]  # X shape type
+
+class drawable2DType(_Enum):
+    """Enumerator for 2D drawable types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DType.html
+    """
+    Arc: _EnumValue[drawable2DType]  # Arc drawable type
+    Circle: _EnumValue[drawable2DType]  # Circle drawable type
+    Marker: _EnumValue[drawable2DType]  # Marker drawable type
+    Icon: _EnumValue[drawable2DType]  # Icon drawable type
+    Line: _EnumValue[drawable2DType]  # Line drawable type
+    Shape: _EnumValue[drawable2DType]  # Drawable type for drawing an open or closed shape
+    Rect: _EnumValue[drawable2DType]  # Rectangle drawable type
+    Text: _EnumValue[drawable2DType]  # Drawable type for displaying text
+
+class drawableGeometryFaceStyle(_Enum):
+    """Enumeration used to specify the style of faces to draw.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryFaceStyle.html
+    """
+    Plain: _EnumValue[drawableGeometryFaceStyle]  # Regular face
+    Checker: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in a checker pattern
+    Circle: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in a circle pattern
+    Columns: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in columns
+    Rows: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in rows
+
+class drawableGeometryLineStyle(_Enum):
+    """Enumeration used to specify the style of lines to draw.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryLineStyle.html
+    """
+    Plain: _EnumValue[drawableGeometryLineStyle]  # Regular line
+    Dash1: _EnumValue[drawableGeometryLineStyle]  # Draw half of the line
+    Dash2: _EnumValue[drawableGeometryLineStyle]  # Draw one third of the line
+    Dash3: _EnumValue[drawableGeometryLineStyle]  # Draw one quarter of the line
+    Dot1: _EnumValue[drawableGeometryLineStyle]  # Draw a continuous line of dots
+    Dot2: _EnumValue[drawableGeometryLineStyle]  # Draw every second dot
+    Dot3: _EnumValue[drawableGeometryLineStyle]  # Draw every fourth dot
+    Dot4: _EnumValue[drawableGeometryLineStyle]  # Draw every eighth dot
+
+class drawableGeometryType(_Enum):
+    """Enumeration of Geometry Drawable types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryType.html
+    """
+    Face: _EnumValue[drawableGeometryType]  # Face drawable type. This drawable allows you to highlight the polygons of the attached geometry
+    Line: _EnumValue[drawableGeometryType]  # Line drawable type. This drawable allows you to highlight the polygon edges of the attached geometry
+    Point: _EnumValue[drawableGeometryType]  # Point drawable type. This drawable allows you to highlight the polygon vertices of the attached geometry
+    Vector: _EnumValue[drawableGeometryType]  # Vector drawable type. This drawable works with point geometries and allows you to draw vectors at each point. Note that a point attribute N is required for the Vector drawable type
+
+class drawableHighlightMode(_Enum):
+    """Enumeration used to specify the highlight mode of a drawable matte.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableHighlightMode.html
+    """
+    Glow: _EnumValue[drawableHighlightMode]  # Display the drawable with a glow by using the color2 parameter
+    Matte: _EnumValue[drawableHighlightMode]  # Display the drawable matte only by using the color1 parameter
+    GlowMinusMatte: _EnumValue[drawableHighlightMode]  # Display a glow around the drawable without drawing the matte, typically used to draw a silhouette
+    MatteOverGlow: _EnumValue[drawableHighlightMode]  # Display the matte over the glow
+    Transparent: _EnumValue[drawableHighlightMode]  # Make the drawable completely transparent. Useful to hide parts of other drawables
+
+class drawableRampClamp(_Enum):
+    """Enumeration used to specify how to wrap the texture generated when using a ramp color.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/drawableRampClamp.html
+    """
+    Border: _EnumValue[drawableRampClamp]  # Border texture clamping
+    Edge: _EnumValue[drawableRampClamp]  # Edge texture clamping
+    Mirror: _EnumValue[drawableRampClamp]  # Mirror repeat texture clamping
+    Repeat: _EnumValue[drawableRampClamp]  # Repeat texture clamping
+
+class flipbookAntialias(_Enum):
+    """Enum values for flipbook antialiasing settings.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookAntialias.html
+    """
+    UseViewportSetting: _EnumValue[flipbookAntialias]  # Use the current viewport's antialiasing setting
+    Off: _EnumValue[flipbookAntialias]  # No antialiasing
+    Fast: _EnumValue[flipbookAntialias]  # Fast 2-sample antialiasing
+    Good: _EnumValue[flipbookAntialias]  # 4-sample antialiasing
+    HighQuality: _EnumValue[flipbookAntialias]  # High-quality 8-sample antialiasing
+
+class flipbookMotionBlurBias(_Enum):
+    """Enum values used to specify the motion blur subframe range.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookMotionBlurBias.html
+    """
+    Centered: _EnumValue[flipbookMotionBlurBias]  # Subframe range is centered around the currently rendering frame
+    Forward: _EnumValue[flipbookMotionBlurBias]  # Subframe range begins at the currently rendering frame
+    Previous: _EnumValue[flipbookMotionBlurBias]  # Subframe range ends at the currently rendering frame
+
+class flipbookObjectType(_Enum):
+    """Enum values for setting the flipbook's visible object types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookObjectType.html
+    """
+    Visible: _EnumValue[flipbookObjectType]  # All object types that are currently visible will be rendered
+    GeoOnly: _EnumValue[flipbookObjectType]  # Only geometry objects will be rendered, which excludes bone, muscle, null, camera, light, and blend objects
+    GeoExcluded: _EnumValue[flipbookObjectType]  # All object types other than Geometry that are currently visible will be rendered
+    AllObjects: _EnumValue[flipbookObjectType]  # All object types will be rendered, even if their type is not currently visible
+
+class geometryViewportBackgroundImageFitMode(_Enum):
+    """Enumeration of image fit modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportBackgroundImageFitMode.html
+    """
+    Horizontal: _EnumValue[geometryViewportBackgroundImageFitMode]  # Horizontal fit mode
+    Vertical: _EnumValue[geometryViewportBackgroundImageFitMode]  # Vertical fit mode
+    Fill: _EnumValue[geometryViewportBackgroundImageFitMode]  # Fill fit mode
+    Scale: _EnumValue[geometryViewportBackgroundImageFitMode]  # Scale fit mode
+
+class geometryViewportEvent(_Enum):
+    """Enumeration of the geometry viewport events that can be handled by callback functions.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportEvent.html
+    """
+    MouseDown: _EnumValue[geometryViewportEvent]
+    MouseUp: _EnumValue[geometryViewportEvent]
+    MouseMove: _EnumValue[geometryViewportEvent]
+    MouseWheel: _EnumValue[geometryViewportEvent]
+    KeyDown: _EnumValue[geometryViewportEvent]
+    KeyUp: _EnumValue[geometryViewportEvent]
+
+class geometryViewportLayout(_Enum):
+    """Enumeration of viewport layouts.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportLayout.html
+    """
+    Single: '_EnumValue[geometryViewportLayout]'  # Single viewport
+    TwoColumnsLeft: '_EnumValue[geometryViewportLayout]'  # Two columns, left larger
+    TwoColumnsRight: '_EnumValue[geometryViewportLayout]'  # Two columns, right larger
+    TwoRowsBottom: '_EnumValue[geometryViewportLayout]'  # Two rows, bottom larger
+    TwoRowsTop: '_EnumValue[geometryViewportLayout]'  # Two rows, top larger
+    Quad: '_EnumValue[geometryViewportLayout]'  # Four viewports in grid
+    QuadBottomSplit: '_EnumValue[geometryViewportLayout]'  # Three top, one bottom
+    QuadLeftSplit: '_EnumValue[geometryViewportLayout]'  # Three right, one left
+
+class geometryViewportType(_Enum):
+    """Enumeration of scene viewer viewport types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportType.html
+    """
+    Perspective: '_EnumValue[geometryViewportType]'  # Perspective view
+    Top: '_EnumValue[geometryViewportType]'  # Top orthographic view
+    Bottom: '_EnumValue[geometryViewportType]'  # Bottom orthographic view
+    Front: '_EnumValue[geometryViewportType]'  # Front orthographic view
+    Back: '_EnumValue[geometryViewportType]'  # Back orthographic view
+    Right: '_EnumValue[geometryViewportType]'  # Right orthographic view
+    Left: '_EnumValue[geometryViewportType]'  # Left orthographic view
+    UV: '_EnumValue[geometryViewportType]'  # UV viewport
+
+class glShadingType(_Enum):
+    """Enum for viewport shading modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/glShadingType.html
+    """
+    Wire: '_EnumValue[glShadingType]'  # Wireframe shading
+    WireGhost: '_EnumValue[glShadingType]'  # Wireframe with ghosted surfaces
+    HiddenLineInvisible: '_EnumValue[glShadingType]'  # Hidden line invisible
+    HiddenLineGhost: '_EnumValue[glShadingType]'  # Hidden line ghost
+    Flat: '_EnumValue[glShadingType]'  # Flat shaded
+    FlatWire: '_EnumValue[glShadingType]'  # Flat shaded with wireframe
+    Smooth: '_EnumValue[glShadingType]'  # Smooth shaded
+    SmoothWire: '_EnumValue[glShadingType]'  # Smooth shaded with wireframe
+
+class groupListType(_Enum):
+    """Enumeration of group list types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/groupListType.html
+    """
+    Primitive: '_EnumValue[groupListType]'  # Primitive groups
+    Point: '_EnumValue[groupListType]'  # Point groups
+    Edge: '_EnumValue[groupListType]'  # Edge groups
+    Vertex: '_EnumValue[groupListType]'  # Vertex groups
+
+class handleOrientToNormalAxis(_Enum):
+    """Enumeration of handle axes that can be aligned to a geometry normal.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/handleOrientToNormalAxis.html
+    """
+    XAxis: _EnumValue[handleOrientToNormalAxis]  # Align X axis to normals
+    YAxis: _EnumValue[handleOrientToNormalAxis]  # Align Y axis to normals
+    ZAxis: _EnumValue[handleOrientToNormalAxis]  # Align Z axis to normals
+
+class hudInfoState(_Enum):
+    """Enumeration of states for controling the panel.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hudInfoState.html
+    """
+    Hidden: _EnumValue[hudInfoState]  # Panel is hidden
+    Visible: _EnumValue[hudInfoState]  # Panel is visible
+    Minimized: _EnumValue[hudInfoState]  # Panel is minimized
+
+class hudPanel(_Enum):
+    """Enumeration to identify the HUD panel types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/hudPanel.html
+    """
+    DisplayOptions: _EnumValue[hudPanel]  # Display options panel
+    ViewOptions: _EnumValue[hudPanel]  # View options panel
+    InfoPanel: _EnumValue[hudPanel]  # Info panel
+
+class markerVisibility(_Enum):
+    """Enum of visibility options for marker visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/markerVisibility.html
+    """
+    Hide: _EnumValue[markerVisibility]  # Markers hidden
+    Show: _EnumValue[markerVisibility]  # Markers shown
+    ShowOnSelection: _EnumValue[markerVisibility]  # Markers shown only on selection
+
+class orientUpAxis(_Enum):
+    """Enumeration of global orientation mode.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/orientUpAxis.html
+    """
+    YAxis: _EnumValue[orientUpAxis]  # Y-axis is up
+    ZAxis: _EnumValue[orientUpAxis]  # Z-axis is up
+
+class parameterInterfaceTabType(_Enum):
+    """Enum values for selecting a specific parameter source tab in the parameter interface dialog.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/parameterInterfaceTabType.html
+    """
+    ExistingParameters: _EnumValue[parameterInterfaceTabType]  # Existing parameters tab
+    CreateParameters: _EnumValue[parameterInterfaceTabType]  # Create parameters tab
+    ParameterLibrary: _EnumValue[parameterInterfaceTabType]  # Parameter library tab
+
+class pickFacing(_Enum):
+    """Enumeration for describing the facing direction of pickable components.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/pickFacing.html
+    """
+    Front: '_EnumValue[pickFacing]'
+    Back: '_EnumValue[pickFacing]'
+    FrontAndBack: '_EnumValue[pickFacing]'
+
+class pickModifier(_Enum):
+    """Enumeration of methods for modifying selections with new components.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/pickModifier.html
+    """
+    Add: '_EnumValue[pickModifier]'
+    Toggle: '_EnumValue[pickModifier]'
+    Remove: '_EnumValue[pickModifier]'
+    Replace: '_EnumValue[pickModifier]'
+    Intersect: '_EnumValue[pickModifier]'
+
+class pickStyle(_Enum):
+    """Enumeration of pick styles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/pickStyle.html
+    """
+    Box: '_EnumValue[pickStyle]'
+    Lasso: '_EnumValue[pickStyle]'
+    Brush: '_EnumValue[pickStyle]'
+    Laser: '_EnumValue[pickStyle]'
+
+class positionType(_Enum):
+    """Enumeration of spaces.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/positionType.html
+    """
+    WorldSpace: '_EnumValue[positionType]'
+    ViewportXY: '_EnumValue[positionType]'
+    ViewportUV: '_EnumValue[positionType]'
+
+class resourceType(_Enum):
+    """Enumeration of resources such as viewer states and viewer handles.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/resourceType.html
+    """
+    ViewerState: '_EnumValue[resourceType]'  # Viewer State resource
+    ViewerHandle: '_EnumValue[resourceType]'  # Viewer Handle resource
+    Package: '_EnumValue[resourceType]'  # Package resource
+    NoType: '_EnumValue[resourceType]'  # Not a valid type
+
+class sceneViewerEvent(_Enum):
+    """Enumeration of the UI events a scene viewer can listen to via a callback.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/sceneViewerEvent.html
+    """
+    BeginResize: '_EnumValue[sceneViewerEvent]'  # Sent when the user has started resizing a viewer window
+    EndResize: '_EnumValue[sceneViewerEvent]'  # Sent when the user has ended resizing a viewer window
+    Resizing: '_EnumValue[sceneViewerEvent]'  # Sent whenever a viewer window is being resized interactively
+    SizeChanged: '_EnumValue[sceneViewerEvent]'  # Sent whenever a viewer window size has changed
+    LayoutChanged: '_EnumValue[sceneViewerEvent]'  # Sent when the viewport layout has been changed
+    ColorSchemeChanged: '_EnumValue[sceneViewerEvent]'  # Sent when the viewer color scheme has changed
+    SelectedViewportChanged: '_EnumValue[sceneViewerEvent]'  # Sent when a viewport has been selected
+    ViewerActivated: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer panel tab is selected
+    ViewerDeactivated: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer panel tab is deselected
+    ViewerTerminated: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer is terminated
+    StateInterrupted: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state is interrupted
+    StateResumed: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state is resumed
+    StateEntered: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state has entered
+    StateExited: '_EnumValue[sceneViewerEvent]'  # Sent when a viewer state has exited
+    PrefChanged: '_EnumValue[sceneViewerEvent]'  # Sent when a preference has been changed
+
+class selectionMode(_Enum):
+    """Enumeration of selection modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/selectionMode.html
+    """
+    Object: '_EnumValue[selectionMode]'
+    Geometry: '_EnumValue[selectionMode]'
+    Dynamics: '_EnumValue[selectionMode]'
+
+class snappingMode(_Enum):
+    """Enumeration of snapping modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/snappingMode.html
+    """
+    Off: '_EnumValue[snappingMode]'
+    Grid: '_EnumValue[snappingMode]'
+    Prim: '_EnumValue[snappingMode]'
+    Point: '_EnumValue[snappingMode]'
+    Multi: '_EnumValue[snappingMode]'
+
+class snappingPriority(_Enum):
+    """Enumeration of snapping priority.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/snappingPriority.html
+    """
+    GeoEdge: '_EnumValue[snappingPriority]'  # Edge between two GeoPoints
+    GeoPoint: '_EnumValue[snappingPriority]'  # Point on a geometry
+    Midpoint: '_EnumValue[snappingPriority]'  # Midpoint of a GeoEdge
+    GeoPrim: '_EnumValue[snappingPriority]'  # Primitive on a geometry
+    Breakpoint: '_EnumValue[snappingPriority]'  # Control point on a NURBS curve or surface
+    GridPoint: '_EnumValue[snappingPriority]'  # Point on the construction plane, reference plane, or grid
+    GridEdge: '_EnumValue[snappingPriority]'  # Edge of the construction plane, reference plane, or grid
+    PrimGuidePoint: '_EnumValue[snappingPriority]'  # Point on the guide geometry for a primitive
+    PrimGuideEdge: '_EnumValue[snappingPriority]'  # Edge on the guide geometry for a primitive
+
+class viewportAgentBoneDeform(_Enum):
+    """Enum for deforming agent quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportAgentBoneDeform.html
+    """
+    Always: '_EnumValue[viewportAgentBoneDeform]'
+    Disabled: '_EnumValue[viewportAgentBoneDeform]'
+    ReducedLOD: '_EnumValue[viewportAgentBoneDeform]'
+
+class viewportAgentWireframe(_Enum):
+    """Enum for agent wireframe mode display.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportAgentWireframe.html
+    """
+    Bone: '_EnumValue[viewportAgentWireframe]'  # Agents are rendered as bone-based skeletons
+    Line: '_EnumValue[viewportAgentWireframe]'  # Agents are rendered as line-based skeletons
+
+class viewportBGImageView(_Enum):
+    """Background image view target for the viewport display options.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportBGImageView.html
+    """
+    Perspective: '_EnumValue[viewportBGImageView]'  # The 3D view not attached to a camera
+    Camera: '_EnumValue[viewportBGImageView]'  # The 3D view looking through a camera
+    Top: '_EnumValue[viewportBGImageView]'  # The orthographic top view
+    Front: '_EnumValue[viewportBGImageView]'  # The orthographic front view
+    Right: '_EnumValue[viewportBGImageView]'  # The orthographic right view
+    Bottom: '_EnumValue[viewportBGImageView]'  # The orthographic bottom view
+    Back: '_EnumValue[viewportBGImageView]'  # The orthographic back view
+    Left: '_EnumValue[viewportBGImageView]'  # The orthographic left view
+    UV: '_EnumValue[viewportBGImageView]'  # The UV texture viewport
+
+class viewportClosureSelection(_Enum):
+    """Viewport highlight of primitives with selected components.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportClosureSelection.html
+    """
+    Hide: '_EnumValue[viewportClosureSelection]'  # Primitives are not highlighted
+    HullPrimitives: '_EnumValue[viewportClosureSelection]'  # Only primitives whose points and edges reside on separate hull geometry will be highlighted when those are selected (NURBS surfaces, Bezier surfaces)
+    Show: '_EnumValue[viewportClosureSelection]'  # Highlight all primitives whose points, edges, or vertices belong to the current selection
+
+class viewportColorScheme(_Enum):
+    """Viewport Color Schemes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportColorScheme.html
+    """
+    Dark: '_EnumValue[viewportColorScheme]'  # Solid black background
+    Grey: '_EnumValue[viewportColorScheme]'  # Solid grey background
+    Light: '_EnumValue[viewportColorScheme]'  # Light blue gradient background
+    DarkGrey: '_EnumValue[viewportColorScheme]'  # Light blue gradient background (duplicate desc in docs)
+
+class viewportDOFBokeh(_Enum):
+    """Viewport Depth of Field Bokeh Shape.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportDOFBokeh.html
+    """
+    NoBokeh: '_EnumValue[viewportDOFBokeh]'  # No extra bokeh effect
+    Circular: '_EnumValue[viewportDOFBokeh]'  # Circular or oval bokeh
+    Texture: '_EnumValue[viewportDOFBokeh]'  # Shape defined by a texture (image file or COP)
+
+class viewportDefaultMaterial(_Enum):
+    """The default material shader for the 3D viewer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportDefaultMaterial.html
+    """
+    Simple: '_EnumValue[viewportDefaultMaterial]'  # Untextured material with variable roughness and color settings
+    MatCap: '_EnumValue[viewportDefaultMaterial]'  # Material using a MatCap texture to define lighting and shading
+
+class viewportFogHeightMode(_Enum):
+    """Viewport fog layer modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportFogHeightMode.html
+    """
+    Off: _EnumValue[viewportFogHeightMode]  # No layering; fog is the same density regardless of height
+    Above: _EnumValue[viewportFogHeightMode]  # Fog exists only above a given height
+    Below: _EnumValue[viewportFogHeightMode]  # Fog exists only below a given height
+
+class viewportFogQuality(_Enum):
+    """Viewport volume fog quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportFogQuality.html
+    """
+    Low: _EnumValue[viewportFogQuality]  # Uses a small volume for fog lighting. Fast but low quality
+    Medium: _EnumValue[viewportFogQuality]  # Uses a bigger volume for fog lighting. Balanced between quality and speed
+    High: _EnumValue[viewportFogQuality]  # Uses a large volume for fog lighting. Slow but good quality
+    VeryHigh: _EnumValue[viewportFogQuality]  # Uses a large volume for fog lighting. Slowest but best quality
+
+class viewportGeometryInfo(_Enum):
+    """Geometry information display state.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGeometryInfo.html
+    """
+    Off: _EnumValue[viewportGeometryInfo]  # Do not show geometry information
+    SelectedOnly: _EnumValue[viewportGeometryInfo]  # Only show information when a selection is present
+    AlwaysOn: _EnumValue[viewportGeometryInfo]  # Always show information on the displayed geometry
+
+class viewportGridRuler(_Enum):
+    """Enum for grid numbering on viewport grids.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGridRuler.html
+    """
+    Hide: _EnumValue[viewportGridRuler]  # No grid numbers are displayed
+    MainAxis: _EnumValue[viewportGridRuler]  # Numbers appear along the max axes at grid line intersections
+    GridPoints: _EnumValue[viewportGridRuler]  # Numbers appear at grid line intersections
+
+class viewportGuide(_Enum):
+    """Viewport guides.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGuide.html
+    """
+    CameraMask: _EnumValue[viewportGuide]  # The mask which dims out areas outside the camera aspect ratio
+    CurrentGeometry: _EnumValue[viewportGuide]  # Geometry from the current modelling operator (SOP)
+    DisplayNodes: _EnumValue[viewportGuide]  # Geometry from the currently displayed modelling operator (SOP)
+    FieldGuide: _EnumValue[viewportGuide]  # Show the field guide overlay for broadcast
+    FillSelections: _EnumValue[viewportGuide]  # Polygon selections are highlighted with a solid color rather than just an outline when in Wire-Over shading modes
+    FloatingGnomon: _EnumValue[viewportGuide]  # Show the orientation axes in the lower left corner of the viewport
+    FollowSelection: _EnumValue[viewportGuide]  # Show point or vertex markers when point or selection is active
+    GroupList: _EnumValue[viewportGuide]  # Show the group list in the top right corner of the viewport
+    IKCriticalZone: _EnumValue[viewportGuide]  # Show the critical zone for IK bones
+    NodeGuides: _EnumValue[viewportGuide]  # Show any node guides that are available
+    NodeHandles: _EnumValue[viewportGuide]  # Show any handles that are available
+    ObjectNames: _EnumValue[viewportGuide]  # Show object names for visible objects
+    ObjectPaths: _EnumValue[viewportGuide]  # Show full objects paths for visible objects. Object names must be displayed
+    ObjectSelection: _EnumValue[viewportGuide]  # Show object selections
+    OriginGnomon: _EnumValue[viewportGuide]  # Show the axes at the world origin
+    ParticleGnomon: _EnumValue[viewportGuide]  # Show axes per particle
+    SafeArea: _EnumValue[viewportGuide]  # Show the safe area overlay for broadcast
+    SelectableTemplates: _EnumValue[viewportGuide]  # Show geometry from modelling operators with their selectable template flags set
+    ShowDrawTime: _EnumValue[viewportGuide]  # Show the time to update and render the viewport
+    TemplateGeometry: _EnumValue[viewportGuide]  # Show geometry from modelling operators with their template flags set
+    ViewPivot: _EnumValue[viewportGuide]  # Show the camera pivot where tumbling will rotate about
+    XYPlane: _EnumValue[viewportGuide]  # Show a grid along the XY plane
+    XZPlane: _EnumValue[viewportGuide]  # Show a grid along the XZ plane
+    YZPlane: _EnumValue[viewportGuide]  # Show a grid along the YZ plane
+
+class viewportGuideFont(_Enum):
+    """Viewport font sizes for visualizer text.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportGuideFont.html
+    """
+    Tiny: _EnumValue[viewportGuideFont]  # Tiny font
+    Small: _EnumValue[viewportGuideFont]  # Small font
+    Medium: _EnumValue[viewportGuideFont]  # The just right font
+    Large: _EnumValue[viewportGuideFont]  # Largest font
+
+class viewportHandleHighlight(_Enum):
+    """Handle highlight size.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportHandleHighlight.html
+    """
+    Off: _EnumValue[viewportHandleHighlight]  # Don't display any highlights
+    Small: _EnumValue[viewportHandleHighlight]  # Show a half-width highlight
+    Normal: _EnumValue[viewportHandleHighlight]  # Show a full highlight
+
+class viewportHomeClipMode(_Enum):
+    """Automatic viewport clip plane adjustment during homing.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportHomeClipMode.html
+    """
+    Neither: _EnumValue[viewportHomeClipMode]  # No clip planes are adjusted
+    NearOnly: _EnumValue[viewportHomeClipMode]  # Only the near clip plane is adjusted. Far is left as is
+    FarOnly: _EnumValue[viewportHomeClipMode]  # Only the far clip plane is adjusted. Near is left as is
+    NearAndFar: _EnumValue[viewportHomeClipMode]  # Both clip planes are adjusted
+
+class viewportLighting(_Enum):
+    """Lighting modes for the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportLighting.html
+    """
+    Off: _EnumValue[viewportLighting]  # No lighting, constant shaded.
+    Headlight: _EnumValue[viewportLighting]  # Basic lighting from a single directional light defined in the display options.
+    Normal: _EnumValue[viewportLighting]  # Good quality lighting from up to 10 basic lights (area lights modeled as point lights, limited environment lights).
+    HighQuality: _EnumValue[viewportLighting]  # High quality lighting from an unlimited number of lights including area, geometry, environment and ambient occlusion.
+    HighQualityWithShadows: _EnumValue[viewportLighting]  # High quality lighting with shadows.
+
+class viewportMaterialUpdate(_Enum):
+    """Enum for the update frequency of viewport material assignments.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportMaterialUpdate.html
+    """
+    Always: _EnumValue[viewportMaterialUpdate]  # Update assignments whenever needeed.
+    Manual: _EnumValue[viewportMaterialUpdate]  # Only update assignments when Update Materials is pressed.
+    OffForPlayback: _EnumValue[viewportMaterialUpdate]  # Update assignments whenever needed, but not during playback.
+
+class viewportPackedBoxMode(_Enum):
+    """Enum for the culled packed geometry display mode.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportPackedBoxMode.html
+    """
+    NoDisplay: _EnumValue[viewportPackedBoxMode]  # Culled packed primitives are not displayed at all.
+    Wireframe: _EnumValue[viewportPackedBoxMode]  # A wireframe bounding box replaces the packed primitive.
+    Shaded: _EnumValue[viewportPackedBoxMode]  # A shaded bounding box replaces the packed primitive.
+    CurrentShadingMode: _EnumValue[viewportPackedBoxMode]  # A bounding box replaces the packed primitive, drawn wireframe in wireframe shading modes and shaded otherwise.
+
+class viewportParticleDisplay(_Enum):
+    """Viewport display option for particle display visualization.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportParticleDisplay.html
+    """
+    Points: _EnumValue[viewportParticleDisplay]  # Fixed size points in screen space
+    Lines: _EnumValue[viewportParticleDisplay]  # Points with streaks indicating velocity
+    Pixels: _EnumValue[viewportParticleDisplay]  # Single pixel particle (fixed size)
+    Discs: _EnumValue[viewportParticleDisplay]  # Circular disc, variable world size
+    Spheres: _EnumValue[viewportParticleDisplay]  # Spheres which have material assignments and lighting, variable world size
+
+class viewportShadowQuality(_Enum):
+    """The quality of shadows produced in the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportShadowQuality.html
+    """
+    Point: _EnumValue[viewportShadowQuality]  # Area lights treated as point lights (fastest)
+    PointAA: _EnumValue[viewportShadowQuality]  # Antialiased shadow edges, area lights treated as point lights
+    Area: _EnumValue[viewportShadowQuality]  # Area lights generate multiple shadow maps with blurred shadows
+    AreaAA: _EnumValue[viewportShadowQuality]  # Area lights with antialiased lookups
+
+class viewportStandInGeometry(_Enum):
+    """Replacement geometry for instances culled in the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStandInGeometry.html
+    """
+    Point: _EnumValue[viewportStandInGeometry]  # Point at instance position
+    BoundingBox: _EnumValue[viewportStandInGeometry]  # Bounding box of culled geometry
+    StandIn: _EnumValue[viewportStandInGeometry]  # Stand-in geometry specified in instance properties
+
+class viewportStereoMode(_Enum):
+    """Stereoscopic viewport display modes.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportStereoMode.html
+    """
+    Anaglyph: _EnumValue[viewportStereoMode]  # Anaglyph display of left/right as red/cyan
+    HorizontalInterlace: _EnumValue[viewportStereoMode]  # Interlace left and right on alternating scanlines
+    HorizontalInterlaceReverse: _EnumValue[viewportStereoMode]  # Interlace left and right on alternating scanlines, swapped
+    QuadBufferGL: _EnumValue[viewportStereoMode]  # Use OpenGL quad buffer stereo (professional cards)
+
+class viewportTextureDepth(_Enum):
+    """Enum for the viewport texture bit depth limit.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportTextureDepth.html
+    """
+    Compressed8: _EnumValue[viewportTextureDepth]  # Compressed, 8b SDR texture format. Smallest memory use.
+    Fixed8: _EnumValue[viewportTextureDepth]  # 8b SDR texture format. Good balance between memory and quality.
+    FullHDR: _EnumValue[viewportTextureDepth]  # 16b HDR texture format. Excellent dynamic range, but more memory use and slower texturing performance.
+    HDR16: _EnumValue[viewportTextureDepth]  # 32b HDR texture format. Extreme dynamic range, but very high memory use and slow texturing performance. Use with care.
+
+class viewportTransparency(_Enum):
+    """Transparency rendering quality for the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportTransparency.html
+    """
+
+    Cutout: _EnumValue[viewportTransparency]  # Fast test to render the transparent pixel as opaque (>0) or to discard it (0)
+    Low: _EnumValue[viewportTransparency]  # Render transparent pixels in a separate pass (front-most transparent pixel only)
+    Medium: _EnumValue[viewportTransparency]  # Order-Independent buffer of 8 samples for up to 8 layers of overlapping transparency
+    High: _EnumValue[viewportTransparency]  # Order-Independent buffer of 16 samples for up to 16 layers of overlapping transparency
+
+class viewportVisualizerCategory(_Enum):
+    """Enumeration of the different categories of viewport visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerCategory.html
+    """
+
+    Common: _EnumValue[viewportVisualizerCategory]  # Viewport visualizers available across all scene files
+    Scene: _EnumValue[viewportVisualizerCategory]  # Viewport visualizers saved to the scene file
+    Node: _EnumValue[viewportVisualizerCategory]  # Node visualizers installed on individual nodes with limited scope
+
+class viewportVisualizerEventType(_Enum):
+    """Enumeration of types of events that can happen to viewport visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerEventType.html
+    """
+
+    VisualizerParametersChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer's parameters have changed
+    VisualizerFlagsChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer's flags have changed
+    VisualizerActiveChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer's active state has changed
+    CategoryActiveChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer category's active state has changed
+
+class viewportVisualizerScope(_Enum):
+    """Enumeration of the different scopes of viewport visualizers.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerScope.html
+    """
+    SceneObject: _EnumValue[viewportVisualizerScope]  # Scene object scope
+    NodeCreator: _EnumValue[viewportVisualizerScope]  # Node creator scope
+    NodeViewer: _EnumValue[viewportVisualizerScope]  # Node viewer scope
+
+class viewportVolumeBSplines(_Enum):
+    """Display options for viewport volume sampling quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVolumeBSplines.html
+    """
+
+    Off: _EnumValue[viewportVolumeBSplines]  # Never use higher-order volume interpolation (fastest, blocky)
+    NonInteractive: _EnumValue[viewportVolumeBSplines]  # Use higher-order interpolation when not interacting, linear while interacting
+    On: _EnumValue[viewportVolumeBSplines]  # Always use higher-order volume interpolation (slowest, highest quality)
+
+class viewportVolumeQuality(_Enum):
+    """Display options for viewport volume rendering quality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVolumeQuality.html
+    """
+
+    VeryLow: _EnumValue[viewportVolumeQuality]  # Quick volume preview
+    Low: _EnumValue[viewportVolumeQuality]  # Minor quality loss for performance
+    Normal: _EnumValue[viewportVolumeQuality]  # Balanced quality/performance setting
+    High: _EnumValue[viewportVolumeQuality]  # Jittered, high quality volume with more passes
+
+class viewportWorkLight(_Enum):
+    """Work light type for the viewer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/viewportWorkLight.html
+    """
+
+    Headlight: _EnumValue[viewportWorkLight]  # Over-the-shoulder single distant light
+    Domelight: _EnumValue[viewportWorkLight]  # Environment light with optional file map
+    PhysicalSky: _EnumValue[viewportWorkLight]  # Sun and sky map lighting based on sun position and atmospheric parameters
+    ThreePoint: _EnumValue[viewportWorkLight]  # Three distant lights arranged in a common three-point lighting setup
+
+# ============================================================================
+# VIEWER ENUMERATIONS
+# ============================================================================
+
+class promptMessageType(_Enum):
+    """Viewport Prompt Message Type.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/promptMessageType.html
+    """
+
+    Error: _EnumValue[promptMessageType]  # Error message displayed in bold red
+    Message: _EnumValue[promptMessageType]  # Regular message displayed in black
+    Prompt: _EnumValue[promptMessageType]  # Prompt message displayed in bold blue
+    Warning: _EnumValue[promptMessageType]  # Warning message displayed in bold yellow
+
+class scenePrimMask(_Enum):
+    """Scene Graph Selection Mask.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/scenePrimMask.html
+    """
+
+    All: _EnumValue[scenePrimMask]  # All primitive types can be selected
+    Camera: _EnumValue[scenePrimMask]  # Only camera primitive types can be selected
+    Geometry: _EnumValue[scenePrimMask]  # Only geometry primitive types can be selected
+    Light: _EnumValue[scenePrimMask]  # Only light primitive types can be selected
+    LightAndCamera: _EnumValue[scenePrimMask]  # Only light and camera primitive types can be selected
+    ViewerSetting: _EnumValue[scenePrimMask]  # Use the viewer setting for the primitive selection mask (default)
+
+class snapSelectionMode(_Enum):
+    """Filter for primitive snapping in the LOPs viewer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/snapSelectionMode.html
+    """
+
+    SnapToAll: _EnumValue[snapSelectionMode]  # Snapping is not restricted by selection; all primitives can be snapped
+    SnapToSelected: _EnumValue[snapSelectionMode]  # Restrict snapping to only selected primitives (useful for picking pivot points)
+    SnapToNonSelected: _EnumValue[snapSelectionMode]  # Restrict snapping to only non-selected primitives (avoids self-snapping when transforming)
+
+# ============================================================================
+# WEBSERVER ENUMERATIONS
+# ============================================================================
+
+class webServerVerbosity(_Enum):
+    """Enumeration of Web Server verbosity level.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/webServerVerbosity.html
+    """
+
+    Low: _EnumValue[webServerVerbosity]  # The server will log as little information as possible
+    Medium: _EnumValue[webServerVerbosity]  # The server will log most information (e.g., thread count) but omit request/response data
+    High: _EnumValue[webServerVerbosity]  # The server will log all possible information
+
+# ============================================================================
+# CLASS DEFINITIONS
+# ============================================================================
+
 class BoundingRect:
     """Houdini bounding rectangle object."""
     @overload
@@ -499,56 +2190,164 @@ class NetworkMovableItem(NetworkItem):
     def shiftPosition(self, vector2: '_Floats2') -> None: ...
     def size(self) -> 'Vector2': ...
 
-class NetworkBox(NetworkMovableItem):
-    '''
-    A network box
-    '''
-    def addItem(self, item: NetworkMovableItem) -> None: ...
-    def addNetworkBox(self, name: str) -> 'NetworkBox': ...
-    def addNode(self, node_type: str, name: str|None = None) -> 'Node': ...
-    def alpha(self) -> float: ...
-    def asCode(self, brief: bool=False, recurse: bool=False, save_box_contents: bool=False, save_channels_only: bool=False, save_creation_command: bool=False, save_keys_in_frames: bool=False, save_parm_values_only: bool=False, save_spare_parms: bool=False, save_box_membership: bool=True, function_name: str|None=None) -> str: ...
-    def autoFit(self) -> bool: ...
-    def comment(self) -> str: ...
-    def destroy(self, destroy_contents: bool) -> None: ...
-    def fitAroundContents(self) -> None: ...
-    def isMinimized(self) -> bool: ...
-    def items(self) -> tuple[NetworkMovableItem, ...]: ...
-    def minimizedSize(self) -> 'Vector2': ...
-    def nodes(self, recurse: bool=True) -> tuple['Node', ...]: ...
-    def networkBoxes(self, recurse: bool=True) -> tuple['NetworkBox', ...]: ...
-    def removeAllItems(self) -> None: ...
-    def removeItem(self, item: NetworkMovableItem) -> None: ...
-    def resize(self, vector2: Vector2) -> None: ...
-    def restoredSize(self) -> 'Vector2': ...
-    def setAutoFit(self, on: bool) -> None: ...
-    def setBounds(self, bounds: BoundingRect) -> None: ...
-    def setComment(self, comment: str) -> None: ...
-    def setMinimized(self, on: bool) -> None: ...
-    def setAlpha(self, alpha: float) -> None: ...
-    def setSize(self, size: '_Floats2') -> None: ...
-    def stickyNotes(self, recurse: bool=True) -> tuple['StickyNote', ...]: ...
-
-
 class StickyNote(NetworkMovableItem):
-    """A sticky note in the network editor."""
+    """
+    Base class for sticky notes in the network editor.
+
+    This is the abstract base class. Use OpStickyNote for OP networks
+    and ApexStickyNote for APEX networks.
+    """
+    # Content
     def text(self) -> str: ...
     def setText(self, text: str) -> None: ...
     def textColor(self) -> 'Color': ...
-    def setColor(self, color: 'Color') -> None: ...
+    def setTextColor(self, color: 'Color') -> None: ...
     def textSize(self) -> float: ...
     def setTextSize(self, size: float) -> None: ...
+
+    # State
     def destroy(self) -> None: ...
     def drawBackground(self) -> bool: ...
-    def isMinimized(self) -> bool: ...
-    def maximizedSize(self) -> 'Vector2': ...
-    def resize(self, vector2: _Floats2) -> None: ...
-    def restoredSize(self) -> 'Vector2': ...
-    def setBounds(self, bounds: BoundingRect) -> None: ...
-    def setMinimized(self, on: bool) -> None: ...
     def setDrawBackground(self, on: bool) -> None: ...
-    def asData(self) -> dict[str, Any]: ...
+    def isMinimized(self) -> bool: ...
+    def setMinimized(self, on: bool) -> None: ...
+
+    # Size
+    def minimizedSize(self) -> 'Vector2': ...
+    def restoredSize(self) -> 'Vector2': ...
+    def resize(self, vector2: _Floats2) -> None: ...
+    def setBounds(self, bounds: 'BoundingRect') -> None: ...
+    def setSize(self, size: '_Floats2') -> None: ...
+
+    # Serialization
+    def asData(self, position: bool = False, metadata: bool = False, verbose: bool = False) -> dict[str, Any]: ...
     def setFromData(self, data: dict[str, Any]) -> None: ...
+
+class OpStickyNote(StickyNote):
+    """
+    Represents a sticky note in an OP network (SOP/DOP/OBJ/etc).
+
+    Inherits all methods from StickyNote, NetworkMovableItem, and NetworkItem.
+    """
+    def asCode(self, brief: bool = False, recurse: bool = False, save_box_contents: bool = False,
+               save_channels_only: bool = False, save_creation_commands: bool = False,
+               save_keys_in_frames: bool = False, save_parm_values_only: bool = False,
+               save_spare_parms: bool = False, save_box_membership: bool = True,
+               function_name: str | None = None) -> str:
+        """
+        Prints the Python code necessary to recreate this sticky note.
+
+        Args:
+            brief: If True, omit default parameter values
+            recurse: If True, include code for child nodes
+            save_box_contents: If True, save contents of network boxes
+            save_channels_only: If True, only save channel data
+            save_creation_commands: If True, include node creation commands
+            save_keys_in_frames: If True, save keyframes in frames instead of time
+            save_parm_values_only: If True, only save parameter values
+            save_spare_parms: If True, include spare parameters
+            save_box_membership: If True, save network box membership
+            function_name: Name of function to wrap code in
+
+        Returns:
+            Python code string
+        """
+        ...
+
+class ApexStickyNote(StickyNote):
+    """
+    Represents a sticky note in an APEX network.
+
+    Inherits all methods from StickyNote, NetworkMovableItem, and NetworkItem.
+    APEX sticky notes have the same interface as OP sticky notes but operate
+    in APEX graph contexts.
+    """
+    ...
+
+class NetworkBox(NetworkMovableItem):
+    """
+    Base class for network boxes.
+
+    Network boxes are organizational containers in the network editor that can
+    group nodes, sticky notes, and other network items.
+    """
+    # Adding items
+    def addItem(self, item: NetworkMovableItem) -> None: ...
+    def addNetworkBox(self, netbox: 'NetworkBox') -> None: ...
+    def addNode(self, node: 'Node') -> None: ...
+    def addStickyNote(self, stickynote: StickyNote) -> None: ...
+    def addSubnetIndirectInput(self, indirect: 'SubnetIndirectInput') -> None: ...
+
+    # Appearance
+    def alpha(self) -> float: ...
+    def setAlpha(self, alpha: float) -> None: ...
+    def comment(self) -> str: ...
+    def setComment(self, comment: str) -> None: ...
+
+    # State
+    def autoFit(self) -> bool: ...
+    def setAutoFit(self, auto_fit: bool) -> None: ...
+    def isMinimized(self) -> bool: ...
+    def setMinimized(self, on: bool) -> None: ...
+    def destroy(self, destroy_contents: bool = False) -> None: ...
+
+    # Layout
+    def fitAroundContents(self) -> None: ...
+    def minimizedSize(self) -> 'Vector2': ...
+    def restoredSize(self) -> 'Vector2': ...
+    def resize(self, vector2: '_Floats2') -> None: ...
+    def setBounds(self, bounds: 'BoundingRect') -> None: ...
+    def setSize(self, size: '_Floats2') -> None: ...
+
+    # Contents
+    def items(self, recurse: bool = True) -> tuple[NetworkMovableItem, ...]: ...
+    def nodes(self, recurse: bool = True) -> tuple['Node', ...]: ...
+    def networkBoxes(self, recurse: bool = True) -> tuple['NetworkBox', ...]: ...
+    def stickyNotes(self, recurse: bool = True) -> tuple[StickyNote, ...]: ...
+    def subnetIndirectInputs(self, recurse: bool = True) -> tuple['SubnetIndirectInput', ...]: ...
+
+    # Removing items
+    def removeItem(self, item: NetworkMovableItem) -> None: ...
+    def removeNetworkBox(self, netbox: 'NetworkBox') -> None: ...
+    def removeNode(self, node: 'Node') -> None: ...
+    def removeStickyNote(self, stickynote: StickyNote) -> None: ...
+    def removeSubnetIndirectInput(self, indirect: 'SubnetIndirectInput') -> None: ...
+
+    # Serialization
+    def asData(self, box_content: bool = True, position: bool = False, metadata: bool = False,
+               verbose: bool = False) -> dict[str, Any]: ...
+    def setFromData(self, data: dict[str, Any]) -> None: ...
+
+class OpNetworkBox(NetworkBox):
+    """
+    Represents a network box in an OP network (SOP/DOP/OBJ/etc).
+
+    Inherits all methods from NetworkBox, NetworkMovableItem, and NetworkItem.
+    """
+    def asCode(self, brief: bool = False, recurse: bool = False, save_box_contents: bool = False,
+               save_channels_only: bool = False, save_creation_commands: bool = False,
+               save_keys_in_frames: bool = False, save_parm_values_only: bool = False,
+               save_spare_parms: bool = False, save_box_membership: bool = True,
+               function_name: str | None = None) -> str:
+        """
+        Prints the Python code necessary to recreate this network box.
+
+        Args:
+            brief: If True, omit default parameter values
+            recurse: If True, include code for child nodes
+            save_box_contents: If True, save contents of network boxes
+            save_channels_only: If True, only save channel data
+            save_creation_commands: If True, include node creation commands
+            save_keys_in_frames: If True, save keyframes in frames instead of time
+            save_parm_values_only: If True, only save parameter values
+            save_spare_parms: If True, include spare parameters
+            save_box_membership: If True, save network box membership
+            function_name: Name of function to wrap code in
+
+        Returns:
+            Python code string
+        """
+        ...
 
 class IndirectInput(NetworkMovableItem):
     """A subnet indirect input in the network editor."""
@@ -936,7 +2735,7 @@ class HDAModule(types.ModuleType):
     # HDAModule is essentially a Python module wrapper with no specific methods beyond
     # what's available in types.ModuleType. The module's attributes are defined by
     # the user's code in the Python Module section of the digital asset.
-    pass
+    ...
 
 class HDAViewerStateModule(types.ModuleType):
     """
@@ -954,7 +2753,7 @@ class HDAViewerStateModule(types.ModuleType):
     # HDAViewerStateModule is essentially a Python module wrapper with no specific methods
     # beyond what's available in types.ModuleType. The module's attributes are defined by
     # the user's code in the ViewerState Module section of the digital asset.
-    pass
+    ...
 
 class HDAViewerHandleModule(types.ModuleType):
     """
@@ -972,7 +2771,7 @@ class HDAViewerHandleModule(types.ModuleType):
     # HDAViewerHandleModule is essentially a Python module wrapper with no specific methods
     # beyond what's available in types.ModuleType. The module's attributes are defined by
     # the user's code in the ViewerHandle Module section of the digital asset.
-    pass
+    ...
 
 class HDADefinition:
     """
@@ -1073,11 +2872,11 @@ class Parm:
     def isAutoSelected(self) -> bool: ...
     def deleteAllKeyframes(self) -> None: ...
     def deleteKeyframeAtFrame(self, frame: float) -> None: ...
-    def keyframes(self) -> tuple: ...  # Returns tuple of BaseKeyframe objects
-    def keyframesAfter(self, frame: float) -> tuple: ...  # Returns tuple of BaseKeyframe objects
-    def keyframesBefore(self, frame: float) -> tuple: ...  # Returns tuple of BaseKeyframe objects
+    def keyframes(self) -> tuple['BaseKeyframe', ...]: ...
+    def keyframesAfter(self, frame: float) -> tuple['BaseKeyframe', ...]: ...
+    def keyframesBefore(self, frame: float) -> tuple['BaseKeyframe', ...]: ...
     def keyframeExtrapolation(self, before: bool) -> 'parmExtrapolate': ...
-    def keyframesInRange(self, start_frame: float, end_frame: float) -> tuple: ...  # Returns tuple of BaseKeyframe objects
+    def keyframesInRange(self, start_frame: float, end_frame: float) -> tuple['BaseKeyframe', ...]: ...
     def keyframesRefit(self, refit: bool, refit_tol: float, refit_preserve_extrema: bool, refit_bezier: bool, resample: bool, resample_rate: float, resample_tol: float, range: bool, range_start: float, range_end: float, bake_chop: bool) -> None: ...
     def isScoped(self) -> bool: ...
     def isSelected(self) -> bool: ...
@@ -1101,13 +2900,13 @@ class Parm:
     def evalAsStringAtFrame(self, frame: float) -> str: ...
     def evalAtTime(self, time: float) -> int | float | str: ...
     def evalAtFrame(self, frame: float) -> int | float | str: ...
-    def evalAsRamp(self) -> Any: ...  # Returns Ramp
-    def evalAsRampAtFrame(self, frame: float) -> Any: ...  # Returns Ramp
+    def evalAsRamp(self) -> 'Ramp': ...
+    def evalAsRampAtFrame(self, frame: float) -> 'Ramp': ...
     def evalAsGeometry(self) -> 'Geometry': ...
     def evalAsGeometryAtFrame(self, frame: float) -> 'Geometry': ...
-    def evalAsImageLayer(self) -> Any: ...  # Returns ImageLayer
-    def evalAsImageLayerAtFrame(self, frame: float) -> Any: ...  # Returns ImageLayer
-    def evalAsNanoVDB(self) -> Any: ...  # Returns NanoVDB
+    def evalAsImageLayer(self) -> 'ImageLayer': ...
+    def evalAsImageLayerAtFrame(self, frame: float) -> 'ImageLayer': ...
+    def evalAsNanoVDB(self) -> 'NanoVDB': ...
     def evalAsNodePath(self) -> str: ...
     def evalAsNodePathAtFrame(self, frame: float) -> str: ...
     def evalAsNodePaths(self) -> tuple[str, ...]: ...
@@ -1168,9 +2967,9 @@ class Parm:
     def menuContents(self) -> tuple[str, ...]: ...
 
     # CHOPs
-    def overrideTrack(self) -> Any: ...  # Returns Track or None
+    def overrideTrack(self) -> 'Track' | None: ...
     def isOverrideTrackActive(self) -> bool: ...
-    def createClip(self, parent_node: 'OpNode', name: str, create_new: bool, apply_immediately: bool, current_value_only: bool, create_locked: bool, set_value_to_default: bool) -> Any: ...  # Returns ChopNode
+    def createClip(self, parent_node: 'OpNode', name: str, create_new: bool, apply_immediately: bool, current_value_only: bool, create_locked: bool, set_value_to_default: bool) -> 'ChopNode': ...
     def appendClip(self, chop_node: Any, apply_immediately: bool, current_value_only: bool, create_locked: bool, set_value_to_default: bool) -> None: ...
 
     # Scripts
@@ -1211,16 +3010,16 @@ class ParmTuple:
     def evalAsFloatsAtFrame(self, frame: float) -> tuple[float, ...]: ...
     def evalAsInts(self) -> tuple[int, ...]: ...
     def evalAsIntsAtFrame(self, frame: float) -> tuple[int, ...]: ...
-    def evalAsRamps(self) -> Any: ...  # Returns Ramp
-    def evalAsRampsAtFrame(self, frame: float) -> Any: ...  # Returns Ramp
+    def evalAsRamps(self) -> tuple['Ramp', ...]: ...
+    def evalAsRampsAtFrame(self, frame: float) -> tuple['Ramp', ...]: ...
     def evalAsStrings(self) -> tuple[str, ...]: ...
     def evalAsStringsAtFrame(self, frame: float) -> tuple[str, ...]: ...
     def evalAsGeometries(self) -> tuple['Geometry', ...]: ...
     def evalAsGeometriesAtFrame(self, frame: float) -> tuple['Geometry', ...]: ...
-    def evalAsImageLayers(self) -> tuple[Any, ...]: ...  # Returns tuple of ImageLayer
-    def evalAsImageLayersAtFrame(self, frame: float) -> tuple[Any, ...]: ...  # Returns tuple of ImageLayer
-    def evalAsNanoVDBs(self) -> tuple[Any, ...]: ...  # Returns tuple of NanoVDB
-    def evalAsNanoVDBsAtFrame(self, frame: float) -> tuple[Any, ...]: ...  # Returns tuple of NanoVDB
+    def evalAsImageLayers(self) -> tuple['ImageLayer', ...]: ...
+    def evalAsImageLayersAtFrame(self, frame: float) -> tuple['ImageLayer', ...]: ...
+    def evalAsNanoVDBs(self) -> tuple['NanoVDB', ...]: ...
+    def evalAsNanoVDBsAtFrame(self, frame: float) -> tuple['NanoVDB', ...]: ...
     def evalAsJSONMaps(self) -> tuple[dict[str, str], ...]: ...
     def evalAsJSONMapsAtFrame(self, frame: float) -> tuple[dict[str, str], ...]: ...
 
@@ -1260,7 +3059,7 @@ class ParmTuple:
     def multiParmStartOffset(self) -> int: ...
 
     # CHOPs
-    def createClip(self, parent_node: 'OpNode', name: str, create_new: bool, apply_immediately: bool, current_value_only: bool, create_locked: bool, set_value_to_default: bool) -> Any: ...  # Returns ChopNode
+    def createClip(self, parent_node: 'OpNode', name: str, create_new: bool, apply_immediately: bool, current_value_only: bool, create_locked: bool, set_value_to_default: bool) -> 'ChopNode': ...
     def appendClip(self, chop_node: Any, apply_immediately: bool, current_value_only: bool, create_locked: bool, set_value_to_default: bool) -> None: ...
 
     # Hierarchy
@@ -1355,10 +3154,10 @@ class ParmTemplateGroup:
     # Search and access
     def find(self, name: str) -> 'ParmTemplate|None': ...
     def findIndices(self, name_or_parm_template: str | 'ParmTemplate') -> tuple[int, ...]: ...
-    def findFolder(self, label_or_labels: str | Sequence[str]) -> Any: ...  # Returns FolderParmTemplate or None
+    def findFolder(self, label_or_labels: str | Sequence[str]) -> 'FolderParmTemplate' | None: ...
     def findIndicesForFolder(self, label_or_labels: str | Sequence[str]) -> tuple[int, ...]: ...
     def entryAtIndices(self, indices: Sequence[int]) -> 'ParmTemplate': ...
-    def containingFolder(self, name_or_parm_template: str | 'ParmTemplate') -> Any: ...  # Returns FolderParmTemplate
+    def containingFolder(self, name_or_parm_template: str | 'ParmTemplate') -> 'FolderParmTemplate': ...
     def containingFolderIndices(self, name_or_parm_template_or_indices: str | 'ParmTemplate' | Sequence[int]) -> tuple[int, ...]: ...
 
     # List contents
@@ -1441,8 +3240,37 @@ class OpNodeTypeCategory(NodeTypeCategory):
     def nodeVerb(self, name: str) -> 'SopVerb|None': ...
 
     # Viewer states
-    def viewerStates(self, viewer_type) -> tuple: ...  # Returns tuple of ViewerState objects
+    def viewerStates(self, viewer_type) -> tuple['ViewerState', ...]: ...
 
+class ViewerState:
+    """Represents a viewer state for interactive viewport manipulation.
+
+    Viewer states allow custom interactive tools in the viewport. They handle
+    mouse and keyboard input, draw custom geometry, and provide user interfaces
+    for manipulating nodes and geometry.
+
+    Viewer states are typically registered via the hou.ui.registerViewerState()
+    function or embedded in HDAs via the ViewerState Module section.
+    """
+    def name(self) -> str:
+        """Return the internal name of the viewer state."""
+        ...
+
+    def label(self) -> str:
+        """Return the display label of the viewer state."""
+        ...
+
+    def categories(self) -> tuple[str, ...]:
+        """Return the node type categories this viewer state applies to."""
+        ...
+
+    def description(self) -> str:
+        """Return the description of the viewer state."""
+        ...
+
+    def icon(self) -> str:
+        """Return the icon path for the viewer state."""
+        ...
 
 class ApexNodeTypeCategory(NodeTypeCategory):
     """Category for APEX node types."""
@@ -1468,12 +3296,1956 @@ class ApexNodeType:
     def name(self) -> str: ...
     def category(self) -> str: ...
 
-class ApexStickyNote:
-    """Sticky note annotation in APEX graphs."""
-    def text(self) -> str: ...
-    def setText(self, text: str) -> None: ...
-    def position(self) -> tuple[float, float]: ...
-    def setPosition(self, x: float, y: float) -> None: ...
+class AnimBar:
+    """Animation toolbar control.
+
+    The animation toolbar lives above the playbar or at the bottom of the animation
+    editor, and consists of simple slider tools for easily manipulating animation curves.
+
+    You cannot instantiate this object directly. Call hou.playbar.animBar or
+    hou.ChannelEditorPane.animBar instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html
+    """
+
+    def tools(self, shown_only: bool = True) -> tuple[str, ...]:
+        """Returns tool IDs currently on the animation toolbar.
+
+        Args:
+            shown_only: If True, returns only visible tools. If False, includes hidden tools.
+
+        Returns:
+            Tuple of tool ID strings.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#tools
+        """
+        ...
+
+    def hiddenTools(self) -> tuple[str, ...]:
+        """Returns tool IDs that have been removed from the animation toolbar.
+
+        Returns:
+            Tuple of hidden tool ID strings.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#hiddenTools
+        """
+        ...
+
+    def setTools(self, tool_ids: tuple[str, ...]) -> None:
+        """Sets the active tools, replacing previously active tools.
+
+        Args:
+            tool_ids: Tuple of tool ID strings to set as active.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#setTools
+        """
+        ...
+
+    def removeTool(self, id: str) -> None:
+        """Removes a tool from the animation toolbar.
+
+        Args:
+            id: Tool ID to remove.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#removeTool
+        """
+        ...
+
+    def addTool(self, id: str, index: int = -1) -> None:
+        """Adds a tool to the animation toolbar if not already present.
+
+        Args:
+            id: Tool ID to add.
+            index: Position index to insert tool. -1 appends to end.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#addTool
+        """
+        ...
+
+    def reset(self) -> None:
+        """Resets the toolbar, restoring all removed tools to original order.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#reset
+        """
+        ...
+
+    def showLabels(self, show: bool) -> None:
+        """Shows or hides tool labels.
+
+        Args:
+            show: True to show labels, False to hide.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#showLabels
+        """
+        ...
+
+    def labelsShown(self) -> bool:
+        """Returns whether full labels are currently displayed.
+
+        Returns:
+            True if labels are shown, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#labelsShown
+        """
+        ...
+
+    def setToolSize(self, size: animBarToolSize) -> None:
+        """Sets the size of tools on the toolbar.
+
+        Args:
+            size: Tool size setting from hou.animBarToolSize enum.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#setToolSize
+        """
+        ...
+
+    def toolSize(self) -> animBarToolSize:
+        """Returns the current tool size.
+
+        Returns:
+            Current tool size from hou.animBarToolSize enum.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AnimBar.html#toolSize
+        """
+        ...
+
+class BaseKeyframe:
+    """Abstract base class for all keyframe classes.
+
+    This is the base class for hou.Keyframe and hou.StringKeyframe.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html
+    """
+
+    def asCode(self, brief: bool = False, save_keys_in_frames: bool = False,
+               function_name: str | None = None) -> str:
+        """Returns Python code that can recreate this keyframe.
+
+        Args:
+            brief: If True, generates more compact code.
+            save_keys_in_frames: If True, uses frame numbers instead of seconds.
+            function_name: Optional function name to use in generated code.
+
+        Returns:
+            Python code string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#asCode
+        """
+        ...
+
+    def evaluatedType(self) -> parmData:
+        """Returns the type that the keyframe evaluates to.
+
+        Returns:
+            Parameter data type enum value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#evaluatedType
+        """
+        ...
+
+    def expression(self) -> str:
+        """Returns the keyframe's expression.
+
+        Returns:
+            Expression string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#expression
+        """
+        ...
+
+    def expressionLanguage(self) -> exprLanguage:
+        """Returns the expression's language.
+
+        Returns:
+            Expression language enum value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#expressionLanguage
+        """
+        ...
+
+    def frame(self) -> float:
+        """Returns the keyframe's frame number.
+
+        Returns:
+            Frame number as float.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#frame
+        """
+        ...
+
+    def isExpressionLanguageSet(self) -> bool:
+        """Returns whether the expression language is explicitly set.
+
+        Returns:
+            True if language is set, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#isExpressionLanguageSet
+        """
+        ...
+
+    def isExpressionSet(self) -> bool:
+        """Returns whether an expression is set on this keyframe.
+
+        Returns:
+            True if expression is set, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#isExpressionSet
+        """
+        ...
+
+    def isTimeSet(self) -> bool:
+        """Returns whether the keyframe's time is set.
+
+        Returns:
+            True if time is set, False otherwise.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#isTimeSet
+        """
+        ...
+
+    def setExpression(self, expression: str, language: exprLanguage | None = None) -> None:
+        """Sets the keyframe's expression and language.
+
+        Args:
+            expression: Expression string to set.
+            language: Optional expression language. If None, uses default.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#setExpression
+        """
+        ...
+
+    def setFrame(self, frame: float) -> None:
+        """Sets the keyframe's frame number.
+
+        Args:
+            frame: Frame number to set.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#setFrame
+        """
+        ...
+
+    def setTime(self, time: float) -> None:
+        """Sets the keyframe's time in seconds.
+
+        Args:
+            time: Time in seconds.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#setTime
+        """
+        ...
+
+    def time(self) -> float:
+        """Returns the keyframe's time in seconds.
+
+        Returns:
+            Time in seconds as float.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/BaseKeyframe.html#time
+        """
+        ...
+
+class ChannelList:
+    """Copy of a list of channels from Channel List or Animation Editor.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html
+    """
+
+    def clear(self) -> None:
+        """Clears the channel list.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#clear
+        """
+        ...
+
+    def parms(self) -> tuple[Parm, ...]:
+        """Returns all channels in the list.
+
+        Returns:
+            Tuple of hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#parms
+        """
+        ...
+
+    def selected(self) -> tuple[Parm, ...]:
+        """Returns selected channels.
+
+        Returns:
+            Tuple of selected hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selected
+        """
+        ...
+
+    def deselected(self) -> tuple[Parm, ...]:
+        """Returns deselected channels.
+
+        Returns:
+            Tuple of deselected hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselected
+        """
+        ...
+
+    def pinned(self) -> tuple[Parm, ...]:
+        """Returns pinned channels.
+
+        Returns:
+            Tuple of pinned hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#pinned
+        """
+        ...
+
+    def unpinned(self) -> tuple[Parm, ...]:
+        """Returns unpinned channels.
+
+        Returns:
+            Tuple of unpinned hou.Parm objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#unpinned
+        """
+        ...
+
+    def selectedValue(self) -> tuple[Parm, ...]:
+        """Returns channels with value column selected.
+
+        Returns:
+            Tuple of hou.Parm objects with value column selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectedValue
+        """
+        ...
+
+    def deselectedValue(self) -> tuple[Parm, ...]:
+        """Returns channels with value column deselected.
+
+        Returns:
+            Tuple of hou.Parm objects with value column deselected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectedValue
+        """
+        ...
+
+    def addParm(self, parm: Parm, selected: bool, pinned: bool, valueselected: bool) -> None:
+        """Adds a parameter with flags.
+
+        Args:
+            parm: Parameter to add.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addParm
+        """
+        ...
+
+    def addParms(self, parms: tuple[Parm, ...], selected: bool, pinned: bool,
+                 valueselected: bool) -> None:
+        """Adds multiple parameters with flags.
+
+        Args:
+            parms: Tuple of parameters to add.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addParms
+        """
+        ...
+
+    def addPath(self, path: str, selected: bool, pinned: bool, valueselected: bool) -> None:
+        """Adds a parameter by path with flags.
+
+        Args:
+            path: Parameter path.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addPath
+        """
+        ...
+
+    def addPaths(self, paths: tuple[str, ...], selected: bool, pinned: bool,
+                 valueselected: bool) -> None:
+        """Adds multiple parameters by path with flags.
+
+        Args:
+            paths: Tuple of parameter paths.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addPaths
+        """
+        ...
+
+    def remove(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Removes parameter(s) from the list.
+
+        Args:
+            parm: Single parameter or tuple of parameters to remove.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#remove
+        """
+        ...
+
+    def select(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Selects parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to select.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#select
+        """
+        ...
+
+    def deselect(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Deselects parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to deselect.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselect
+        """
+        ...
+
+    def pin(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Pins parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to pin.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#pin
+        """
+        ...
+
+    def unpin(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Unpins parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters to unpin.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#unpin
+        """
+        ...
+
+    def selectValue(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Selects value column of parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectValue
+        """
+        ...
+
+    def deselectValue(self, parm: Parm | tuple[Parm, ...]) -> None:
+        """Deselects value column of parameter(s).
+
+        Args:
+            parm: Single parameter or tuple of parameters.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectValue
+        """
+        ...
+
+    def contains(self, parm: Parm) -> bool:
+        """Checks if parameter is in the list.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if parameter is in the list.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#contains
+        """
+        ...
+
+    def isSelected(self, parm: Parm) -> bool:
+        """Checks if parameter is selected.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isSelected
+        """
+        ...
+
+    def isPinned(self, parm: Parm) -> bool:
+        """Checks if parameter is pinned.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if pinned.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isPinned
+        """
+        ...
+
+    def isValueSelected(self, parm: Parm) -> bool:
+        """Checks if parameter's value column is selected.
+
+        Args:
+            parm: Parameter to check.
+
+        Returns:
+            True if value column is selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isValueSelected
+        """
+        ...
+
+    def filter(self) -> str:
+        """Returns the filter string.
+
+        Returns:
+            Filter pattern string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filter
+        """
+        ...
+
+    def keepSelection(self) -> bool:
+        """Returns Keep Selection flag.
+
+        Returns:
+            True if Keep Selection is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#keepSelection
+        """
+        ...
+
+    def enableFilter(self) -> bool:
+        """Returns whether filtering is active.
+
+        Returns:
+            True if filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#enableFilter
+        """
+        ...
+
+    def filterRotates(self) -> bool:
+        """Returns whether rotation filtering is active.
+
+        Returns:
+            True if rotation filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filterRotates
+        """
+        ...
+
+    def filterTranslates(self) -> bool:
+        """Returns whether translation filtering is active.
+
+        Returns:
+            True if translation filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filterTranslates
+        """
+        ...
+
+    def filterScales(self) -> bool:
+        """Returns whether scale filtering is active.
+
+        Returns:
+            True if scale filtering is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#filterScales
+        """
+        ...
+
+    def setFilter(self, pattern: str) -> None:
+        """Sets the filter string.
+
+        Args:
+            pattern: Filter pattern to set.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilter
+        """
+        ...
+
+    def setKeepSelection(self, on: bool) -> None:
+        """Sets Keep Selection flag.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setKeepSelection
+        """
+        ...
+
+    def setEnableFilter(self, on: bool) -> None:
+        """Enables or disables filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setEnableFilter
+        """
+        ...
+
+    def setFilterRotates(self, on: bool) -> None:
+        """Enables or disables rotation filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilterRotates
+        """
+        ...
+
+    def setFilterTranslates(self, on: bool) -> None:
+        """Enables or disables translation filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilterTranslates
+        """
+        ...
+
+    def setFilterScales(self, on: bool) -> None:
+        """Enables or disables scale filtering.
+
+        Args:
+            on: True to enable, False to disable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#setFilterScales
+        """
+        ...
+
+    def addGeometryChannels(self, geometry: Geometry, collection_name: str | None = None,
+                           pattern: str | None = None, selected: bool = True,
+                           pinned: bool = False, valueselected: bool = False) -> str:
+        """Adds geometry channel collection.
+
+        Args:
+            geometry: Geometry containing channel primitives.
+            collection_name: Optional name for the collection.
+            pattern: Optional pattern to filter channels.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        Returns:
+            Name of the created collection.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addGeometryChannels
+        """
+        ...
+
+    def addNodeGeometryChannels(self, node: Node, pattern: str | None = None,
+                                selected: bool = True, pinned: bool = False,
+                                valueselected: bool = False) -> str:
+        """Adds geometry channels from a node.
+
+        Args:
+            node: Node containing geometry with channel primitives.
+            pattern: Optional pattern to filter channels.
+            selected: Selection state.
+            pinned: Pin state.
+            valueselected: Value column selection state.
+
+        Returns:
+            Name of the created collection.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#addNodeGeometryChannels
+        """
+        ...
+
+    def removeGeometryChannels(self, collection_name: str | None = None) -> None:
+        """Removes geometry channel collection.
+
+        Args:
+            collection_name: Name of collection to remove, or None for all.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#removeGeometryChannels
+        """
+        ...
+
+    def geometryChannelCollectionNames(self) -> tuple[str, ...]:
+        """Returns names of geometry channel collections.
+
+        Returns:
+            Tuple of collection name strings.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#geometryChannelCollectionNames
+        """
+        ...
+
+    def geometryChannels(self, collection_name: str) -> tuple[ChannelPrim, ...]:
+        """Returns channel primitives in a collection.
+
+        Args:
+            collection_name: Name of the collection.
+
+        Returns:
+            Tuple of hou.ChannelPrim objects.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#geometryChannels
+        """
+        ...
+
+    def selectGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Selects a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectGeometryChannel
+        """
+        ...
+
+    def deselectGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Deselects a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectGeometryChannel
+        """
+        ...
+
+    def pinGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Pins a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#pinGeometryChannel
+        """
+        ...
+
+    def unpinGeometryChannel(self, collection_name: str, channel: str | None = None) -> None:
+        """Unpins a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#unpinGeometryChannel
+        """
+        ...
+
+    def selectGeometryChannelValue(self, collection_name: str, channel: str | None = None) -> None:
+        """Selects value column of a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#selectGeometryChannelValue
+        """
+        ...
+
+    def deselectGeometryChannelValue(self, collection_name: str,
+                                    channel: str | None = None) -> None:
+        """Deselects value column of a geometry channel.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#deselectGeometryChannelValue
+        """
+        ...
+
+    def containsGeometryChannel(self, collection_name: str, channel: str | None = None) -> bool:
+        """Checks if geometry channel is present.
+
+        Args:
+            collection_name: Collection name.
+            channel: Optional specific channel name.
+
+        Returns:
+            True if channel is present.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#containsGeometryChannel
+        """
+        ...
+
+    def isGeometryChannelSelected(self, collection_name: str, channel: str) -> bool:
+        """Checks if geometry channel is selected.
+
+        Args:
+            collection_name: Collection name.
+            channel: Channel name.
+
+        Returns:
+            True if selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isGeometryChannelSelected
+        """
+        ...
+
+    def isGeometryChannelPinned(self, collection_name: str, channel: str) -> bool:
+        """Checks if geometry channel is pinned.
+
+        Args:
+            collection_name: Collection name.
+            channel: Channel name.
+
+        Returns:
+            True if pinned.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isGeometryChannelPinned
+        """
+        ...
+
+    def isGeometryChannelValueSelected(self, collection_name: str, channel: str) -> bool:
+        """Checks if geometry channel's value column is selected.
+
+        Args:
+            collection_name: Collection name.
+            channel: Channel name.
+
+        Returns:
+            True if value column is selected.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#isGeometryChannelValueSelected
+        """
+        ...
+
+    def asCode(self, var_name: str) -> str:
+        """Returns Python code to recreate this ChannelList.
+
+        Args:
+            var_name: Variable name to use in generated code.
+
+        Returns:
+            Python code string.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelList.html#asCode
+        """
+        ...
+
+
+class ChannelPrim(Prim):
+    """Geometry primitive that stores channel data.
+
+    Channel primitives are lightweight, standalone channels optimized for quick
+    evaluation. They inherit from hou.Prim and provide methods for creating,
+    manipulating, and evaluating animation channels stored as geometry primitives.
+
+    You cannot instantiate this object directly. Call hou.Geometry.createChannelPrim
+    instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html
+    """
+
+    def start(self) -> float:
+        """Returns the start frame of this channel primitive.
+
+        Returns:
+            Start frame number.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#start
+        """
+        ...
+
+    def end(self) -> float:
+        """Returns the end frame of this channel primitive.
+
+        Returns:
+            End frame number.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#end
+        """
+        ...
+
+    def length(self) -> float:
+        """Returns the length in frames of this channel primitive.
+
+        Returns:
+            Length in frames.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#length
+        """
+        ...
+
+    def setStart(self, frame: float) -> None:
+        """Sets the start frame of this channel primitive.
+
+        Args:
+            frame: Start frame number.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setStart
+        """
+        ...
+
+    def defaultValue(self) -> float:
+        """Returns the default value for this channel primitive.
+
+        The default value is used when the channel is empty.
+
+        Returns:
+            Default channel value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#defaultValue
+        """
+        ...
+
+    def setDefaultValue(self, value: float) -> None:
+        """Sets the default value for this channel primitive.
+
+        Args:
+            value: Default value to use when channel is empty.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setDefaultValue
+        """
+        ...
+
+    def eval(self, frame: float) -> float:
+        """Evaluates the channel at the given frame.
+
+        Args:
+            frame: Frame number to evaluate at.
+
+        Returns:
+            Evaluated channel value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#eval
+        """
+        ...
+
+    def hasKeyAtFrame(self, frame: float) -> bool:
+        """Returns whether the channel has a key at the given frame.
+
+        Args:
+            frame: Frame number to check.
+
+        Returns:
+            True if a key exists at the frame.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#hasKeyAtFrame
+        """
+        ...
+
+    def insertKey(self, frame: float, auto_slope: bool = True) -> None:
+        """Inserts a key at the given frame, if there isn't one already.
+
+        Args:
+            frame: Frame number for the key.
+            auto_slope: Whether to automatically compute slopes.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#insertKey
+        """
+        ...
+
+    def destroyKey(self, frame: float) -> None:
+        """Destroys a key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number of key to destroy.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#destroyKey
+        """
+        ...
+
+    def destroyKeys(self, frame_start: float, frame_end: float) -> None:
+        """Destroys all keys in the given time range, inclusive.
+
+        Args:
+            frame_start: Start of frame range.
+            frame_end: End of frame range.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#destroyKeys
+        """
+        ...
+
+    def clear(self) -> None:
+        """Clears the channel primitive, removing all keys and segments.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#clear
+        """
+        ...
+
+    def keyIndex(self, frame: float) -> int:
+        """Returns the index of the key at the given frame.
+
+        Args:
+            frame: Frame number to query.
+
+        Returns:
+            Key index, or -1 if no key exists at that frame.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyIndex
+        """
+        ...
+
+    def keyValue(self, frame: float, value: float,
+                 key_half: '_EnumValue[keyHalf]' = keyHalf.Out) -> float:
+        """Returns the value of the key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number.
+            value: Value parameter (purpose unclear in documentation).
+            key_half: Which half of the key to query.
+
+        Returns:
+            Key value.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyValue
+        """
+        ...
+
+    def setKeyValue(self, frame: float, value: float,
+                    key_half: '_EnumValue[keyHalf]' = keyHalf.InOut) -> bool:
+        """Sets the value of the key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number.
+            value: New key value.
+            key_half: Which half of the key to set.
+
+        Returns:
+            True if successful.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setKeyValue
+        """
+        ...
+
+    def keySlope(self, frame: float, value: float,
+                 key_half: '_EnumValue[keyHalf]' = keyHalf.Out) -> float:
+        """Returns the slope of the key at the given frame, if one exists.
+
+        Args:
+            frame: Frame number.
+            value: Value parameter (purpose unclear in documentation).
+            key_half: Which half of the key to query.
+
+        Returns:
+            Key slope.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keySlope
+        """
+        ...
+
+    def setKeyAutoSlope(self, frame: float, auto_slope: bool,
+                        key_half: '_EnumValue[keyHalf]' = keyHalf.InOut) -> bool:
+        """Sets the auto slope property of the key at the given frame.
+
+        Args:
+            frame: Frame number.
+            auto_slope: Whether to enable auto slope.
+            key_half: Which half of the key to set.
+
+        Returns:
+            True if successful.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setKeyAutoSlope
+        """
+        ...
+
+    def segmentType(self, frame: float) -> segmentType:
+        """Returns the type of the segment at the given frame.
+
+        Args:
+            frame: Frame number.
+
+        Returns:
+            Segment type.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#segmentType
+        """
+        ...
+
+    def setSegmentType(self, frame: float, type: segmentType) -> None:
+        """Sets the type of the segment at the given frame.
+
+        Args:
+            frame: Frame number.
+            type: Segment type to set.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#setSegmentType
+        """
+        ...
+
+    def keyFrames(self) -> tuple[float, ...]:
+        """Returns an ordered list of frames at which keys exist.
+
+        Returns:
+            Tuple of frame numbers with keys.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyFrames
+        """
+        ...
+
+    def keyValues(self, key_half: '_EnumValue[keyHalf]' = keyHalf.Out) -> tuple[float, ...]:
+        """Returns values of all keys in the channel.
+
+        Args:
+            key_half: Which half of keys to query.
+
+        Returns:
+            Tuple of key values.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#keyValues
+        """
+        ...
+
+    def smoothAutoSlopes(self) -> None:
+        """Smooths the slopes of all keys with auto slope enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ChannelPrim.html#smoothAutoSlopes
+        """
+        ...
+
+
+class Gallery:
+    """Collection of gallery entries for operator nodes.
+
+    A gallery is a collection of node templates and their parameter presets,
+    represented by hou.GalleryEntry objects. A gallery corresponds to a file
+    where such templates are saved.
+
+    You cannot instantiate this object directly. Use hou.galleries module functions
+    instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html
+    """
+
+    def createEntry(self, entry_name: str, node: Node | None = None) -> GalleryEntry:
+        """Creates and returns a new gallery entry.
+
+        Args:
+            entry_name: Name for the new entry.
+            node: Optional node to initialize entry from.
+
+        Returns:
+            The created gallery entry.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html#createEntry
+        """
+        ...
+
+    def deleteEntry(self, entry_name: str) -> None:
+        """Deletes an entry from the gallery.
+
+        Args:
+            entry_name: Name of entry to delete.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html#deleteEntry
+        """
+        ...
+
+    def galleryEntries(self, name_pattern: str | None = None,
+                      label_pattern: str | None = None,
+                      keyword_pattern: str | None = None,
+                      category: str | None = None,
+                      node_type: NodeType | None = None) -> tuple[GalleryEntry, ...]:
+        """Returns gallery entries matching the specified criteria.
+
+        Args:
+            name_pattern: Optional pattern for entry names.
+            label_pattern: Optional pattern for entry labels.
+            keyword_pattern: Optional pattern for entry keywords.
+            category: Optional category filter.
+            node_type: Optional node type filter.
+
+        Returns:
+            Tuple of matching gallery entries.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Gallery.html#galleryEntries
+        """
+        ...
+
+
+class GalleryEntry:
+    """Gallery entry that can be applied to operator nodes.
+
+    A gallery entry contains data about an operator node setup, including parameter
+    values, spare parameters, channels, and for subnet nodes, information about
+    children. Gallery entries are like node templates or parameter presets that
+    can be created from and applied to existing nodes.
+
+    A gallery entry has a unique name and a non-unique label, and is usually
+    associated with specific node types. Entries can have categories for organization
+    and keywords for identification.
+
+    You cannot instantiate this object directly. Use hou.Gallery.createEntry or
+    hou.galleries module functions instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html
+    """
+
+    def allowIconRegeneration(self) -> bool:
+        """Returns whether this entry allows automatic icon regeneration.
+
+        Returns:
+            True if automatic icon regeneration is allowed.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#allowIconRegeneration
+        """
+        ...
+
+    def applyToNode(self, node: Node) -> None:
+        """Applies the gallery entry to a given node.
+
+        Args:
+            node: Node to apply entry to.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#applyToNode
+        """
+        ...
+
+    def bestNodeType(self) -> NodeType | None:
+        """Returns the best node type associated with this entry.
+
+        Returns:
+            Best matching node type, or None.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#bestNodeType
+        """
+        ...
+
+    def canApplyToNode(self, node: Node) -> bool:
+        """Returns whether this entry can be safely applied to the node.
+
+        Args:
+            node: Node to check.
+
+        Returns:
+            True if entry can be applied to node.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#canApplyToNode
+        """
+        ...
+
+    def canCreateChildNode(self, parent: Node) -> bool:
+        """Returns whether createChildNode can succeed.
+
+        Args:
+            parent: Parent network node.
+
+        Returns:
+            True if child node can be created.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#canCreateChildNode
+        """
+        ...
+
+    def categories(self) -> tuple[str, ...]:
+        """Returns the categories this entry subscribes to.
+
+        Returns:
+            Tuple of category names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#categories
+        """
+        ...
+
+    def createChildNode(self, parent: Node) -> Node:
+        """Creates a new node in the parent network and applies this entry.
+
+        Args:
+            parent: Parent network node.
+
+        Returns:
+            The created and configured node.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#createChildNode
+        """
+        ...
+
+    def description(self) -> str:
+        """Returns the description of the gallery entry.
+
+        Returns:
+            Entry description.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#description
+        """
+        ...
+
+    def helpURL(self) -> str:
+        """Returns the URL of the help document for this entry.
+
+        Returns:
+            Help URL.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#helpURL
+        """
+        ...
+
+    def isHidden(self) -> bool:
+        """Returns whether this entry is hidden from the tools gallery menu.
+
+        Returns:
+            True if hidden.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#isHidden
+        """
+        ...
+
+    def icon(self) -> str:
+        """Returns the icon name or file path for this entry.
+
+        Returns:
+            Icon name or path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#icon
+        """
+        ...
+
+    def keywords(self) -> tuple[str, ...]:
+        """Returns the keywords that describe this entry.
+
+        Returns:
+            Tuple of keywords.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#keywords
+        """
+        ...
+
+    def label(self) -> str:
+        """Returns the gallery entry label.
+
+        Returns:
+            Entry label.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#label
+        """
+        ...
+
+    def name(self) -> str:
+        """Returns the gallery entry name.
+
+        Returns:
+            Entry name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#name
+        """
+        ...
+
+    def nodeTypeCategory(self) -> NodeTypeCategory:
+        """Returns the category of node types this entry is associated with.
+
+        Returns:
+            Node type category.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#nodeTypeCategory
+        """
+        ...
+
+    def nodeTypeNames(self) -> tuple[str, ...]:
+        """Returns the names of node types this entry is associated with.
+
+        Returns:
+            Tuple of node type names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#nodeTypeNames
+        """
+        ...
+
+    def requiredHDAFile(self) -> str:
+        """Returns the HDA library file path required by this entry.
+
+        Returns:
+            HDA file path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#requiredHDAFile
+        """
+        ...
+
+    def script(self) -> str:
+        """Returns the script that modifies node parameters.
+
+        Returns:
+            Parameter modification script.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#script
+        """
+        ...
+
+    def setAllowIconRegeneration(self, allow: bool) -> None:
+        """Sets the allow icon regeneration flag.
+
+        Args:
+            allow: Whether to allow icon regeneration.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setAllowIconRegeneration
+        """
+        ...
+
+    def setCategories(self, categories: tuple[str, ...]) -> None:
+        """Sets the categories this entry subscribes to.
+
+        Args:
+            categories: Tuple of category names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setCategories
+        """
+        ...
+
+    def setContentsFromNode(self, node: Node) -> None:
+        """Saves information about the node contents (child nodes).
+
+        Args:
+            node: Node to save contents from.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setContentsFromNode
+        """
+        ...
+
+    def setDescription(self, description: str) -> None:
+        """Sets the description of the gallery entry.
+
+        Args:
+            description: Entry description.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setDescription
+        """
+        ...
+
+    def setEqual(self, entry: GalleryEntry) -> None:
+        """Sets this entry to be the same as the given entry, except for name.
+
+        Args:
+            entry: Entry to copy from.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setEqual
+        """
+        ...
+
+    def setHelpURL(self, helpurl: str) -> None:
+        """Sets the URL of the help document for this entry.
+
+        Args:
+            helpurl: Help URL.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setHelpURL
+        """
+        ...
+
+    def setHidden(self, hide: bool) -> None:
+        """Sets the hidden flag for this entry.
+
+        Args:
+            hide: Whether to hide the entry.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setHidden
+        """
+        ...
+
+    def setIcon(self, icon: str) -> None:
+        """Sets the icon name or file path for this entry.
+
+        Args:
+            icon: Icon name or path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setIcon
+        """
+        ...
+
+    def setKeywords(self, keywords: tuple[str, ...]) -> None:
+        """Sets the keywords that describe this entry.
+
+        Args:
+            keywords: Tuple of keywords.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setKeywords
+        """
+        ...
+
+    def setLabel(self, label: str) -> None:
+        """Sets the gallery entry label.
+
+        Args:
+            label: Entry label.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setLabel
+        """
+        ...
+
+    def setName(self, name: str) -> None:
+        """Sets the gallery entry name.
+
+        Args:
+            name: Entry name.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setName
+        """
+        ...
+
+    def setNodeTypeCategory(self, category: NodeTypeCategory) -> None:
+        """Sets the category of node types this entry should be associated with.
+
+        Args:
+            category: Node type category.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setNodeTypeCategory
+        """
+        ...
+
+    def setNodeTypeNames(self, nodetypes: tuple[str, ...]) -> None:
+        """Sets the names of node types this entry should be associated with.
+
+        Args:
+            nodetypes: Tuple of node type names.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setNodeTypeNames
+        """
+        ...
+
+    def setRequiredHDAFile(self, hda_file: str) -> None:
+        """Sets the HDA library file path required by this entry.
+
+        Args:
+            hda_file: HDA file path.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setRequiredHDAFile
+        """
+        ...
+
+    def setScript(self, script: str) -> None:
+        """Sets the script that modifies parameters when entry is applied.
+
+        Args:
+            script: Parameter modification script.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setScript
+        """
+        ...
+
+    def setScriptFromNode(self, node: Node) -> None:
+        """Sets the script from a node's parameter values.
+
+        Args:
+            node: Node to generate script from.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/GalleryEntry.html#setScriptFromNode
+        """
+        ...
+
+
+class Bookmark:
+    """Represents an animation bookmark.
+
+    You cannot instantiate this object directly. Call hou.anim.newBookmark instead.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html
+    """
+    def name(self) -> str:
+        """Returns the name of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#name
+        """
+        ...
+
+    def setName(self, name: str) -> None:
+        """Updates the name of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setName
+        """
+        ...
+
+    def startFrame(self) -> int:
+        """Returns the start frame of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#startFrame
+        """
+        ...
+
+    def setStartFrame(self, start_frame: int) -> None:
+        """Updates the start frame of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setStartFrame
+        """
+        ...
+
+    def endFrame(self) -> int:
+        """Returns the end frame of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#endFrame
+        """
+        ...
+
+    def setEndFrame(self, end_frame: int) -> None:
+        """Updates the end frame of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setEndFrame
+        """
+        ...
+
+    def comment(self) -> str:
+        """Returns the comment of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#comment
+        """
+        ...
+
+    def setComment(self, comment: str) -> None:
+        """Updates the comment of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setComment
+        """
+        ...
+
+    def color(self) -> Color:
+        """Returns the color of this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#color
+        """
+        ...
+
+    def setColor(self, color: Color) -> None:
+        """Updates the color of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setColor
+        """
+        ...
+
+    def visible(self) -> bool:
+        """Returns whether or not this bookmark is visible.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#visible
+        """
+        ...
+
+    def setVisible(self, visible: bool) -> None:
+        """Updates the visibility of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setVisible
+        """
+        ...
+
+    def isTemporary(self) -> bool:
+        """Returns whether or not this bookmark is marked as temporary.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#isTemporary
+        """
+        ...
+
+    def setTemporary(self, temporary: bool) -> None:
+        """Marks this bookmark as temporary or not.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setTemporary
+        """
+        ...
+
+    def isEnabled(self) -> bool:
+        """Returns whether or not this bookmark is enabled.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#isEnabled
+        """
+        ...
+
+    def enable(self, enabled: bool) -> None:
+        """Enable or disable this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#enable
+        """
+        ...
+
+    def metadata(self, key: str, default_value: Any = None) -> Any:
+        """Returns the metadata associated with the given key.
+
+        Returns default_value if no such key exists in the metadata.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#metadata
+        """
+        ...
+
+    def setMetadata(self, key: str, value: Any, type_hint: 'fieldType' = ...) -> None:
+        """Adds a metadata property to this bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#setMetadata
+        """
+        ...
+
+    def sessionId(self) -> int:
+        """Returns the ID of the bookmark.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Bookmark.html#sessionId
+        """
+        ...
+
+class Take:
+    """Represents a take in Houdini's take system.
+
+    Takes allow you to store different versions of parameter values
+    within the same scene, making it easy to manage variations without
+    duplicating the entire scene.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html
+    """
+
+    def isCurrent(self) -> bool:
+        """Return True if the take is the current take.
+
+        Returns:
+            True if this is the current take, False otherwise.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#isCurrent
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the name of the take.
+
+        Returns:
+            The take name.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#name
+        """
+        ...
+
+    def setName(self, name: str) -> None:
+        """Rename the take.
+
+        Args:
+            name: The new name for the take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#setName
+        """
+        ...
+
+    def addChildTake(self, name: str) -> Take:
+        """Create a new take with the given name and add it as a child to this take.
+
+        Args:
+            name: Name for the new child take.
+
+        Returns:
+            The newly created child take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addChildTake
+        """
+        ...
+
+    def addNodeDisplayFlag(self, node: Node) -> None:
+        """Include the given node's display flag in this take making it editable.
+
+        Args:
+            node: The node whose display flag should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addNodeDisplayFlag
+        """
+        ...
+
+    def removeNodeDisplayFlag(self, node: Node) -> None:
+        """Exclude the given node's display flag from this take.
+
+        Args:
+            node: The node whose display flag should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeNodeDisplayFlag
+        """
+        ...
+
+    def addNodeBypassFlag(self, node: Node) -> None:
+        """Include the given node's bypass flag in this take making it editable.
+
+        Args:
+            node: The node whose bypass flag should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addNodeBypassFlag
+        """
+        ...
+
+    def removeNodeBypassFlag(self, node: Node) -> None:
+        """Exclude the given node's bypass flag from this take.
+
+        Args:
+            node: The node whose bypass flag should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeNodeBypassFlag
+        """
+        ...
+
+    def addNodeRenderFlag(self, node: Node) -> None:
+        """Include the given node's render flag in this take making it editable.
+
+        Args:
+            node: The node whose render flag should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addNodeRenderFlag
+        """
+        ...
+
+    def removeNodeRenderFlag(self, node: Node) -> None:
+        """Exclude the given node's render flag from this take.
+
+        Args:
+            node: The node whose render flag should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeNodeRenderFlag
+        """
+        ...
+
+    def parmTuples(self) -> tuple[ParmTuple, ...]:
+        """Return a tuple of node parameters that are included and editable in this take.
+
+        Returns:
+            Tuple of parameter tuples included in this take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#parmTuples
+        """
+        ...
+
+    def hasParmTuple(self, parm_tuple: ParmTuple) -> bool:
+        """Return True if the given parameter is included in this take.
+
+        Args:
+            parm_tuple: The parameter tuple to check.
+
+        Returns:
+            True if the parameter is included, False otherwise.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#hasParmTuple
+        """
+        ...
+
+    def addParmTuple(self, parm_tuple: ParmTuple) -> None:
+        """Include the given parameter in this take making it editable.
+
+        Args:
+            parm_tuple: The parameter tuple to include.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addParmTuple
+        """
+        ...
+
+    def removeParmTuple(self, parm_tuple: ParmTuple) -> None:
+        """Exclude the given parameter from this take.
+
+        Args:
+            parm_tuple: The parameter tuple to exclude.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeParmTuple
+        """
+        ...
+
+    def addParmTuplesFromTake(self, take: Take, overwrite_existing: bool = True) -> None:
+        """Include all the given take's parameters in this take.
+
+        Args:
+            take: The take whose parameters should be copied.
+            overwrite_existing: Whether to overwrite existing parameter values.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addParmTuplesFromTake
+        """
+        ...
+
+    def addParmTuplesFromNode(self, node: Node) -> None:
+        """Include all the given node's parameters in this take.
+
+        Args:
+            node: The node whose parameters should be included.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#addParmTuplesFromNode
+        """
+        ...
+
+    def removeParmTuplesFromNode(self, node: Node) -> None:
+        """Exclude all the given node's parameters from this take.
+
+        Args:
+            node: The node whose parameters should be excluded.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#removeParmTuplesFromNode
+        """
+        ...
+
+    def children(self) -> tuple[Take, ...]:
+        """Return a tuple of the child takes.
+
+        Returns:
+            Tuple of child takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#children
+        """
+        ...
+
+    def destroy(self, recurse: bool = False) -> None:
+        """Delete the take.
+
+        Args:
+            recurse: Whether to recursively delete child takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#destroy
+        """
+        ...
+
+    def parent(self) -> Take | None:
+        """Return the parent take or None if this take is the main (master) take.
+
+        Returns:
+            The parent take or None.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#parent
+        """
+        ...
+
+    def path(self) -> str:
+        """Return the path of the take.
+
+        Returns:
+            The take path.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#path
+        """
+        ...
+
+    def insertTakeAbove(self, name: str) -> Take:
+        """Create a new take with the given name and add it as a child of this take's parent.
+
+        Args:
+            name: Name for the new take.
+
+        Returns:
+            The newly created take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#insertTakeAbove
+        """
+        ...
+
+    def moveUnderTake(self, take: Take) -> None:
+        """Reparent this take to the specified take.
+
+        Args:
+            take: The new parent take.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#moveUnderTake
+        """
+        ...
+
+    def saveToFile(self, filename: str, recurse: bool = False) -> None:
+        """Save this take to a file on disk.
+
+        Args:
+            filename: Path to save the take file.
+            recurse: Whether to recursively save child takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#saveToFile
+        """
+        ...
+
+    def loadChildTakeFromFile(self, filename: str) -> tuple[Take, ...]:
+        """Load a take from a file and make it a child of this take.
+
+        Args:
+            filename: Path to the take file to load.
+
+        Returns:
+            Tuple of loaded takes.
+
+        See: https://www.sidefx.com/docs/houdini/hom/hou/Take.html#loadChildTakeFromFile
+        """
+        ...
 
 class Color:
     """Houdini color object."""
@@ -1513,6 +5285,79 @@ class Color:
     @staticmethod
     def ocio_DefaultDisplay() -> str: ...
 
+class GeometryViewport:
+    """Represents a 3D viewport for viewing geometry in Houdini.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/GeometryViewport.html
+    """
+    def name(self) -> str: ...
+    def type(self) -> geometryViewportType: ...
+    def setType(self, viewport_type: geometryViewportType) -> None: ...
+    def settings(self) -> 'GeometryViewportSettings': ...
+    def homeAll(self) -> None: ...
+    def home(self, geometry: Geometry | None = None) -> None: ...
+    def mapToScreen(self, position: Vector3) -> Vector2: ...
+    def mapFromScreen(self, screen_pos: Vector2) -> Vector3: ...
+
+class ViewportVisualizer:
+    """Represents a viewport visualizer for displaying data overlays in the viewport.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ViewportVisualizer.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def label(self) -> str: ...
+    def setLabel(self, label: str) -> None: ...
+    def isActive(self) -> bool: ...
+    def setIsActive(self, active: bool) -> None: ...
+    def category(self) -> viewportVisualizerCategory: ...
+    def type(self) -> 'ViewportVisualizerType': ...
+
+class ViewportVisualizerType:
+    """Represents a type of viewport visualizer.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ViewportVisualizerType.html
+    """
+    def name(self) -> str: ...
+    def label(self) -> str: ...
+
+class GeometryViewportSettings:
+    """Settings object for a geometry viewport.
+
+    Controls display options, shading modes, visualization settings, and other
+    viewport-specific configuration for 3D geometry views.
+
+    Obtained via GeometryViewport.settings().
+    """
+    # Display modes
+    def displaySet(self) -> int: ...
+    def setDisplaySet(self, display_set: int) -> None: ...
+    def shadingMode(self) -> glShadingType: ...
+    def setShadingMode(self, mode: glShadingType) -> None: ...
+
+    # Camera
+    def useOrthoProjection(self) -> bool: ...
+    def setUseOrthoProjection(self, ortho: bool) -> None: ...
+
+    # Grid and reference
+    def showGrid(self) -> bool: ...
+    def setShowGrid(self, show: bool) -> None: ...
+    def showOrigin(self) -> bool: ...
+    def setShowOrigin(self, show: bool) -> None: ...
+
+    # Background
+    def backgroundImagePath(self) -> str: ...
+    def setBackgroundImagePath(self, path: str) -> None: ...
+
+class PythonPanelInterface:
+    """Represents a Python panel interface definition.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/PythonPanelInterface.html
+    """
+    def name(self) -> str: ...
+    def label(self) -> str: ...
+    def filePath(self) -> str: ...
+
 class Ramp:
     """Interpolated ramp function for float or color values.
 
@@ -1540,7 +5385,7 @@ class Ramp:
     def lookup(self, position: float) -> float | tuple[float, float, float]: ...
 
     # Structure access
-    def basis(self) -> tuple: ...  # Tuple of hou.rampBasis enum values
+    def basis(self) -> tuple[rampBasis, ...]: ...
     def keys(self) -> tuple[float, ...]: ...
     def values(self) -> tuple[float, ...] | tuple[tuple[float, float, float], ...]: ...
 
@@ -1586,8 +5431,8 @@ class ParmTemplate:
     # Conditionals
     def disableWhen(self) -> str: ...
     def setDisableWhen(self, disable_when: str) -> None: ...
-    def conditionals(self) -> dict[Any, str]: ...  # Dict of parmCondType to str
-    def setConditional(self, type: Any, conditional: str) -> None: ...  # Takes parmCondType enum
+    def conditionals(self) -> dict[parmCondType, str]: ...
+    def setConditional(self, type: parmCondType, conditional: str) -> None: ...
 
     # Tags and metadata
     def tags(self) -> dict[str, str]: ...
@@ -1625,10 +5470,10 @@ class DataParmTemplate(ParmTemplate):
         name: str,
         label: str,
         num_components: int=1,
-        naming_scheme: Any=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
-        data_parm_type: Any=...,  # dataParmType enum
+        data_parm_type: dataParmType=...,
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1650,7 +5495,7 @@ class FloatParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[float, ...]=...,
-        naming_scheme: Any=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,
         min: float=0.0,
         max: float=1.0,
         min_is_strict: bool=False,
@@ -1686,7 +5531,7 @@ class FolderParmTemplate(ParmTemplate):
         name: str,
         label: str,
         parm_templates: tuple['ParmTemplate', ...]=...,
-        folder_type: Any=...,  # folderType enum
+        folder_type: folderType=...,
         default_value: int=0,
         ends_tab_group: bool=False,
         is_hidden: bool=False,
@@ -1711,7 +5556,7 @@ class FolderSetParmTemplate(ParmTemplate):
         name: str,
         label: str,
         folder_names: tuple[str, ...]=...,
-        folder_type: Any=...,  # folderType enum
+        folder_type: folderType=...,
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1731,7 +5576,7 @@ class IntParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[int, ...]=...,
-        naming_scheme: Any=...,  # parmNamingScheme enum
+        naming_scheme: parmNamingScheme=...,
         min: int=0,
         max: int=10,
         min_is_strict: bool=False,
@@ -1742,7 +5587,7 @@ class IntParmTemplate(ParmTemplate):
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: Any=...,  # menuType enum
+        menu_type: menuType=...,
         menu_use_token: bool=False,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
@@ -1788,7 +5633,7 @@ class LabelParmTemplate(ParmTemplate):
         name: str,
         label: str,
         column_labels: tuple[str, ...]=...,
-        label_parm_type: Any=...,  # labelParmType enum
+        label_parm_type: labelParmType=...,
         is_hidden: bool=False,
         join_with_next: bool=False,
         help: str|None=None,
@@ -1812,7 +5657,7 @@ class MenuParmTemplate(ParmTemplate):
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: Any=...,  # menuType enum
+        menu_type: menuType=...,
         menu_use_token: bool=False,
         default_expression: str|None=None,
         default_expression_language: scriptLanguage=...,
@@ -1902,15 +5747,15 @@ class StringParmTemplate(ParmTemplate):
         label: str,
         num_components: int,
         default_value: tuple[str, ...]=...,
-        naming_scheme: Any=...,  # parmNamingScheme enum
-        string_type: Any=...,  # stringParmType enum
-        file_type: Any=...,  # fileType enum
+        naming_scheme: parmNamingScheme=...,
+        string_type: stringParmType=...,
+        file_type: fileType=...,
         menu_items: tuple[str, ...]=...,
         menu_labels: tuple[str, ...]=...,
         icon_names: tuple[str, ...]=...,
         item_generator_script: str|None=None,
         item_generator_script_language: scriptLanguage=...,
-        menu_type: Any=...,  # menuType enum
+        menu_type: menuType=...,
         menu_use_token: bool=False,
         default_expression: tuple[str, ...]=...,
         default_expression_language: tuple[scriptLanguage, ...]=...,
@@ -2097,8 +5942,8 @@ class ChopNode(OpNode):
     """
 
     # Clip access
-    def clip(self, output_index: int = 0) -> Any: ...  # Returns Clip
-    def clipData(self, binary: bool) -> bytes: ...  # ASCII or binary clip data
+    def clip(self, output_index: int = 0) -> Clip: ...
+    def clipData(self, binary: bool) -> bytes: ...  # ASCII or binary clip data as bytes
     def setClipData(self, data: bytes|str, binary: bool) -> None: ...  # Set clip data
     def saveClip(self, file_name: str) -> None: ...  # Save clip to file
 
@@ -2130,6 +5975,9 @@ class ChopNode(OpNode):
     def isLocked(self) -> bool: ...  # Lock flag state
     def setLocked(self, on: bool) -> None: ...  # Set lock flag
 
+
+_RopCallback: TypeAlias = _EventCallback['RopNode', 'ropRenderEventType', float]
+
 class RopNode(OpNode):
     """Houdini render operator (ROP) node.
 
@@ -2145,7 +5993,7 @@ class RopNode(OpNode):
                to_flipbook: bool = False,
                quality: int = 2,
                ignore_inputs: bool = False,
-               method: Any = None,  # hou.renderMethod enum
+               method: renderMethod|None = None,
                ignore_bypass_flags: bool = False,
                ignore_lock_flags: bool = False,
                verbose: bool = False,
@@ -2155,8 +6003,8 @@ class RopNode(OpNode):
     def inputDependencies(self) -> tuple[tuple['RopNode', ...], tuple[tuple[float, ...], ...]]: ...  # (ROPs, frames) that need rendering first
 
     # Render event callbacks
-    def addRenderEventCallback(self, callback: Any, run_before_script: bool = False) -> None: ...  # Add render event callback
-    def removeRenderEventCallback(self, callback: Any) -> None: ...  # Remove render event callback
+    def addRenderEventCallback(self, callback: _RopCallback, run_before_script: bool = False) -> None: ...  # Add render event callback
+    def removeRenderEventCallback(self, callback: _RopCallback) -> None: ...  # Remove render event callback
     def removeAllRenderEventCallbacks(self) -> None: ...  # Remove all render event callbacks
 
     # Flags
@@ -2235,16 +6083,57 @@ class Cop2Node(OpNode):
     def displayNode(self) -> Node: ...
 
 class CopCableStructure:
-    """Describes the structure of image data flowing through COP connections."""
-    pass
+    """Describes the structure of image data flowing through COP connections.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/CopCableStructure.html
+    """
+    def dataType(self) -> str: ...
+    def resolution(self) -> tuple[int, int]: ...
+    def numPlanes(self) -> int: ...
+    def planeNames(self) -> tuple[str, ...]: ...
+    def planeInfo(self, plane_name: str) -> dict[str, Any]: ...
 
 class ImageLayer:
-    """Represents an image layer in compositor operations."""
-    pass
+    """Represents an image layer in compositor operations.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ImageLayer.html
+    """
+    def name(self) -> str: ...
+    def resolution(self) -> tuple[int, int]: ...
+    def size(self) -> tuple[int, int]: ...
+    def numComponents(self) -> int: ...
+    def componentNames(self) -> tuple[str, ...]: ...
+    def storageType(self) -> imageLayerStorageType: ...
+    def typeInfo(self) -> imageLayerTypeInfo: ...
+    def border(self) -> imageLayerBorder: ...
+    def projection(self) -> imageLayerProjection: ...
+    def pixelData(self, component: int = 0) -> bytes: ...
+    def allPixelData(self) -> bytes: ...
+    def setPixelData(self, data: bytes, component: int = 0) -> None: ...
+    def setAllPixelData(self, data: bytes) -> None: ...
+    def pixel(self, x: int, y: int, component: int = 0) -> float: ...
+    def setPixel(self, x: int, y: int, value: float, component: int = 0) -> None: ...
+    def sample(self, u: float, v: float, component: int = 0) -> float: ...
+    def transform(self) -> Matrix3: ...
+    def setTransform(self, xform: Matrix3) -> None: ...
 
 class NanoVDB:
-    """NanoVDB volume representation for compositor operations."""
-    pass
+    """NanoVDB volume representation for compositor operations.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/NanoVDB.html
+    """
+    def name(self) -> str: ...
+    def gridClass(self) -> str: ...
+    def gridType(self) -> str: ...
+    def resolution(self) -> tuple[int, int, int]: ...
+    def indexBBox(self) -> tuple[tuple[int, int, int], tuple[int, int, int]]: ...
+    def worldBBox(self) -> tuple[Vector3, Vector3]: ...
+    def voxelSize(self) -> Vector3: ...
+    def transform(self) -> Matrix4: ...
+    def setTransform(self, xform: Matrix4) -> None: ...
+    def activeVoxelCount(self) -> int: ...
+    def memoryUsage(self) -> int: ...
+    def toVDB(self) -> 'VDB': ...
 
 class LopNode(OpNode):
     """Houdini lighting operator (LOP/Solaris) node for USD scene graph operations."""
@@ -2261,8 +6150,8 @@ class LopNode(OpNode):
     def viewerNode(self) -> Node: ...
 
     # USD Stage access
-    def activeLayer(self, output_index: int=-1, ignore_errors: bool=False, use_last_cook_context_options: bool=True, frame: float|None=None, context_options: dict=...) -> Any: ...  # Returns pxr.Sdf.Layer
-    def stage(self, output_index: int=-1, apply_viewport_overrides: bool=False, ignore_errors: bool=False, use_last_cook_context_options: bool=True, apply_post_layers: bool=True, frame: float|None=None, context_options: dict=...) -> Any: ...  # Returns pxr.Usd.Stage
+    def activeLayer(self, output_index: int=-1, ignore_errors: bool=False, use_last_cook_context_options: bool=True, frame: float|None=None, context_options: dict=...) -> pxr.Sdf.Layer: ...
+    def stage(self, output_index: int=-1, apply_viewport_overrides: bool=False, ignore_errors: bool=False, use_last_cook_context_options: bool=True, apply_post_layers: bool=True, frame: float|None=None, context_options: dict=...) -> pxr.Usd.Stage: ...
     def isMostRecentStageLock(self) -> bool: ...
     def inEditLayerBlock(self) -> bool: ...
 
@@ -2273,8 +6162,8 @@ class LopNode(OpNode):
     def loadMasks(self, output_index: int=-1, force_cook: bool=False, use_last_cook_context_options: bool=True, frame: float|None=None, context_options: dict=...) -> 'LopViewportLoadMasks': ...
 
     # Primitive tracking
-    def lastModifiedPrims(self) -> tuple: ...  # Returns tuple of pxr.Sdf.Path
-    def inputPrims(self, inputidx: int) -> tuple: ...  # Returns tuple of pxr.Sdf.Path
+    def lastModifiedPrims(self) -> tuple[pxr.Sdf.Path, ...]: ...
+    def inputPrims(self, inputidx: int) -> tuple[pxr.Sdf.Path, ...]: ...
     def setLastModifiedPrims(self, primpaths: list) -> None: ...
 
     # Save paths
@@ -2284,9 +6173,9 @@ class LopNode(OpNode):
     def selectionRule(self, inputidx: int=-1, pattern: str|None=None) -> 'LopSelectionRule': ...
 
     # Python LOP scripting methods
-    def editableLayer(self) -> Any: ...  # Returns pxr.Sdf.Layer with edit permission
-    def editableStage(self) -> Any: ...  # Returns pxr.Usd.Stage with edit permission
-    def uneditableStage(self) -> Any: ...  # Returns pxr.Usd.Stage without edit permission
+    def editableLayer(self) -> pxr.Sdf.Layer: ...
+    def editableStage(self) -> pxr.Usd.Stage: ...
+    def uneditableStage(self) -> pxr.Usd.Stage: ...
     def addSubLayer(self, identifier: str) -> None: ...
     def addLockedGeometry(self, identifier: str, geo: Geometry, args: dict=...) -> str: ...
 
@@ -2305,64 +6194,80 @@ class LopNetwork(OpNode):
     def selectionCurrentPrim(self) -> str: ...
     def selectionRules(self) -> dict[str, 'LopSelectionRule']: ...
     def clearSelectionRules(self) -> None: ...
-    def setSelectionRule(self, name: str, rule: Any) -> None: ...  # rule is LopSelectionRule
+    def setSelectionRule(self, name: str, rule: 'LopSelectionRule') -> None: ...
 
     # Viewport stage manipulation
-    def viewportOverrides(self, lop: LopNode, output_index: int=0) -> Any: ...  # Returns LopViewportOverrides
+    def viewportOverrides(self, lop: LopNode, output_index: int=0) -> 'LopViewportOverrides': ...
     def namedViewportOverrides(self) -> tuple[str, ...]: ...
     def loadNamedViewportOverrides(self, name: str) -> None: ...
-    def saveNamedViewportOverrides(self, name: str, overrides: Any=None) -> None: ...  # overrides is LopViewportOverrides
-    def copyViewportOverrides(self, saved_name: str) -> Any: ...  # Returns LopViewportOverrides
-    def setViewportOverrides(self, overrides: Any) -> None: ...  # overrides is LopViewportOverrides
-    def viewportOverridesLayer(self, layer_id: Any) -> Any: ...  # Returns pxr.Sdf.Layer
-    def viewportLoadMasks(self) -> Any: ...  # Returns LopViewportLoadMasks
-    def setViewportLoadMasks(self, payload_config: Any) -> None: ...  # payload_config is LopViewportLoadMasks
+    def saveNamedViewportOverrides(self, name: str, overrides: 'LopViewportOverrides' | None=None) -> None: ...
+    def copyViewportOverrides(self, saved_name: str) -> LopViewportOverrides: ...
+    def setViewportOverrides(self, overrides: LopViewportOverrides) -> None: ...
+    def viewportOverridesLayer(self, layer_id: Any) -> pxr.Sdf.Layer: ...
+    def viewportLoadMasks(self) -> 'LopViewportLoadMasks': ...
+    def setViewportLoadMasks(self, payload_config: 'LopViewportLoadMasks') -> None: ...
     def namedViewportLoadMasks(self) -> tuple[str, ...]: ...
-    def loadNamedViewportLoadMasks(self, name: str) -> Any: ...  # Returns LopViewportLoadMasks
+    def loadNamedViewportLoadMasks(self, name: str) -> 'LopViewportLoadMasks': ...
     def saveNamedViewportLoadMasks(self, name: str) -> None: ...
 
     # Scene graph tree expansion state
-    def expansionState(self) -> Any: ...  # Returns LopExpansionState
-    def setExpansionState(self, expansion_state: Any) -> None: ...  # expansion_state is LopExpansionState
-    def saveNamedExpansionState(self, name: str, expansion_state: Any) -> None: ...  # expansion_state is LopExpansionState
-    def loadNamedExpansionState(self, name: str) -> Any: ...  # Returns LopExpansionState
+    def expansionState(self) -> 'LopExpansionState': ...
+    def setExpansionState(self, expansion_state: 'LopExpansionState') -> None: ...
+    def saveNamedExpansionState(self, name: str, expansion_state: 'LopExpansionState') -> None: ...
+    def loadNamedExpansionState(self, name: str) -> 'LopExpansionState': ...
     def namedExpansionStates(self) -> tuple[str, ...]: ...
     def setPrimitiveExpansionLocked(self, path: str, expanded_subpaths: Any, preserve_descendant_expansion: bool=True) -> bool: ...
     def setPrimitiveExpansionUnlocked(self, path: str, preserve_descendant_expansion: bool=True) -> bool: ...
 
     # Post-layers
     def postLayerNames(self) -> tuple[str, ...]: ...
-    def postLayer(self, name: str) -> Any: ...  # Returns pxr.Sdf.Layer or None
+    def postLayer(self, name: str) -> pxr.Sdf.Layer | None: ...
     def removePostLayer(self, name: str) -> None: ...
     def editablePostLayer(self, name: str, lop: LopNode, output_index: int=0) -> 'LopPostLayer': ...
 
 class LopExpansionState:
     """Tracks expansion state of USD primitives in LOP networks."""
-    pass
+    def expandedPaths(self) -> tuple[str, ...]: ...
+    def isExpanded(self, path: str) -> bool: ...
+    def setExpanded(self, path: str, expanded: bool) -> None: ...
 
 class LopInstanceIdRule:
     """Rules for assigning instance IDs to USD primitives."""
-    pass
+    def pattern(self) -> str: ...
+    def setPattern(self, pattern: str) -> None: ...
+    def startId(self) -> int: ...
+    def setStartId(self, id: int) -> None: ...
 
 class LopLockedStage:
     """Represents a locked USD stage from a LOP node."""
-    pass
+    def isValid(self) -> bool: ...
+    def release(self) -> None: ...
 
 class LopPostLayer:
     """Post-process layer applied to USD stages."""
-    pass
+    def path(self) -> str: ...
+    def isActive(self) -> bool: ...
 
 class LopSelectionRule:
     """Selection rule for USD primitives in LOP networks."""
-    pass
+    def pattern(self) -> str: ...
+    def setPattern(self, pattern: str) -> None: ...
+    def pathPrefix(self) -> str: ...
+    def setPathPrefix(self, prefix: str) -> None: ...
 
 class LopViewportLoadMasks:
     """Controls which USD primitives are loaded in the viewport."""
-    pass
+    def loadMask(self) -> str: ...
+    def setLoadMask(self, mask: str) -> None: ...
+    def displayMask(self) -> str: ...
+    def setDisplayMask(self, mask: str) -> None: ...
 
 class LopViewportOverrides:
     """Viewport display overrides for USD primitives."""
-    pass
+    def drawMode(self) -> str: ...
+    def setDrawMode(self, mode: str) -> None: ...
+    def complexity(self) -> str: ...
+    def setComplexity(self, complexity: str) -> None: ...
 
 class TopNode(Node):
     """Houdini task operator (TOP/PDG) node."""
@@ -2402,9 +6307,9 @@ class TopNode(Node):
 
     # PDG integration
     def getPDGGraphContextName(self) -> str: ...
-    def getPDGGraphContext(self): ...  # Returns pdg.GraphContext
+    def getPDGGraphContext(self) -> pdg.GraphContext: ...
     def getPDGNodeName(self) -> str: ...
-    def getPDGNode(self): ...  # Returns pdg.Node
+    def getPDGNode(self): pdg.Node
     def getPDGNodeId(self) -> int: ...
     def getDataLayerInterfaceId(self) -> int: ...
 
@@ -2488,6 +6393,7 @@ class Attrib:
     def dataType(self) -> 'attribData': ...
     def size(self) -> int: ...
 
+
 class Geometry:
     """Houdini geometry object containing points and primitives."""
     # Constructor
@@ -2554,9 +6460,9 @@ class Geometry:
     def incrementModificationCounter(self) -> None: ...
     def incrementAllDataIds(self) -> None: ...
     def incrementDataIdsForAddOrRemove(self, for_points: bool = True, for_prims: bool = True) -> None: ...
-    def primitiveIntrinsicsDataId(self) -> Any: ...  # AttribDataId
+    def primitiveIntrinsicsDataId(self) -> AttribDataId: ...
     def incrementPrimitiveIntrinsicsDataId(self) -> None: ...
-    def topologyDataId(self) -> Any: ...  # AttribDataId
+    def topologyDataId(self) -> AttribDataId: ...
     def incrementTopologyDataId(self) -> None: ...
 
     # Averages and bounding
@@ -2604,24 +6510,24 @@ class Geometry:
     def deletePoints(self, points: Sequence['Point']) -> None: ...
 
     # Groups - Point
-    def findPointGroup(self, name: str, scope: Any = ...) -> Any: ...  # PointGroup or None, scope: groupScope
-    def pointGroups(self, scope: Any = ...) -> tuple: ...  # tuple[PointGroup, ...], scope: groupScope
-    def createPointGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> Any: ...  # PointGroup
+    def findPointGroup(self, name: str, scope: groupScope = ...) -> 'PointGroup | None': ...
+    def pointGroups(self, scope: groupScope = ...) -> tuple['PointGroup', ...]: ...
+    def createPointGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> 'PointGroup': ...
 
     # Groups - Primitive
-    def findPrimGroup(self, name: str, scope: Any = ...) -> Any: ...  # PrimGroup or None, scope: groupScope
-    def primGroups(self, scope: Any = ...) -> tuple: ...  # tuple[PrimGroup, ...], scope: groupScope
-    def createPrimGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> Any: ...  # PrimGroup
+    def findPrimGroup(self, name: str, scope: groupScope = ...) -> 'PrimGroup | None': ...
+    def primGroups(self, scope: groupScope = ...) -> tuple['PrimGroup', ...]: ...
+    def createPrimGroup(self, name: str, is_ordered: bool = False, unique_name: bool = False) -> 'PrimGroup': ...
 
     # Groups - Edge
-    def findEdgeGroup(self, name: str, scope: Any = ...) -> Any: ...  # EdgeGroup or None, scope: groupScope
-    def edgeGroups(self, scope: Any = ...) -> tuple: ...  # tuple[EdgeGroup, ...], scope: groupScope
-    def createEdgeGroup(self, name: str) -> Any: ...  # EdgeGroup
+    def findEdgeGroup(self, name: str, scope: groupScope = ...) -> 'EdgeGroup | None': ...
+    def edgeGroups(self, scope: groupScope = ...) -> tuple['EdgeGroup', ...]: ...
+    def createEdgeGroup(self, name: str) -> 'EdgeGroup': ...
 
     # Groups - Vertex
-    def findVertexGroup(self, name: str, scope: Any = ...) -> Any: ...  # VertexGroup or None, scope: groupScope
-    def vertexGroups(self, scope: Any = ...) -> tuple: ...  # tuple[VertexGroup, ...], scope: groupScope
-    def createVertexGroup(self, name: str, is_ordered: bool = False) -> Any: ...  # VertexGroup
+    def findVertexGroup(self, name: str, scope: groupScope = ...) -> 'VertexGroup | None': ...
+    def vertexGroups(self, scope: groupScope = ...) -> tuple['VertexGroup', ...]: ...
+    def createVertexGroup(self, name: str, is_ordered: bool = False) -> 'VertexGroup': ...
 
     # Groups - Menu generation
     def generateGroupMenu(self, group_types: Sequence[str] | None = None, include_selection: bool = True, include_name_attrib: bool = True, case_sensitive: bool = True, pattern: str = "*", decode_tokens: bool = False, parm: 'Parm | None' = None) -> tuple[str, ...]: ...
@@ -2640,8 +6546,8 @@ class Geometry:
     def iterPoints(self) -> Any: ...  # generator of Point
     def globPoints(self, pattern: str, ordered: bool = False) -> tuple['Point', ...]: ...
     def point(self, index: int) -> 'Point': ...
-    def nearestPoint(self, position: Sequence[float], ptgroup: Any = None, max_radius: float = 1e18) -> 'Point | None': ...
-    def nearestPoints(self, position: Sequence[float], max_points: int, ptgroup: Any = None, max_radius: float = 1e18) -> tuple['Point', ...]: ...
+    def nearestPoint(self, position: Sequence[float], ptgroup: str | None = None, max_radius: float = 1e18) -> 'Point | None': ...
+    def nearestPoints(self, position: Sequence[float], max_points: int, ptgroup: str | None = None, max_radius: float = 1e18) -> tuple['Point', ...]: ...
 
     # Points - Bulk attribute access
     def pointFloatAttribValues(self, name: str) -> tuple[float, ...]: ...
@@ -2656,16 +6562,16 @@ class Geometry:
     def setPointStringAttribValues(self, name: str, values: Sequence[str]) -> None: ...
 
     # Edges
-    def findEdge(self, p0: 'Point', p1: 'Point') -> Any: ...  # Edge
-    def globEdges(self, pattern: str) -> tuple: ...  # tuple[Edge, ...]
+    def findEdge(self, p0: 'Point', p1: 'Point') -> 'Edge': ...
+    def globEdges(self, pattern: str) -> tuple['Edge', ...]: ...
 
     # Primitives - Access
     def nearestPrim(self, position: Sequence[float]) -> tuple['Prim | None', float, float, float]: ...
     def primCount(self) -> int: ...
     def prims(self) -> tuple['Prim', ...]: ...
-    def iterPrims(self) -> Any: ...  # generator of Prim
+    def iterPrims(self) -> Generator[Prim, None, None]: ...
     def primsOfType(self, primtype: 'primType') -> tuple['Prim', ...]: ...
-    def iterPrimsOfType(self, primtype: 'primType') -> Any: ...  # generator of Prim
+    def iterPrimsOfType(self, primtype: 'primType') -> Generator[Prim, None, None]: ...
     def globPrims(self, pattern: str) -> tuple['Prim', ...]: ...
     def prim(self, index: int) -> 'Prim': ...
 
@@ -2729,17 +6635,17 @@ class Geometry:
     def execute(self, verb: 'SopVerb', inputs: Sequence['Geometry'] = []) -> 'Geometry': ...
 
     # Data - USD/LOP import
-    def importLop(self, lopnode: 'LopNode', selectionrule: Any, purpose: str | None = None, traversal: Any | None = None, path_attrib_name: str | None = None, name_attrib_name: str | None = None, strip_layers: bool = False, frame: float | None = None, lop_output_index: int = -1) -> Any: ...  # LopLockedStage
-    def importUsdStage(self, stage: Any, selectionrule: Any, purpose: str | None = None, traversal: Any | None = None, path_attrib_name: str | None = None, name_attrib_name: str | None = None, frame: float | None = None) -> None: ...
+    def importLop(self, lopnode: 'LopNode', selectionrule: LopSelectionRule, purpose: str | None = None, traversal: Any | None = None, path_attrib_name: str | None = None, name_attrib_name: str | None = None, strip_layers: bool = False, frame: float | None = None, lop_output_index: int = -1) -> LopLockedStage: ...
+    def importUsdStage(self, stage: LopLockedStage, selectionrule: LopSelectionRule, purpose: str | None = None, traversal: Any | None = None, path_attrib_name: str | None = None, name_attrib_name: str | None = None, frame: float | None = None) -> None: ...
 
     # Transformation
     def transform(self, matrix: 'Matrix4') -> None: ...
     def transformPrims(self, prims: Sequence['Prim'], matrix: 'Matrix4') -> None: ...
 
     # Loops
-    def primLoop(self, prims: Sequence['Prim'], loop_type: Any) -> tuple['Prim', ...]: ...  # loop_type: componentLoopType
+    def primLoop(self, prims: Sequence['Prim'], loop_type: componentLoopType) -> tuple['Prim', ...]: ...
     def pointLoop(self, points: Sequence['Point'], full_loop: bool) -> tuple['Point', ...]: ...
-    def edgeLoop(self, edges: Sequence, loop_type: Any, full_loop_per_edge: bool, force_ring: bool, allow_ring: bool) -> tuple: ...  # tuple[Edge, ...], loop_type: componentLoopType
+    def edgeLoop(self, edges: Sequence['Edge'], loop_type: componentLoopType, full_loop_per_edge: bool, force_ring: bool, allow_ring: bool) -> tuple['Edge', ...]: ...
     def pointNormals(self, points: Sequence['Point']) -> tuple['Vector3', ...]: ...
 
     # Selection
@@ -2778,10 +6684,51 @@ class Point:
     def dictListAttribValue(self, name_or_attrib: str | 'Attrib') -> tuple[str, ...]: ...
 
 class Prim:
-    """Houdini geometry primitive."""
+    """Houdini geometry primitive base class.
+
+    Base class for all primitive types in Houdini geometry (Face, PackedPrim, Surface, VDB, Volume, etc.).
+    """
     def __init__(self) -> None: ...
+
+    # Attribute access
+    def attribValue(self, name_or_attrib: str | 'Attrib') -> int | float | str | tuple | dict: ...
+    def floatAttribValue(self, name_or_attrib: str | 'Attrib') -> float: ...
+    def floatListAttribValue(self, name_or_attrib: str | 'Attrib') -> tuple[float, ...]: ...
+    def intAttribValue(self, name_or_attrib: str | 'Attrib') -> int: ...
+    def intListAttribValue(self, name_or_attrib: str | 'Attrib') -> tuple[int, ...]: ...
+    def stringAttribValue(self, name_or_attrib: str | 'Attrib') -> str: ...
+    def stringListAttribValue(self, name_or_attrib: str | 'Attrib') -> tuple[str, ...]: ...
+    def dictAttribValue(self, name_or_attrib: str | 'Attrib') -> dict: ...
+    def dictListAttribValue(self, name_or_attrib: str | 'Attrib') -> tuple[dict, ...]: ...
+    def setAttribValue(self, name_or_attrib: str | 'Attrib', attrib_value: int | float | str | Sequence) -> None: ...
+    def attribType(self) -> 'attribType': ...
+
+    # Intrinsics
+    def intrinsicValueDict(self) -> dict[str, int | float | str | tuple]: ...
+    def intrinsicValue(self, intrinsic_name: str) -> int | float | str | tuple: ...
+    def intrinsicNames(self) -> tuple[str, ...]: ...
+    def setIntrinsicValue(self, intrinsic_name: str, value: int | float | str | Sequence) -> None: ...
+    def intrinsicReadOnly(self, intrinsic_name: str) -> bool: ...
+    def intrinsicSize(self, intrinsic_name: str) -> int: ...
+
+    # Geometry queries
+    def positionAtInterior(self, u: float, v: float = 0.0, w: float = 0.0) -> 'Vector3': ...
+    def attribValueAtInterior(self, attrib_or_name: str | 'Attrib', u: float, v: float = 0.0, w: float = 0.0) -> int | float | str | tuple: ...
+    def geometry(self) -> 'Geometry': ...
     def number(self) -> int: ...
+    def type(self) -> 'primType': ...
     def vertices(self) -> tuple['Vertex', ...]: ...
+    def numVertices(self) -> int: ...
+    def points(self) -> tuple['Point', ...]: ...
+    def boundingBox(self) -> 'BoundingBox': ...
+
+    # UV/parametric conversion
+    def nearestToPosition(self, pos: Sequence[float]) -> tuple[float, ...]: ...
+    def primuvConvert(self, uv: Sequence[float], from_type: 'attribType', to_type: 'attribType') -> tuple[float, ...]: ...
+    def primuConvert(self, u: float, from_type: 'attribType', to_type: 'attribType') -> float: ...
+
+    # Groups
+    def groups(self) -> tuple['PrimGroup', ...]: ...
 
 class Vertex:
     """Houdini geometry vertex."""
@@ -2813,7 +6760,7 @@ class Polygon(Face):
 
     Currently Face and Prim contain all necessary methods for polygon inspection and manipulation.
     """
-    pass
+    ...
 
 class Face(Prim):
     """Houdini NURBS/Bezier curve face primitive.
@@ -2926,15 +6873,31 @@ class Quadric(Prim):
     def setTransform(self, matrix4: 'Matrix4') -> None: ...
 
 class PackedPrim(Prim):
-    """Base class for packed primitives that reference geometry."""
-    def embeddedGeometry(self) -> 'Geometry': ...
-    def sharedEmbeddedGeometry(self) -> 'Geometry': ...
-    def intrinsicNames(self) -> tuple[str, ...]: ...
-    def intrinsicValue(self, name: str) -> Any: ...
-    def setIntrinsicValue(self, name: str, value: Any) -> None: ...
-    def intrinsicSize(self, name: str) -> int: ...
-    def fullName(self) -> str: ...
-    def implementation(self) -> Any: ...  # Returns packed implementation object
+    """Base class for packed primitives that reference or embed geometry.
+
+    Packed primitives are special primitives that reference geometry data, either
+    embedded within the primitive itself or loaded from external files. They provide
+    efficient instancing and delayed loading of geometry.
+
+    Inherits most methods from hou.Prim (intrinsics, attributes, bounding box, etc.).
+
+    Common subclasses: PackedGeometry, PackedFragment, Agent
+    """
+    def transform(self) -> 'Matrix3':
+        """Return the local 3x3 transform associated with this primitive."""
+        ...
+
+    def fullTransform(self) -> 'Matrix4':
+        """Return the full 4x4 transform for this primitive's geometry."""
+        ...
+
+    def setTransform(self, m4: 'Matrix4') -> None:
+        """Set this primitive's local transform."""
+        ...
+
+    def vertex(self, index: int) -> 'Vertex':
+        """A shortcut for self.vertices()[index]."""
+        ...
 
 class PackedGeometry(PackedPrim):
     """Packed primitive containing embedded geometry."""
@@ -2942,7 +6905,1674 @@ class PackedGeometry(PackedPrim):
 
 class PackedFragment(PackedPrim):
     """Packed primitive referencing an RBD fragment."""
-    pass
+    def fragmentId(self) -> int: ...
+    def setFragmentId(self, id: int) -> None: ...
+
+# ============================================================================
+# AGENT CLASSES (Crowd Simulation)
+# ============================================================================
+
+class Agent(PackedPrim):
+    """An agent primitive for crowd simulations.
+
+    Inheritance: hou.Prim → hou.PackedPrim → hou.Agent
+
+    An agent is a special type of packed primitive that contains animated characters
+    for crowd simulations. Each agent has a rig (skeleton), clips (animations), shapes
+    (geometry), and layers (shape bindings).
+
+    Example::
+
+        agent = geo.prims()[0]  # Get first agent primitive
+
+        # Access agent components
+        rig = agent.rig()
+        definition = agent.definition()
+        clips = agent.clips()
+
+        # Modify clip blending
+        agent.setClips(['walk', 'run'])
+        agent.setClipTimes([1.5, 0.5])
+        agent.setClipWeights([0.7, 0.3])
+
+        # Access transforms
+        transform = agent.localTransform(0)  # Get root transform
+        agent.setLocalTransform(0, new_transform)
+
+        # Channel values (animation channels)
+        value = agent.channelValue('speed')
+        agent.setChannelValue('speed', 2.5)
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html
+    See [Crowd Agents](https://www.sidefx.com/docs/houdini/crowds/agents.html) for more information.
+    """
+
+    def channelValue(self, channel_name: str) -> float:
+        """Return the value of an animation channel.
+
+        Args:
+            channel_name: Name of the channel to query
+
+        Returns:
+            The current channel value
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#channelValue
+        """
+        ...
+
+    def clipCatalog(self) -> tuple[str, ...]:
+        """Return the names of all clips in the agent's definition.
+
+        Returns:
+            Tuple of clip names available to this agent
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clipCatalog
+        """
+        ...
+
+    def clips(self) -> tuple['AgentClip', ...]:
+        """Return the current animation clips being played.
+
+        Returns:
+            Tuple of AgentClip objects currently active
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clips
+        """
+        ...
+
+    def clipTimes(self) -> tuple[float, ...]:
+        """Return the current time values for each active clip.
+
+        Returns:
+            Tuple of time values (in seconds) for each clip
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clipTimes
+        """
+        ...
+
+    def clipWeights(self) -> tuple[float, ...]:
+        """Return the blend weights for each active clip.
+
+        Returns:
+            Tuple of weights (0-1) for blending clips
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#clipWeights
+        """
+        ...
+
+    def collisionLayer(self) -> str:
+        """Return the name of the collision layer (deprecated - use collisionLayers()).
+
+        Returns:
+            Name of the collision layer
+
+        .. deprecated:: Use collisionLayers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#collisionLayer
+        """
+        ...
+
+    def collisionLayers(self) -> tuple[str, ...]:
+        """Return the names of the collision layers.
+
+        Returns:
+            Tuple of collision layer names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#collisionLayers
+        """
+        ...
+
+    def currentLayer(self) -> str:
+        """Return the name of the current display layer (deprecated - use layers()).
+
+        Returns:
+            Name of the current layer
+
+        .. deprecated:: Use layers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#currentLayer
+        """
+        ...
+
+    def definition(self) -> 'AgentDefinition':
+        """Return the agent's definition (shared data).
+
+        Returns:
+            AgentDefinition containing rig, shapes, clips, and layers
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#definition
+        """
+        ...
+
+    def layers(self) -> tuple[str, ...]:
+        """Return the names of the current display layers.
+
+        Returns:
+            Tuple of layer names currently active for display
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#layers
+        """
+        ...
+
+    def localTransform(self, transform_index: int) -> Matrix4:
+        """Return the local transform for a specific joint.
+
+        Args:
+            transform_index: Index of the transform in the rig
+
+        Returns:
+            4x4 transformation matrix in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#localTransform
+        """
+        ...
+
+    def rig(self) -> 'AgentRig':
+        """Return the agent's rig (skeleton hierarchy).
+
+        Returns:
+            AgentRig defining the transform hierarchy
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#rig
+        """
+        ...
+
+    def setChannelValue(self, channel_name: str, value: float) -> None:
+        """Set the value of an animation channel.
+
+        Args:
+            channel_name: Name of the channel to set
+            value: New value for the channel
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setChannelValue
+        """
+        ...
+
+    def setClips(self, clip_names: Sequence[str]) -> None:
+        """Set the animation clips to play.
+
+        Args:
+            clip_names: Names of clips from the agent's clip catalog
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setClips
+        """
+        ...
+
+    def setClipTimes(self, times: Sequence[float]) -> None:
+        """Set the time values for each active clip.
+
+        Args:
+            times: Time values (in seconds) for each clip
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setClipTimes
+        """
+        ...
+
+    def setClipWeights(self, weights: Sequence[float]) -> None:
+        """Set the blend weights for each active clip.
+
+        Args:
+            weights: Weight values (0-1) for blending clips
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setClipWeights
+        """
+        ...
+
+    def setCollisionLayer(self, layer_name: str) -> None:
+        """Set the collision layer (deprecated - use setCollisionLayers()).
+
+        Args:
+            layer_name: Name of the collision layer
+
+        .. deprecated:: Use setCollisionLayers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCollisionLayer
+        """
+        ...
+
+    def setCollisionLayers(self, layer_names: Sequence[str]) -> None:
+        """Set the collision layers.
+
+        Args:
+            layer_names: Names of the collision layers
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCollisionLayers
+        """
+        ...
+
+    def setCurrentLayer(self, layer_name: str) -> None:
+        """Set the current display layer (deprecated - use setCurrentLayers()).
+
+        Args:
+            layer_name: Name of the layer to display
+
+        .. deprecated:: Use setCurrentLayers() instead
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCurrentLayer
+        """
+        ...
+
+    def setCurrentLayers(self, layer_names: Sequence[str]) -> None:
+        """Set the current display layers.
+
+        Args:
+            layer_names: Names of the layers to display
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setCurrentLayers
+        """
+        ...
+
+    def setDefinition(self, definition: 'AgentDefinition') -> None:
+        """Set the agent's definition.
+
+        Args:
+            definition: New AgentDefinition to use
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setDefinition
+        """
+        ...
+
+    def setLocalTransform(self, transform_index: int, transform: Matrix4) -> None:
+        """Set the local transform for a specific joint.
+
+        Args:
+            transform_index: Index of the transform in the rig
+            transform: 4x4 transformation matrix in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#setLocalTransform
+        """
+        ...
+
+    def worldTransform(self, transform_index: int) -> Matrix4:
+        """Return the world transform for a specific joint.
+
+        Args:
+            transform_index: Index of the transform in the rig
+
+        Returns:
+            4x4 transformation matrix in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/Agent.html#worldTransform
+        """
+        ...
+
+
+class AgentClip:
+    """An animation clip for agents in crowd simulations.
+
+    AgentClip stores animation data as a sequence of transform samples over time.
+    Clips can be loaded from files, created from CHOPs, or built programmatically.
+
+    Example::
+
+        # Load clip from file
+        clip = hou.AgentClip('/path/to/clip.bclip')
+
+        # Create from CHOP
+        chop = hou.node('/obj/agent/motion1')
+        clip = hou.AgentClip(chop, 'walk')
+
+        # Query clip properties
+        name = clip.name()
+        duration = clip.sampleCount() / clip.sampleRate()
+
+        # Access transform data
+        transforms = clip.localTransforms(0.5)  # At time 0.5
+        world_xforms = clip.worldTransforms(1.0)
+
+        # Sample specific transform
+        xform = clip.sampleLocal(0.5, 0)  # Time 0.5, transform index 0
+
+        # Channel data
+        channels = clip.channelNames()
+        value = clip.sample(0.5, 'speed')  # Sample channel at time 0.5
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html
+    """
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a clip from a .bclip or .clip file.
+
+        Args:
+            file_path: Path to the clip file
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, chop_node: 'Node', clip_name: str,
+                 sample_rate: float = 0.0, start_time: float = 0.0,
+                 end_time: float = -1.0, rig: 'AgentRig | None' = None) -> None:
+        """Create a clip from a CHOP node.
+
+        Args:
+            chop_node: CHOP node containing animation channels
+            clip_name: Name for the new clip
+            sample_rate: Samples per second (0 = use CHOP rate)
+            start_time: Start time in CHOP range
+            end_time: End time in CHOP range (-1 = use CHOP end)
+            rig: Optional rig for transform mapping
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, clip_name: str, rig: 'AgentRig',
+                 sample_count: int, sample_rate: float) -> None:
+        """Create an empty clip with specified properties.
+
+        Args:
+            clip_name: Name for the new clip
+            rig: Rig defining the transform hierarchy
+            sample_count: Number of samples in the clip
+            sample_rate: Samples per second
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, other_clip: 'AgentClip') -> None:
+        """Create a copy of an existing clip.
+
+        Args:
+            other_clip: Clip to copy
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#__init__
+        """
+        ...
+
+    def addChannel(self, channel_name: str, default_value: float = 0.0) -> None:
+        """Add a custom animation channel to the clip.
+
+        Args:
+            channel_name: Name for the new channel
+            default_value: Default value for all samples
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#addChannel
+        """
+        ...
+
+    def allLocalTransformValues(self) -> tuple[float, ...]:
+        """Return all local transform values as a flat tuple.
+
+        Returns:
+            Flat tuple of transform matrix values for all samples
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#allLocalTransformValues
+        """
+        ...
+
+    def channelNames(self) -> tuple[str, ...]:
+        """Return the names of all custom channels in the clip.
+
+        Returns:
+            Tuple of channel names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#channelNames
+        """
+        ...
+
+    def data(self, binary: bool = False) -> bytes:
+        """Return the clip data in ASCII or binary format.
+
+        Args:
+            binary: If True, save in binary format; otherwise ASCII
+
+        Returns:
+            Clip data bytes. If binary is False, data is ASCII-encoded.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#data
+        """
+        ...
+
+    def extractLocomotion(self, transform_index: int,
+                         convert_to_z_up: bool = False,
+                         convert_from_y_up: bool = True) -> 'AgentClip':
+        """Extract locomotion from a transform and bake it into a new clip.
+
+        Args:
+            transform_index: Index of the transform to extract from
+            convert_to_z_up: Convert locomotion to Z-up convention
+            convert_from_y_up: Assume source is Y-up convention
+
+        Returns:
+            New clip with extracted locomotion
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#extractLocomotion
+        """
+        ...
+
+    def localTransforms(self, time: float) -> tuple[Matrix4, ...]:
+        """Return all local transforms at a specific time.
+
+        Args:
+            time: Time in seconds to sample
+
+        Returns:
+            Tuple of 4x4 matrices for all transforms in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#localTransforms
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the clip's name.
+
+        Returns:
+            The clip name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#name
+        """
+        ...
+
+    def sample(self, time: float, channel_name: str) -> float:
+        """Sample a custom channel at a specific time.
+
+        Args:
+            time: Time in seconds to sample
+            channel_name: Name of the channel to sample
+
+        Returns:
+            Interpolated channel value at the given time
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sample
+        """
+        ...
+
+    def sampleCount(self) -> int:
+        """Return the number of samples in the clip.
+
+        Returns:
+            Sample count
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleCount
+        """
+        ...
+
+    def sampleLocal(self, time: float, transform_index: int) -> Matrix4:
+        """Sample a specific transform in local space at a given time.
+
+        Args:
+            time: Time in seconds to sample
+            transform_index: Index of the transform to sample
+
+        Returns:
+            4x4 matrix for the transform in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleLocal
+        """
+        ...
+
+    def sampleRate(self) -> float:
+        """Return the clip's sample rate (samples per second).
+
+        Returns:
+            Sample rate in Hz
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleRate
+        """
+        ...
+
+    def sampleWorld(self, time: float, transform_index: int) -> Matrix4:
+        """Sample a specific transform in world space at a given time.
+
+        Args:
+            time: Time in seconds to sample
+            transform_index: Index of the transform to sample
+
+        Returns:
+            4x4 matrix for the transform in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#sampleWorld
+        """
+        ...
+
+    def setAllLocalTransformValues(self, values: Sequence[float]) -> None:
+        """Set all local transform values from a flat sequence.
+
+        Args:
+            values: Flat sequence of transform matrix values
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#setAllLocalTransformValues
+        """
+        ...
+
+    def setLocalTransforms(self, sample_index: int,
+                          transforms: Sequence[Matrix4]) -> None:
+        """Set the local transforms for a specific sample.
+
+        Args:
+            sample_index: Index of the sample to modify
+            transforms: Sequence of 4x4 matrices for all transforms
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#setLocalTransforms
+        """
+        ...
+
+    def startTime(self) -> float:
+        """Return the clip's start time.
+
+        Returns:
+            Start time in seconds
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#startTime
+        """
+        ...
+
+    def worldTransforms(self, time: float) -> tuple[Matrix4, ...]:
+        """Return all world transforms at a specific time.
+
+        Args:
+            time: Time in seconds to sample
+
+        Returns:
+            Tuple of 4x4 matrices for all transforms in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentClip.html#worldTransforms
+        """
+        ...
+
+
+class AgentRig:
+    """A rig defining the transform hierarchy and channels for agents.
+
+    AgentRig defines the skeleton structure (transforms and their parent-child
+    relationships) and animation channels for an agent. It's the foundation that
+    clips animate and shapes are bound to.
+
+    Example::
+
+        # Load rig from file
+        rig = hou.AgentRig('/path/to/rig.json')
+
+        # Create from SOP hierarchy
+        subnet = hou.node('/obj/agent/skeleton')
+        rig = hou.AgentRig(subnet)
+
+        # Query structure
+        count = rig.transformCount()
+        names = rig.transformNames()
+        hierarchy = rig.transformHierarchy()
+
+        # Access transforms
+        rest_xform = rig.restLocalTransform(0)
+        world_xform = rig.restWorldTransform(0)
+
+        # Query channels
+        channel_count = rig.channelCount()
+        channel_name = rig.channelName(0)
+        default_val = rig.channelDefaultValue('speed')
+
+        # Find by name
+        xform_idx = rig.findTransform('spine')
+        channel_idx = rig.findChannel('speed')
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html
+    """
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a rig from a JSON file.
+
+        Args:
+            file_path: Path to the rig JSON file
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, subnet: 'Node') -> None:
+        """Create a rig from a subnet's transform hierarchy.
+
+        Args:
+            subnet: Subnet node containing transform hierarchy
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#__init__
+        """
+        ...
+
+    def addChannel(self, channel_name: str, default_value: float = 0.0,
+                   transform_index: int = -1) -> None:
+        """Add a custom channel to the rig.
+
+        Args:
+            channel_name: Name for the new channel
+            default_value: Default value for the channel
+            transform_index: Optional transform to associate with (-1 = none)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#addChannel
+        """
+        ...
+
+    def asJSON(self) -> str:
+        """Export the rig as JSON string.
+
+        Returns:
+            JSON representation of the rig
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#asJSON
+        """
+        ...
+
+    def channelCount(self) -> int:
+        """Return the number of channels in the rig.
+
+        Returns:
+            Channel count
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelCount
+        """
+        ...
+
+    def channelDefaultValue(self, channel_name: str) -> float:
+        """Return the default value for a channel.
+
+        Args:
+            channel_name: Name of the channel
+
+        Returns:
+            Default value
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelDefaultValue
+        """
+        ...
+
+    def channelName(self, channel_index: int) -> str:
+        """Return the name of a channel by index.
+
+        Args:
+            channel_index: Index of the channel
+
+        Returns:
+            Channel name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelName
+        """
+        ...
+
+    def channelTransform(self, channel_name: str) -> int:
+        """Return the transform index associated with a channel.
+
+        Args:
+            channel_name: Name of the channel
+
+        Returns:
+            Transform index (-1 if not associated with a transform)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#channelTransform
+        """
+        ...
+
+    def childIndices(self, transform_index: int) -> tuple[int, ...]:
+        """Return the child transform indices for a transform.
+
+        Args:
+            transform_index: Index of the parent transform
+
+        Returns:
+            Tuple of child transform indices
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#childIndices
+        """
+        ...
+
+    def fileName(self) -> str:
+        """Return the file path if the rig was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#fileName
+        """
+        ...
+
+    def findChannel(self, channel_name: str) -> int:
+        """Find a channel by name.
+
+        Args:
+            channel_name: Name of the channel to find
+
+        Returns:
+            Channel index or -1 if not found
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#findChannel
+        """
+        ...
+
+    def findTransform(self, transform_name: str) -> int:
+        """Find a transform by name.
+
+        Args:
+            transform_name: Name of the transform to find
+
+        Returns:
+            Transform index or -1 if not found
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#findTransform
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the rig to prevent further modifications.
+
+        This optimizes memory usage by making the rig immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#freeze
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the rig references an external file.
+
+        Returns:
+            True if the rig is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the rig's name.
+
+        Returns:
+            The rig name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#name
+        """
+        ...
+
+    def parentIndex(self, transform_index: int) -> int:
+        """Return the parent transform index for a transform.
+
+        Args:
+            transform_index: Index of the child transform
+
+        Returns:
+            Parent transform index (-1 for root transforms)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#parentIndex
+        """
+        ...
+
+    def restLocalTransform(self, transform_index: int) -> Matrix4:
+        """Return the rest transform in local space.
+
+        Args:
+            transform_index: Index of the transform
+
+        Returns:
+            4x4 rest transform matrix in local space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#restLocalTransform
+        """
+        ...
+
+    def restWorldTransform(self, transform_index: int) -> Matrix4:
+        """Return the rest transform in world space.
+
+        Args:
+            transform_index: Index of the transform
+
+        Returns:
+            4x4 rest transform matrix in world space
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#restWorldTransform
+        """
+        ...
+
+    def setRestLocalTransforms(self, transforms: Sequence[Matrix4]) -> None:
+        """Set the rest transforms for all transforms.
+
+        Args:
+            transforms: Sequence of 4x4 matrices for all transforms
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#setRestLocalTransforms
+        """
+        ...
+
+    def transformCount(self) -> int:
+        """Return the number of transforms in the rig.
+
+        Returns:
+            Transform count
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformCount
+        """
+        ...
+
+    def transformName(self, transform_index: int) -> str:
+        """Return the name of a transform by index.
+
+        Args:
+            transform_index: Index of the transform
+
+        Returns:
+            Transform name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformName
+        """
+        ...
+
+    def transformNames(self) -> tuple[str, ...]:
+        """Return all transform names.
+
+        Returns:
+            Tuple of transform names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformNames
+        """
+        ...
+
+    def transformHierarchy(self) -> tuple[int, ...]:
+        """Return the parent indices for all transforms.
+
+        Returns:
+            Tuple where each value is the parent index for that transform
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentRig.html#transformHierarchy
+        """
+        ...
+
+
+class AgentDefinition:
+    """Shared data container for agents (rig, shapes, clips, layers).
+
+    AgentDefinition is the central data structure for agents, containing:
+    - One rig (skeleton hierarchy)
+    - One shape library (geometry shapes)
+    - Multiple clips (animations)
+    - Multiple layers (shape bindings)
+    - Transform groups (named sets of transforms)
+    - Metadata
+
+    Multiple agent primitives can share the same definition for efficiency.
+
+    Example::
+
+        # Create definition from rig and shape library
+        rig = hou.AgentRig('/path/to/rig.json')
+        shapelib = hou.AgentShapeLibrary()
+        definition = hou.AgentDefinition(rig, shapelib)
+
+        # Add clips
+        walk_clip = hou.AgentClip('/path/to/walk.bclip')
+        definition.addClip(walk_clip)
+
+        # Add layers
+        layer = hou.AgentLayer('/path/to/layer.json')
+        definition.addLayer(layer)
+
+        # Query components
+        clips = definition.clips()
+        layers = definition.layers()
+        walk = definition.findClip('walk')
+
+        # Manage transform groups
+        group = hou.AgentTransformGroup(...)
+        definition.addTransformGroup(group)
+
+        # Freeze for optimization
+        definition.freeze()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html
+    """
+
+    def __init__(self, rig: 'AgentRig', shape_library: 'AgentShapeLibrary') -> None:
+        """Create an agent definition from a rig and shape library.
+
+        Args:
+            rig: AgentRig defining the transform hierarchy
+            shape_library: AgentShapeLibrary containing shapes
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#__init__
+        """
+        ...
+
+    def addClip(self, clip: 'AgentClip') -> None:
+        """Add an animation clip to the definition.
+
+        Args:
+            clip: AgentClip to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#addClip
+        """
+        ...
+
+    def addLayer(self, layer: 'AgentLayer') -> None:
+        """Add a layer to the definition.
+
+        Args:
+            layer: AgentLayer to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#addLayer
+        """
+        ...
+
+    def addTransformGroup(self, group: 'AgentTransformGroup') -> None:
+        """Add a transform group to the definition.
+
+        Args:
+            group: AgentTransformGroup to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#addTransformGroup
+        """
+        ...
+
+    def clips(self) -> tuple[str, ...]:
+        """Return the names of all clips in the definition.
+
+        Returns:
+            Tuple of clip names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#clips
+        """
+        ...
+
+    def findClip(self, clip_name: str) -> 'AgentClip | None':
+        """Find a clip by name.
+
+        Args:
+            clip_name: Name of the clip to find
+
+        Returns:
+            AgentClip if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#findClip
+        """
+        ...
+
+    def findLayer(self, layer_name: str) -> 'AgentLayer | None':
+        """Find a layer by name.
+
+        Args:
+            layer_name: Name of the layer to find
+
+        Returns:
+            AgentLayer if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#findLayer
+        """
+        ...
+
+    def findTransformGroup(self, group_name: str) -> 'AgentTransformGroup | None':
+        """Find a transform group by name.
+
+        Args:
+            group_name: Name of the transform group to find
+
+        Returns:
+            AgentTransformGroup if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#findTransformGroup
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the definition to prevent further modifications.
+
+        This optimizes memory usage by making the definition immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#freeze
+        """
+        ...
+
+    def layers(self) -> tuple[str, ...]:
+        """Return the names of all layers in the definition.
+
+        Returns:
+            Tuple of layer names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#layers
+        """
+        ...
+
+    def metadata(self) -> 'AgentMetadata':
+        """Return the definition's metadata.
+
+        Returns:
+            AgentMetadata object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#metadata
+        """
+        ...
+
+    def removeClip(self, clip_name: str) -> None:
+        """Remove a clip from the definition.
+
+        Args:
+            clip_name: Name of the clip to remove
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#removeClip
+        """
+        ...
+
+    def removeLayer(self, layer_name: str) -> None:
+        """Remove a layer from the definition.
+
+        Args:
+            layer_name: Name of the layer to remove
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#removeLayer
+        """
+        ...
+
+    def removeTransformGroup(self, group_name: str) -> None:
+        """Remove a transform group from the definition.
+
+        Args:
+            group_name: Name of the transform group to remove
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#removeTransformGroup
+        """
+        ...
+
+    def rig(self) -> 'AgentRig':
+        """Return the definition's rig.
+
+        Returns:
+            AgentRig object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#rig
+        """
+        ...
+
+    def setMetadata(self, metadata: 'AgentMetadata') -> None:
+        """Set the definition's metadata.
+
+        Args:
+            metadata: AgentMetadata object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#setMetadata
+        """
+        ...
+
+    def shapeLibrary(self) -> 'AgentShapeLibrary':
+        """Return the definition's shape library.
+
+        Returns:
+            AgentShapeLibrary object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentDefinition.html#shapeLibrary
+        """
+        ...
+
+
+class AgentShape:
+    """A geometry shape for agents in crowd simulations.
+
+    AgentShape represents a piece of geometry (mesh, curves, etc.) that can be
+    bound to an agent's rig. Shapes can have blendshape deformations and in-between
+    shapes for smooth blending.
+
+    Example::
+
+        shape = shape_library.findShape('body')
+
+        # Access shape properties
+        name = shape.name()
+        unique_id = shape.uniqueId()
+        geo = shape.geometry()
+
+        # Modify geometry
+        new_geo = hou.Geometry()
+        # ... modify geometry ...
+        shape.setGeometry(new_geo)
+
+        # Add blendshapes
+        blendshape_geos = [geo1, geo2, geo3]
+        channel_names = ['smile', 'frown', 'blink']
+        shape.addBlendshapeInputs(blendshape_geos, channel_names)
+
+        # Query blendshapes
+        inputs = shape.blendshapeInputShapeNames()
+        channels = shape.blendshapeInputChannels()
+
+        # Add in-between shapes
+        inbetween_geos = [geo_50, geo_75]
+        weights = [0.5, 0.75]
+        shape.addInBetweenShapes('smile', inbetween_geos, weights)
+
+        # Freeze for optimization
+        shape.freeze()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html
+    """
+
+    def addBlendshapeInputs(self, shapes: Sequence['Geometry'],
+                           channel_names: Sequence[str]) -> None:
+        """Add blendshape inputs to the shape.
+
+        Args:
+            shapes: Sequence of geometry objects for blendshapes
+            channel_names: Names for the blendshape channels
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#addBlendshapeInputs
+        """
+        ...
+
+    def addInBetweenShapes(self, channel_name: str, shapes: Sequence['Geometry'],
+                          weights: Sequence[float]) -> None:
+        """Add in-between shapes for a blendshape channel.
+
+        In-between shapes provide intermediate targets for smoother blending.
+
+        Args:
+            channel_name: Name of the blendshape channel
+            shapes: Sequence of geometry objects for in-betweens
+            weights: Weight values (0-1) for each in-between
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#addInBetweenShapes
+        """
+        ...
+
+    def blendshapeInputChannels(self) -> tuple[str, ...]:
+        """Return the channel names for blendshape inputs.
+
+        Returns:
+            Tuple of blendshape channel names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#blendshapeInputChannels
+        """
+        ...
+
+    def blendshapeInputShapeNames(self) -> tuple[str, ...]:
+        """Return the names of blendshape input shapes.
+
+        Returns:
+            Tuple of shape names used as blendshape inputs
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#blendshapeInputShapeNames
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the shape to prevent further modifications.
+
+        This optimizes memory usage by making the shape immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#freeze
+        """
+        ...
+
+    def geometry(self) -> 'Geometry':
+        """Return the shape's geometry.
+
+        Returns:
+            Geometry object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#geometry
+        """
+        ...
+
+    def inBetweenShapeNames(self, channel_name: str) -> tuple[str, ...]:
+        """Return the names of in-between shapes for a blendshape channel.
+
+        Args:
+            channel_name: Name of the blendshape channel
+
+        Returns:
+            Tuple of in-between shape names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#inBetweenShapeNames
+        """
+        ...
+
+    def inBetweenShapeWeights(self, channel_name: str) -> tuple[float, ...]:
+        """Return the weights of in-between shapes for a blendshape channel.
+
+        Args:
+            channel_name: Name of the blendshape channel
+
+        Returns:
+            Tuple of in-between shape weights (0-1)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#inBetweenShapeWeights
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the shape's name.
+
+        Returns:
+            Shape name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#name
+        """
+        ...
+
+    def setBlendshapeDeformerParms(self, attribs: str = "P N",
+                                  point_id_attrib: str = "id",
+                                  prim_id_attrib: str = "id") -> None:
+        """Set parameters for the blendshape deformer.
+
+        Args:
+            attribs: Space-separated list of attributes to deform (e.g., "P N")
+            point_id_attrib: Point attribute name for ID matching
+            prim_id_attrib: Primitive attribute name for ID matching
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#setBlendshapeDeformerParms
+        """
+        ...
+
+    def setGeometry(self, geometry: 'Geometry') -> None:
+        """Set the shape's geometry.
+
+        Args:
+            geometry: New geometry object
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#setGeometry
+        """
+        ...
+
+    def uniqueId(self) -> str:
+        """Return the shape's unique identifier.
+
+        Returns:
+            Unique ID string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShape.html#uniqueId
+        """
+        ...
+
+
+class AgentLayer:
+    """A layer defining shape bindings for agents.
+
+    AgentLayer maps shapes from the shape library to transforms in the rig,
+    defining which geometry pieces are attached to which bones and how they
+    should be deformed.
+
+    Example::
+
+        # Load layer from file
+        layer = hou.AgentLayer('/path/to/layer.json')
+
+        # Create from bindings
+        bindings = [binding1, binding2, binding3]
+        layer = hou.AgentLayer('default', bindings)
+
+        # Query layer properties
+        name = layer.name()
+        all_bindings = layer.bindings()
+
+        # Get specific binding types
+        deforming = layer.deformingBindings()
+        static = layer.staticBindings()
+
+        # Export as JSON
+        json_str = layer.asJSON()
+
+        # Check if external reference
+        is_external = layer.isExternalReference()
+        if is_external:
+            path = layer.fileName()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html
+    """
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a layer from a JSON file.
+
+        Args:
+            file_path: Path to the layer JSON file
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, layer_name: str, bindings: Sequence['AgentShapeBinding']) -> None:
+        """Create a layer from shape bindings.
+
+        Args:
+            layer_name: Name for the layer
+            bindings: Sequence of AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#__init__
+        """
+        ...
+
+    def asJSON(self) -> str:
+        """Export the layer as JSON string.
+
+        Returns:
+            JSON representation of the layer
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#asJSON
+        """
+        ...
+
+    def bindings(self) -> tuple['AgentShapeBinding', ...]:
+        """Return all shape bindings in the layer.
+
+        Returns:
+            Tuple of AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#bindings
+        """
+        ...
+
+    def deformingBindings(self) -> tuple['AgentShapeBinding', ...]:
+        """Return only the deforming shape bindings.
+
+        Returns:
+            Tuple of deforming AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#deformingBindings
+        """
+        ...
+
+    def fileName(self) -> str:
+        """Return the file path if the layer was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#fileName
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the layer references an external file.
+
+        Returns:
+            True if the layer is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the layer's name.
+
+        Returns:
+            Layer name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#name
+        """
+        ...
+
+    def staticBindings(self) -> tuple['AgentShapeBinding', ...]:
+        """Return only the static shape bindings.
+
+        Returns:
+            Tuple of static AgentShapeBinding objects
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentLayer.html#staticBindings
+        """
+        ...
+
+
+class AgentShapeLibrary:
+    """A collection of shapes for agents.
+
+    AgentShapeLibrary stores all the geometry shapes that can be used by agents.
+    Shapes are referenced by name and can be shared across multiple agents.
+
+    Example::
+
+        # Create empty library
+        shapelib = hou.AgentShapeLibrary()
+
+        # Create from geometry
+        geo = hou.node('/obj/agent/shapes').geometry()
+        shapelib = hou.AgentShapeLibrary('mylib', geo)
+
+        # Load from file
+        shapelib = hou.AgentShapeLibrary('/path/to/shapelib.bgeo')
+
+        # Add shapes
+        shape = hou.AgentShape(...)
+        shapelib.addShape(shape)
+
+        # Query shapes
+        names = shapelib.shapeNames()
+        shape = shapelib.findShape('body')
+
+        # Access as geometry
+        geo = shapelib.data()
+
+        # Freeze for optimization
+        shapelib.freeze()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html
+    """
+
+    @overload
+    def __init__(self) -> None:
+        """Create an empty shape library.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, name: str, geometry: 'Geometry') -> None:
+        """Create a shape library from geometry.
+
+        Args:
+            name: Name for the shape library
+            geometry: Geometry containing shapes
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#__init__
+        """
+        ...
+
+    @overload
+    def __init__(self, file_path: str) -> None:
+        """Load a shape library from a file.
+
+        Args:
+            file_path: Path to the shape library file (e.g., .bgeo)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#__init__
+        """
+        ...
+
+    def addShape(self, shape: 'AgentShape') -> None:
+        """Add a shape to the library.
+
+        Args:
+            shape: AgentShape to add
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#addShape
+        """
+        ...
+
+    def data(self) -> 'Geometry':
+        """Return the shape library data as geometry.
+
+        Returns:
+            Geometry object containing all shapes
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#data
+        """
+        ...
+
+    def fileName(self) -> str:
+        """Return the file path if the library was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#fileName
+        """
+        ...
+
+    def findShape(self, shape_name: str) -> 'AgentShape | None':
+        """Find a shape by name.
+
+        Args:
+            shape_name: Name of the shape to find
+
+        Returns:
+            AgentShape if found, None otherwise
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#findShape
+        """
+        ...
+
+    def freeze(self) -> None:
+        """Freeze the library to prevent further modifications.
+
+        This optimizes memory usage by making the library immutable.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#freeze
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the library references an external file.
+
+        Returns:
+            True if the library is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the library's name.
+
+        Returns:
+            Library name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#name
+        """
+        ...
+
+    def shapeNames(self) -> tuple[str, ...]:
+        """Return the names of all shapes in the library.
+
+        Returns:
+            Tuple of shape names
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeLibrary.html#shapeNames
+        """
+        ...
+
+
+class AgentTransformGroup:
+    """A named group of transforms with optional weights.
+
+    AgentTransformGroup defines a named subset of transforms in a rig,
+    optionally with per-transform weights. This is useful for operations
+    that should only affect specific parts of the skeleton.
+
+    Example::
+
+        group = definition.findTransformGroup('spine')
+
+        # Query group properties
+        name = group.name()
+        indices = group.transformIndices()
+        weights = group.weights()
+
+        # Check if external reference
+        if group.isExternalReference():
+            path = group.fileName()
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html
+    """
+
+    def fileName(self) -> str:
+        """Return the file path if the group was loaded from a file.
+
+        Returns:
+            File path or empty string
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#fileName
+        """
+        ...
+
+    def isExternalReference(self) -> bool:
+        """Check if the group references an external file.
+
+        Returns:
+            True if the group is an external reference
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#isExternalReference
+        """
+        ...
+
+    def name(self) -> str:
+        """Return the group's name.
+
+        Returns:
+            Group name
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#name
+        """
+        ...
+
+    def transformIndices(self) -> tuple[int, ...]:
+        """Return the transform indices in the group.
+
+        Returns:
+            Tuple of transform indices
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#transformIndices
+        """
+        ...
+
+    def weights(self) -> tuple[float, ...]:
+        """Return the weights for each transform in the group.
+
+        Returns:
+            Tuple of weights (one per transform)
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AgentTransformGroup.html#weights
+        """
+        ...
+
+
+class AgentShapeBinding:
+    """Binds a shape to transforms in an agent's rig.
+
+    AgentShapeBinding defines how a shape from the shape library is attached
+    to one or more transforms in the rig, and what deformation method is used.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeBinding.html
+    """
+    def name(self) -> str: ...
+    def shapeNames(self) -> tuple[str, ...]: ...
+    def transformNames(self, shape_name: str) -> tuple[str, ...]: ...
+    def deformer(self, shape_name: str) -> 'AgentShapeDeformer': ...
+
+
+class AgentShapeDeformer:
+    """Shape deformation system for agents.
+
+    AgentShapeDeformer defines how shapes are deformed based on rig transforms.
+    The deformer type determines the skinning algorithm used (linear, dual quaternion,
+    blendshapes, etc.).
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentShapeDeformer.html
+    See hou.agentShapeDeformerType for deformer type enumeration.
+    """
+    def deformerType(self) -> agentShapeDeformerType: ...
+    def setDeformerType(self, deformer_type: agentShapeDeformerType) -> None: ...
+    def attributes(self) -> tuple[str, ...]: ...
+
+
+class AgentMetadata:
+    """Metadata storage for agent definitions.
+
+    AgentMetadata stores arbitrary key-value metadata that can be attached
+    to agent definitions for custom data storage and retrieval.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AgentMetadata.html
+    """
+    def keys(self) -> tuple[str, ...]: ...
+    def value(self, key: str) -> str: ...
+    def setValue(self, key: str, value: str) -> None: ...
+    def hasKey(self, key: str) -> bool: ...
 
 class Edge:
     """Houdini edge connecting two points."""
@@ -2962,8 +8592,8 @@ class PointGroup:
     def clear(self) -> None: ...
     def contains(self, point: Point | int) -> bool: ...
     def destroy(self) -> None: ...
-    def options(self) -> dict[str, Any]: ...
-    def setOptions(self, options: dict[str, Any]) -> None: ...
+    def options(self) -> dict[str, _OptionValue]: ...
+    def setOptions(self, options: dict[str, _OptionValue]) -> None: ...
 
 class PrimGroup:
     """Group of geometry primitives."""
@@ -2975,8 +8605,8 @@ class PrimGroup:
     def clear(self) -> None: ...
     def contains(self, prim: Prim | int) -> bool: ...
     def destroy(self) -> None: ...
-    def options(self) -> dict[str, Any]: ...
-    def setOptions(self, options: dict[str, Any]) -> None: ...
+    def options(self) -> dict[str, _OptionValue]: ...
+    def setOptions(self, options: dict[str, _OptionValue]) -> None: ...
 
 class EdgeGroup:
     """Group of geometry edges."""
@@ -3011,12 +8641,413 @@ class GeometryRayCache:
     def intersect(self, origin: Sequence[float], direction: Sequence[float], max_distance: float = -1) -> dict[str, Any]: ...
 
 class IndexPairPropertyTable:
-    """Property table mapping pairs of indices to values."""
+    """Property table mapping pairs of indices to property values.
+
+    Used by agents to store properties between pairs of elements (e.g., relationships
+    between transforms or shapes). Properties are stored as key-value pairs where
+    the key is a property name string and the value can be various types.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/IndexPairPropertyTable.html
+    """
     def __init__(self) -> None: ...
-    def hasProperty(self, index1: int, index2: int, property_name: str) -> bool: ...
-    def property(self, index1: int, index2: int, property_name: str) -> Any: ...
-    def setProperty(self, index1: int, index2: int, property_name: str, value: Any) -> None: ...
-    def removeProperty(self, index1: int, index2: int, property_name: str) -> None: ...
+
+    def indexPairs(self) -> tuple[tuple[int, int], ...]:
+        """Return all index pairs that have properties defined."""
+        ...
+
+    def propertyNames(self, index1: int, index2: int) -> tuple[str, ...]:
+        """Return names of all properties defined for the given index pair."""
+        ...
+
+    def allPropertyNames(self) -> tuple[str, ...]:
+        """Return names of all properties defined in the table."""
+        ...
+
+    def hasProperty(self, index1: int, index2: int, property_name: str) -> bool:
+        """Check if a property exists for the given index pair."""
+        ...
+
+    def intProperty(self, index1: int, index2: int, property_name: str) -> int:
+        """Get an integer property value for the given index pair."""
+        ...
+
+    def floatProperty(self, index1: int, index2: int, property_name: str) -> float:
+        """Get a float property value for the given index pair."""
+        ...
+
+    def stringProperty(self, index1: int, index2: int, property_name: str) -> str:
+        """Get a string property value for the given index pair."""
+        ...
+
+    def setIntProperty(self, index1: int, index2: int, property_name: str, value: int) -> None:
+        """Set an integer property value for the given index pair."""
+        ...
+
+    def setFloatProperty(self, index1: int, index2: int, property_name: str, value: float) -> None:
+        """Set a float property value for the given index pair."""
+        ...
+
+    def setStringProperty(self, index1: int, index2: int, property_name: str, value: str) -> None:
+        """Set a string property value for the given index pair."""
+        ...
+
+    def removeProperty(self, index1: int, index2: int, property_name: str) -> None:
+        """Remove a property from the given index pair."""
+        ...
+
+    def clear(self) -> None:
+        """Remove all properties from all index pairs."""
+        ...
+
+class AssetGalleryDataSource:
+    """Provides an interface to any data source that can be used with an asset or snapshot gallery UI.
+
+    Houdini's various asset catalog panels (the snapshot gallery attached to the LOP Scene Viewer,
+    the Working Set in the Layout LOP's brush panel, and the Asset Catalog pane) are all populated
+    by pulling data from this class.
+
+    This object is created by providing a source identifier, and an optional additional string
+    argument. The source identifier is used to find or create a shared underlying data source
+    implementation object (which may be a C++ or python object).
+
+    Houdini ships with three data source implementations:
+    - SQL database (.db, .sqlite, .sqlite3 file extensions) - read and write
+    - USD files (USD file extensions + primitive pattern argument) - read only
+    - LOP stages (op:/path/to/lop + primitive pattern argument) - read only
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html
+    """
+    def __init__(self, source_identifier: str, args: str | None = None) -> None:
+        """Constructs or finds a matching existing data source implementation object.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#__init__
+        """
+        ...
+
+    def isValid(self) -> bool:
+        """Return True if this data source has a valid implementation, otherwise return False.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#isValid
+        """
+        ...
+
+    def isReadOnly(self) -> bool:
+        """Return True if this data source only supports read operations, otherwise return False.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#isReadOnly
+        """
+        ...
+
+    def sourceIdentifier(self) -> str:
+        """Return the source identifier string used to create this data source object.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#sourceIdentifier
+        """
+        ...
+
+    def sourceArgs(self) -> str:
+        """Return the args string used to create this data source object.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#sourceArgs
+        """
+        ...
+
+    def startTransaction(self) -> None:
+        """For writable data sources, this method can be used to group multiple calls to edit the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#startTransaction
+        """
+        ...
+
+    def endTransaction(self, commit: bool = True) -> None:
+        """This method is always called after a call to startTransaction.
+
+        Indicates that the group of data source edits has been completed.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#endTransaction
+        """
+        ...
+
+    def itemIds(self) -> tuple[str, ...]:
+        """Return a unique identifier for each asset available in the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#itemIds
+        """
+        ...
+
+    def updatedItemIds(self) -> tuple[str, ...]:
+        """Return a unique identifier for any asset that has changed since the last call to this method.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#updatedItemIds
+        """
+        ...
+
+    def childItemIds(self, item_id: str) -> tuple[str, ...]:
+        """Return a list of unique identifier for all assets that have this item set as its parent.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#childItemIds
+        """
+        ...
+
+    def infoHtml(self) -> str:
+        """Return a string in HTML format that will be displayed at the top of the asset catalog window.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#infoHtml
+        """
+        ...
+
+    def sourceTypeName(self, item_id: str | None = None) -> str:
+        """Return the data source type of the asset identified by the id.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#sourceTypeName
+        """
+        ...
+
+    def typeName(self, item_id: str) -> str:
+        """Return the type of asset identified by the id.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#typeName
+        """
+        ...
+
+    def label(self, item_id: str) -> str:
+        """Return the user-facing string that identifies and describes the item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#label
+        """
+        ...
+
+    def thumbnail(self, item_id: str) -> bytes:
+        """Return the raw data for a thumbnail image that represents the item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#thumbnail
+        """
+        ...
+
+    def creationDate(self, item_id: str) -> int:
+        """Return a long integer representing the unix timestamp at which the item was created.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#creationDate
+        """
+        ...
+
+    def modificationDate(self, item_id: str) -> int:
+        """Return a long integer representing the unix timestamp at which the item was last modified.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#modificationDate
+        """
+        ...
+
+    def isStarred(self, item_id: str) -> bool:
+        """Return True if this item has been marked as a favorite by the user.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#isStarred
+        """
+        ...
+
+    def colorTag(self, item_id: str) -> str:
+        """Return a string indicating a special color tag value that has been assigned by the user.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#colorTag
+        """
+        ...
+
+    def tags(self, item_id: str) -> tuple[str, ...]:
+        """Return a tuple of user defined tag strings that have been assigned to this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#tags
+        """
+        ...
+
+    def metadata(self, item_id: str) -> dict[str, str | float]:
+        """Return a dictionary of metadata that has been associated with this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#metadata
+        """
+        ...
+
+    def filePath(self, item_id: str) -> str:
+        """Return a string that can be used to access the raw data associated with this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#filePath
+        """
+        ...
+
+    def ownsFile(self, item_id: str) -> bool:
+        """Return True if the filePath for this item is a file on disk that should be deleted if the item is deleted.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#ownsFile
+        """
+        ...
+
+    def blindData(self, item_id: str) -> bytes:
+        """Return a block of data source implementation specific binary data associated with the item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#blindData
+        """
+        ...
+
+    def status(self, item_id: str) -> str:
+        """Return a string describing the current status of this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#status
+        """
+        ...
+
+    def parentId(self, item_id: str) -> str:
+        """Return the unique identifier for this item's parent item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#parentId
+        """
+        ...
+
+    def prepareItemForUse(self, item_id: str) -> str:
+        """Make sure that the item is ready to be used.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#prepareItemForUse
+        """
+        ...
+
+    def setLabel(self, item_id: str, label: str) -> bool:
+        """Set the value of the label for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setLabel
+        """
+        ...
+
+    def setThumbnail(self, item_id: str, thumbnail: bytes) -> bool:
+        """Set the value of the thumbnail for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setThumbnail
+        """
+        ...
+
+    def setModificationDate(self, item_id: str, timestamp: int) -> bool:
+        """Set the value of the modificationDate for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setModificationDate
+        """
+        ...
+
+    def setIsStarred(self, item_id: str, isstarred: bool) -> bool:
+        """Set the value of the isStarred flag for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setIsStarred
+        """
+        ...
+
+    def setColorTag(self, item_id: str, color_tag: str) -> bool:
+        """Set the value of the colorTag for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setColorTag
+        """
+        ...
+
+    def setMetadata(self, item_id: str, metadata: dict[str, str | float]) -> bool:
+        """Set the value of the metadata dictionary for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setMetadata
+        """
+        ...
+
+    def setFilePath(self, item_id: str, file_path: str) -> bool:
+        """Set the value of the filePath for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setFilePath
+        """
+        ...
+
+    def setOwnsFile(self, item_id: str, owns_file: bool) -> bool:
+        """Set the value of the ownsFile flag for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setOwnsFile
+        """
+        ...
+
+    def setBlindData(self, item_id: str, data: bytes) -> bool:
+        """Set the value of the blindData for this item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setBlindData
+        """
+        ...
+
+    def setParentId(self, item_id: str, parent_item_id: str) -> bool:
+        """Set the value of the parent of this item to be parent_item_id.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#setParentId
+        """
+        ...
+
+    def createTag(self, tag: str) -> bool:
+        """Create a tag in the data source, but do not assign it to any items.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#createTag
+        """
+        ...
+
+    def deleteTag(self, tag: str, delete_if_assigned: bool) -> bool:
+        """Delete a tag from the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#deleteTag
+        """
+        ...
+
+    def addTag(self, item_id: str, tag: str) -> bool:
+        """Adds a tag to a specific item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#addTag
+        """
+        ...
+
+    def removeTag(self, item_id: str, tag: str) -> bool:
+        """Removes a tag from a specific item.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#removeTag
+        """
+        ...
+
+    def generateItemFilePath(self, item_id: str, file_ext: str) -> str:
+        """Return a unique file path with an extension provided in file_ext.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#generateItemFilePath
+        """
+        ...
+
+    def addItem(
+        self,
+        label: str,
+        file_path: str | None = None,
+        thumbnail: bytes = b'',
+        type_name: str = 'asset',
+        blind_data: bytes = b'',
+        creation_date: int = 0
+    ) -> str:
+        """Adds a new item to the data source.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#addItem
+        """
+        ...
+
+    def markItemsForDeletion(self, item_ids: Sequence[str]) -> bool:
+        """Marks one or more items to be deleted.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#markItemsForDeletion
+        """
+        ...
+
+    def unmarkItemsForDeletion(self, item_ids: Sequence[str]) -> bool:
+        """Remove the indicator in the data source that the supplied items should be deleted.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#unmarkItemsForDeletion
+        """
+        ...
+
+    def saveAs(self, source_identifier: str) -> bool:
+        """Create a copy of the data source, if supported.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/AssetGalleryDataSource.html#saveAs
+        """
+        ...
 
 class BoundingBox:
     """Houdini 3D bounding box."""
@@ -3041,7 +9072,13 @@ class OrientedBoundingBox:
 
 class Selection:
     """Houdini geometry selection object."""
-    pass
+    def selectionType(self) -> geometryType: ...
+    def selectionStrings(self) -> tuple[str, ...]: ...
+    def geometry(self) -> Geometry: ...
+    def prims(self) -> tuple[Prim, ...]: ...
+    def points(self) -> tuple[Point, ...]: ...
+    def edges(self) -> tuple[Edge, ...]: ...
+    def vertices(self) -> tuple[Vertex, ...]: ...
 
 class GeometryDelta:
     """Houdini geometry delta object for tracking changes.
@@ -3069,15 +9106,11 @@ class OpVerb:
 
 class SopVerb(OpVerb):
     """SOP verb for compiled geometry operations."""
-    def __init__(self) -> None: ...
     def execute(self, destgeo: 'Geometry', inputgeolist: Sequence['Geometry']) -> None: ...
-    def executeAtTime(self, destgeo: 'Geometry', inputgeolist: Sequence['Geometry'], time: float, add_time_dep: bool = True) -> None: ...
 
 class CopVerb(OpVerb):
     """COP verb for compiled compositor operations."""
-    def __init__(self) -> None: ...
-    def execute(self, destimage: Any, inputimagelist: Sequence[Any]) -> None: ...  # TODO: Type image objects
-    def executeAtTime(self, destimage: Any, inputimagelist: Sequence[Any], time: float, add_time_dep: bool = True) -> None: ...
+    def execute(self, destimage: dict[str, Any], inputimagelist: Sequence[Any]) -> dict[str, Any]|None: ...
 
 class Matrix2:
     """2x2 matrix of floating point values."""
@@ -3100,7 +9133,10 @@ class Matrix2:
 
 class Vector2:
     """2D vector."""
-    def __init__(self, values: Sequence[float] = (0.0, 0.0)) -> None: ...
+    @overload
+    def __init__(self, values: Sequence[float] = ...) -> None: ...
+    @overload
+    def __init__(self, x: float = 0.0, y: float = 0.0) -> None: ...
     def __getitem__(self, index: int) -> float: ...
     def __setitem__(self, index: int, value: float) -> None: ...
     def setTo(self, sequence: Sequence[float]) -> None: ...
@@ -3123,7 +9159,10 @@ class Vector2:
 
 class Vector3:
     """3D vector."""
-    def __init__(self, values: Sequence[float] = (0.0, 0.0, 0.0)) -> None: ...
+    @overload
+    def __init__(self, values: Sequence[float] = ...) -> None: ...
+    @overload
+    def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0) -> None: ...
     def __getitem__(self, index: int) -> float: ...
     def __setitem__(self, index: int, value: float) -> None: ...
     def setTo(self, sequence: Sequence[float]) -> None: ...
@@ -3156,7 +9195,10 @@ class Vector3:
 
 class Vector4:
     """4D vector."""
-    def __init__(self, values: Sequence[float] = (0.0, 0.0, 0.0, 0.0)) -> None: ...
+    @overload
+    def __init__(self, values: Sequence[float] = ...) -> None: ...
+    @overload
+    def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0, w: float = 0.0) -> None: ...
     def __getitem__(self, index: int) -> float: ...
     def __setitem__(self, index: int, value: float) -> None: ...
     def setTo(self, sequence: Sequence[float]) -> None: ...
@@ -3292,6 +9334,78 @@ def hdaDefinition(node_type_category: str | NodeTypeCategory, node_type_name: st
     Returns:
         HDADefinition object or None if not found
     """
+    ...
+
+def lopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini lighting (LOP) nodes."""
+    ...
+
+def apexNodeTypeCategory() -> ApexNodeTypeCategory:
+    """Return the NodeTypeCategory instance for APEX nodes."""
+    ...
+
+def chopNetNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini channel container (chopnet) nodes."""
+    ...
+
+def chopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini channel (CHOP) nodes."""
+    ...
+
+def cop2NetNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini composite container (cop2net) nodes."""
+    ...
+
+def cop2NodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini composite (cop2) nodes."""
+    ...
+
+def copNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini composite (COP) nodes."""
+    ...
+
+def dataNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini data nodes."""
+    ...
+
+def dopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini dynamic (DOP) nodes."""
+    ...
+
+def managerNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini manager nodes."""
+    ...
+
+def objNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini object nodes."""
+    ...
+
+def rootNodeTypeCategory() -> NodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini root (/) node."""
+    ...
+
+def ropNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini output (ROP) nodes."""
+    ...
+
+def shopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini shader (SHOP) nodes."""
+    ...
+
+def sopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini geometry (SOP) nodes."""
+    ...
+
+def topNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini task (TOP) nodes."""
+    ...
+
+def vopNetNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini VEX builder container (vopnet) nodes."""
+    ...
+
+def vopNodeTypeCategory() -> OpNodeTypeCategory:
+    """Return the NodeTypeCategory instance for Houdini VEX builder (VOP) nodes."""
     ...
 
 # Animation and channel interpolation functions
@@ -3460,18 +9574,242 @@ class Quaternion:
 # This allows cleaner separation and easier maintenance
 # Accessible as: hou.anim, hou.audio, hou.clone, etc.
 
-# Common exceptions that Houdini can raise
-class OperationFailed(Exception):
-    """Generic catch-all for operational failures in Houdini operations."""
-    pass
+# ============================================================================
+# EXCEPTION CLASSES
+# ============================================================================
 
-class InvalidInput(Exception):
-    """Raised when invalid input is provided to a Houdini operation."""
-    pass
+class Error(Exception):
+    """Base class for all exceptions in the hou module.
+
+    All Houdini-specific exceptions inherit from this class. Catch this
+    exception to handle any Houdini-related error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/Error.html
+    """
+    def instanceMessage(self) -> str: ...
+    def exceptionTypeName(self) -> str: ...
+
+class GeometryPermissionError(Error):
+    """Raised if you try to modify SOP geometry from outside of a Python SOP.
+
+    SOP geometry can only be modified within the context of a Python SOP node
+    or similar geometry manipulation context. Attempting to modify geometry
+    from outside these contexts will raise this error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/GeometryPermissionError.html
+    """
+    ...
+
+class HandleNotRegistered(Error):
+    """Raised if you try to use a custom handle that is not registered with the system.
+
+    Custom Python viewer handles must be registered before use. This error
+    indicates an attempt to use an unregistered handle.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/HandleNotRegistered.html
+    """
+    ...
+
+class InitScriptFailed(Error):
+    """Raised when an initialization script fails to execute.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InitScriptFailed.html
+    """
+    ...
+
+class InvalidGeometry(Error):
+    """Exception raised when you try to access a reference to SOP Geometry that has since failed to cook.
+
+    When a SOP node fails to cook, any Geometry objects referencing its
+    output become invalid. Attempting to use such objects raises this error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidGeometry.html
+    """
+    ...
+
+class InvalidInput(Error):
+    """Raised if you try to set a node's input to something invalid.
+
+    This error occurs when attempting to create invalid node connections,
+    such as connecting incompatible node types or creating circular dependencies.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidInput.html
+    """
+    ...
+
+class InvalidNodeType(Error):
+    """Raised if you try to call a method on a Node that doesn't support it.
+
+    Different node types have different methods available. This error indicates
+    an attempt to call a method not applicable to the specific node type.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidNodeType.html
+    """
+    ...
+
+class InvalidOutput(Error):
+    """Raised if you try to set a node's output to something invalid.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidOutput.html
+    """
+    ...
+
+class InvalidSize(Error):
+    """Raised when you pass a sequence of the wrong length to a function.
+
+    Many Houdini functions expect sequences of specific lengths (e.g., 3-tuples
+    for vectors). This error indicates a length mismatch.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/InvalidSize.html
+    """
+    ...
+
+class KeyframeValueNotSet(Error):
+    """Raised when attempting to access a keyframe value that hasn't been set.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/KeyframeValueNotSet.html
+    """
+    ...
+
+class LicenseError(Error):
+    """Raised when a licensing error occurs.
+
+    This error occurs when trying to access a feature or component without
+    the appropriate license, or when license validation fails.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/LicenseError.html
+    """
+    ...
 
 class LoadWarning(Warning):
-    """Warning for non-fatal issues when loading hip files or assets."""
-    pass
+    """Exception class for when loading a hip file in Houdini generates warnings.
+
+    This is a warning rather than an error, indicating non-fatal issues
+    encountered during file loading. The file loads successfully despite
+    the warnings.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/LoadWarning.html
+    """
+    ...
+
+class MatchDefinitionError(Error):
+    """Raised when there's a match definition error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/MatchDefinitionError.html
+    """
+    ...
+
+class NameConflict(Error):
+    """Exception raised when a name conflict is detected during an operation.
+
+    This error occurs when attempting to create or rename something with
+    a name that already exists in the same namespace.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NameConflict.html
+    """
+    ...
+
+class NodeError(Error):
+    """Raise this exception in a Python node to signal that the node is in error.
+
+    When writing Python SOPs, DOPs, or other Python nodes, raise this exception
+    to put the node into an error state with a custom error message.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NodeError.html
+    """
+    ...
+
+class NodeWarning(Warning):
+    """Raise this exception in a Python node to signal that the node has a warning.
+
+    When writing Python SOPs, DOPs, or other Python nodes, raise this exception
+    to display a warning message without putting the node into an error state.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NodeWarning.html
+    """
+    ...
+
+class NotAvailable(Error):
+    """Raised when you try to call an API function/method that is not available.
+
+    Some API features may not be available depending on the Houdini license,
+    platform, or runtime context. This error indicates unavailable functionality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/NotAvailable.html
+    """
+    ...
+
+class ObjectWasDeleted(Error):
+    """Raised when you try to access a reference to an object that has since been deleted.
+
+    When you hold a reference to a Houdini object (node, parameter, etc.) and
+    that object is deleted, subsequent attempts to use the reference raise
+    this error.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/ObjectWasDeleted.html
+    """
+    ...
+
+class OperationFailed(Error):
+    """Generic catch-all exception for various errors in Houdini that don't have their own dedicated exception classes.
+
+    This is used for operations that fail for various reasons when a more
+    specific exception type doesn't apply.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/OperationFailed.html
+    """
+    ...
+
+class OperationInterrupted(Error):
+    """Raised when an operation is interrupted by the user.
+
+    Long-running operations that can be interrupted (via Escape key or other
+    means) raise this exception when interrupted.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/OperationInterrupted.html
+    """
+    ...
+
+class PermissionError(Error):
+    """Raised when a permission error occurs.
+
+    This can occur when attempting file operations without proper permissions
+    or accessing restricted functionality.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/PermissionError.html
+    """
+    ...
+
+class StateNotRegistered(Error):
+    """Raised if you try to unregister a Python state that was never registered.
+
+    Custom Python viewer states must be registered before they can be used
+    or unregistered. This error indicates an invalid unregistration attempt.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/StateNotRegistered.html
+    """
+    ...
+
+class SystemExit(Error):
+    """Raised when Houdini is exiting.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/SystemExit.html
+    """
+    def exitCode(self) -> int: ...
+
+class TypeConflict(Error):
+    """Raised if a type conflict occurs during an operation.
+
+    Type conflicts may occur during the registration of a python state or
+    python handle, or when attempting operations with incompatible types.
+
+    See: https://www.sidefx.com/docs/houdini/hom/hou/TypeConflict.html
+    """
+    ...
+
+# ============================================================================
+# ADDITIONAL SPECIALIZED CLASSES
+# ============================================================================
 
 # Additional specialized classes for different node types
 class Track:
@@ -3497,7 +9835,9 @@ class Track:
     def evalAtTime(self, time: float) -> float: ...
     def evalAtFrame(self, frame: float) -> float: ...
     def evalAtSample(self, sample: float) -> float: ...
-    def evalAtSampleIndex(self, index: int) -> float: ...  # Deprecated: Use evalAtSample()
+    def evalAtSampleIndex(self, index: int) -> float:
+        "Deprecated: Use evalAtSample()"
+        ...
 
     # Range evaluation
     def evalAtTimeRange(self, start: float, end: float) -> tuple[float, ...]: ...
@@ -3551,6 +9891,13 @@ class Clip:
     def saveToFile(self, file_name: str) -> None: ...
     def loadFromFile(self, file_name: str) -> None: ...
 
+
+class EditableDopGeometryGuard(AbstractContextManager):
+    """Context manager for editing DOP geometry."""
+    def __enter__(self) -> 'Geometry': ...
+    def __exit__(self, exc_type, exc_value, traceback) -> None: ...
+
+
 class DopData:
     """Base class for DOP data stored in simulation."""
     # Subdata management
@@ -3588,12 +9935,12 @@ class DopData:
     # Geometry access
     def fieldGeometry(self, name: str) -> Geometry|None: ...
     def geometry(self, name: str="Geometry") -> Geometry|None: ...
-    def editableGeometry(self, name: str="Geometry") -> Any: ...  # Returns EditableDopGeometryGuard
+    def editableGeometry(self, name: str="Geometry") -> EditableDopGeometryGuard: ...
 
 class DopRecord:
     """Table of values stored inside DopData."""
     # Field access
-    def field(self, field_name: str) -> int|bool|float|str|Vector2|Vector3|Vector4|Any|Matrix3|Matrix4|None: ...  # Any includes Quaternion
+    def field(self, field_name: str) -> _OptionValue: ...
     def fieldNames(self) -> tuple[str, ...]: ...
     def fieldType(self, field_name: str) -> 'fieldType': ...
 
@@ -3602,7 +9949,8 @@ class DopRecord:
     def recordType(self) -> str: ...
 
     # Field modification
-    def setField(self, field_name: str, value: Any) -> None: ...
+    def setField(self, field_name: str, value: _OptionValueNoBool) -> None: ...
+    'Use setFieldBool for bool values'
     def setFieldBool(self, field_name: str, value: bool) -> None: ...
 
 class DopRelationship(DopData):
@@ -3666,12 +10014,6 @@ class DopObject(DopData):
     # Transform
     def transform(self, include_geometry_transform: bool=True) -> Matrix4: ...
 
-class Image:
-    """COP image object."""
-    def __init__(self) -> None: ...
-    def resolution(self) -> tuple[int, int]: ...
-    def pixels(self) -> Any: ...  # NumPy array if available
-
 class WorkItem:
     """TOP/PDG work item."""
     def __init__(self) -> None: ...
@@ -3679,6 +10021,502 @@ class WorkItem:
     def state(self) -> str: ...  # "ready", "cooking", "cooked", "failed"
 
 # Context managers for safer Houdini operations
+class ScriptEvalContext:
+    """Context manager for temporarily changing the scripting evaluation context.
+
+    Use this to set a specific node or parameter as the evaluation context within
+    a Python code block. This affects functions like hou.pwd(), hou.ch(), etc.
+    """
+    def __init__(self, node_or_parm: 'OpNode | Parm') -> None: ...
+    def __enter__(self) -> 'ScriptEvalContext': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+    def node(self) -> 'OpNode': ...
+    def parm(self) -> 'Parm': ...
+
+class InterruptableOperation:
+    """Context manager to make a Python code block interruptable.
+
+    Use this class to allow long-running operations to be interrupted by the user
+    via Escape key. The operation should periodically check if interruption has been
+    requested and handle it gracefully.
+
+    Example:
+        with hou.InterruptableOperation("Processing", "Processing nodes", open_interrupt_dialog=True):
+            for i, node in enumerate(nodes):
+                if i % 10 == 0:
+                    percent = float(i) / len(nodes)
+                    hou.InterruptableOperation.updateProgress(percent)
+                # ... process node ...
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/InterruptableOperation.html
+    """
+    def __init__(self, operation_name: str, long_operation_name: str = "",
+                 open_interrupt_dialog: bool = False) -> None:
+        """Initialize an interruptable operation context.
+
+        Args:
+            operation_name: Short name for the operation.
+            long_operation_name: Longer descriptive name. Defaults to operation_name.
+            open_interrupt_dialog: If True, shows a progress dialog.
+        """
+        ...
+
+    def __enter__(self) -> 'InterruptableOperation': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
+    @staticmethod
+    def updateProgress(percentage: float = -1.0) -> None:
+        """Update the progress of the current operation.
+
+        Args:
+            percentage: Value from 0.0 to 1.0, or -1.0 for indeterminate progress.
+
+        Raises:
+            OperationInterrupted: If the user has requested interruption.
+        """
+        ...
+
+    @staticmethod
+    def updateLongProgress(percentage: float = -1.0, long_op_status: str = "") -> None:
+        """Update progress with additional status message.
+
+        Args:
+            percentage: Value from 0.0 to 1.0, or -1.0 for indeterminate progress.
+            long_op_status: Status message to display.
+
+        Raises:
+            OperationInterrupted: If the user has requested interruption.
+        """
+        ...
+
+class RedrawBlock:
+    """Context manager to collect multiple UI redraws into a single redraw.
+
+    Use this class when performing multiple operations that would each trigger
+    a redraw. The UI will only redraw once when the context exits, improving
+    performance.
+
+    Example:
+        with hou.RedrawBlock():
+            for parm in node.parms():
+                parm.set(some_value)  # Each set normally triggers redraw
+            # All changes redraw only once here
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/RedrawBlock.html
+    """
+    def __init__(self) -> None: ...
+    def __enter__(self) -> 'RedrawBlock': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
+class UndosDisabler:
+    """Context manager to disable undo recording within a code block.
+
+    Use this class when performing operations that should not be undoable,
+    or when doing temporary operations that don't need to be in the undo stack.
+
+    Example:
+        with hou.UndosDisabler():
+            # These operations won't be added to undo stack
+            node.parm("tx").set(1.0)
+            node.parm("ty").set(2.0)
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/UndosDisabler.html
+    """
+    def __init__(self) -> None: ...
+    def __enter__(self) -> 'UndosDisabler': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
+class UndosGroup:
+    """Context manager to group multiple operations into a single undo action.
+
+    Use this class to bundle multiple Houdini operations into a single entry
+    in the undo stack, so they can be undone/redone together.
+
+    Example:
+        with hou.UndosGroup("Create and connect nodes"):
+            node1 = parent.createNode("geo")
+            node2 = parent.createNode("geo")
+            node2.setInput(0, node1)
+            # All three operations undo as one action
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/UndosGroup.html
+    """
+    def __init__(self, description: str = "Change") -> None:
+        """Initialize an undos group.
+
+        Args:
+            description: Description for the undo entry.
+        """
+        ...
+
+    def __enter__(self) -> 'UndosGroup': ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None: ...
+
+class ShellIO:
+    """Proxy object that replaces Python's stdin, stdout, and stderr streams within Houdini.
+
+    This class is mostly an implementation detail of how Houdini replaces Python's
+    standard streams with versions that allow Python input and output in Houdini
+    windows and pane tabs.
+
+    The methods that might be useful outside of internal SideFX scripts are
+    addCloseCallback(), removeCloseCallback(), and closeCallbacks(). These let you
+    register functions that Houdini calls when the Python shell window or pane tab
+    is closed (the equivalent of atexit() scripts in regular Python).
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html
+    """
+    def addCloseCallback(self, callback: Callable[[], None]) -> None:
+        """Register a Python callback to be called whenever the last Houdini Python Shell is closed.
+
+        Args:
+            callback: Function to call when shell closes.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#addCloseCallback
+        """
+        ...
+
+    def closeCallbacks(self) -> tuple[Callable[[], None], ...]:
+        """Return a tuple of all Python callbacks registered with addCloseCallback.
+
+        Returns:
+            Tuple of registered callback functions.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#closeCallbacks
+        """
+        ...
+
+    def isatty(self) -> bool:
+        """Implemented as part of the file-like object interface.
+
+        Returns:
+            Whether this is a TTY device.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#isatty
+        """
+        ...
+
+    def readline(self, size: int = -1) -> str:
+        """Implemented as part of the file-like object interface.
+
+        Args:
+            size: Maximum number of bytes to read. -1 reads entire line.
+
+        Returns:
+            String read from input.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#readline
+        """
+        ...
+
+    def removeCloseCallback(self, callback: Callable[[], None]) -> None:
+        """Remove a Python callback previously registered with addCloseCallback.
+
+        Args:
+            callback: Function to remove from callback list.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#removeCloseCallback
+        """
+        ...
+
+    def write(self, data: str) -> None:
+        """Implemented as part of the file-like object interface.
+
+        Args:
+            data: String data to write.
+
+        See https://www.sidefx.com/docs/houdini/hom/hou/ShellIO.html#write
+        """
+        ...
+
+class Desktop:
+    """Represents a desktop layout containing panes.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Desktop.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def panes(self) -> tuple[Pane, ...]: ...
+    def paneTabOfType(self, pane_type: paneTabType, index: int = 0) -> PaneTab | None: ...
+    def floatingPanels(self) -> tuple[FloatingPanel, ...]: ...
+
+class Pane:
+    """Container for pane tabs.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Pane.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def tabs(self) -> tuple[PaneTab, ...]: ...
+    def currentTab(self) -> PaneTab | None: ...
+    def setCurrentTab(self, tab: PaneTab) -> None: ...
+    def desktop(self) -> Desktop: ...
+
+class FloatingPanel:
+    """Represents a floating window.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/FloatingPanel.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def panes(self) -> tuple[Pane, ...]: ...
+    def close(self) -> None: ...
+
+class Dialog:
+    """Houdini dialog window.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Dialog.html
+    """
+    def name(self) -> str: ...
+    def close(self) -> None: ...
+
+class PaneTab:
+    """Base class for pane tabs in the Houdini UI."""
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def type(self) -> paneTabType: ...
+    def setType(self, type: paneTabType) -> 'PaneTab': ...
+    def close(self) -> None: ...
+    def isCurrentTab(self) -> bool: ...
+    def setIsCurrentTab(self) -> None: ...
+    def isFloating(self) -> bool: ...
+    def clone(self) -> 'PaneTab': ...
+    def linkGroup(self) -> paneLinkType: ...
+    def setLinkGroup(self, group: paneLinkType) -> None: ...
+    def isPin(self) -> bool: ...
+    def setPin(self, pin: bool) -> None: ...
+    def size(self) -> tuple[int, int]: ...
+    def contentSize(self) -> tuple[int, int]: ...
+
+class ParameterEditor(PaneTab):
+    """Parameter editor pane tab.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ParameterEditor.html
+    """
+    def currentNode(self) -> Node | None: ...
+    def setCurrentNode(self, node: Node) -> None: ...
+
+class Shelf:
+    """Represents a shelf tab containing tools.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Shelf.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def label(self) -> str: ...
+    def setLabel(self, label: str) -> None: ...
+    def tools(self) -> tuple[Tool, ...]: ...
+    def setTools(self, tools: Sequence[Tool]) -> None: ...
+    def destroy(self) -> None: ...
+
+class ShelfSet:
+    """Collection of shelf tabs.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/ShelfSet.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def shelves(self) -> tuple[Shelf, ...]: ...
+    def setShelves(self, shelves: Sequence[Shelf]) -> None: ...
+    def destroy(self) -> None: ...
+
+class Tool:
+    """Individual shelf tool.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/Tool.html
+    """
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def label(self) -> str: ...
+    def setLabel(self, label: str) -> None: ...
+    def script(self) -> str: ...
+    def setScript(self, script: str) -> None: ...
+    def scriptLanguage(self) -> scriptLanguage: ...
+    def setScriptLanguage(self, language: scriptLanguage) -> None: ...
+    def icon(self) -> str: ...
+    def setIcon(self, icon: str) -> None: ...
+    def helpText(self) -> str: ...
+    def setHelpText(self, text: str) -> None: ...
+    def destroy(self) -> None: ...
+
+class PluginHotkeyDefinitions:
+    """Plugin hotkey definitions for registering commands and bindings.
+
+    See https://www.sidefx.com/docs/houdini/hom/hou/PluginHotkeyDefinitions.html
+    """
+    def __init__(self) -> None: ...
+    def addCategory(self, name: str, label: str, help: str = "") -> None: ...
+    def addCommand(self, name: str, label: str, help: str = "", category: str = "") -> None: ...
+    def addContext(self, name: str, label: str, parent: str = "") -> None: ...
+    def addAssignment(self, context: str, command: str, key: str) -> None: ...
+
+class NetworkEditor(PaneTab):
+    """Represents a Network Editor pane tab.
+
+    Inherits from PaneTab and PathBasedPaneTab. Provides comprehensive control
+    over network view, selection, display, and interaction within the network editor.
+    """
+
+    # Bounds and Transformations
+    def cursorPosition(self, confine_to_view: bool = True) -> Vector2: ...
+    def isShowingConnectors(self) -> bool: ...
+    def isUnderCursor(self) -> bool: ...
+    def isPosInside(self, pos: Vector2, ignore_floating_windows: bool = True) -> bool: ...
+    def setCursorPosition(self, pos: Vector2) -> None: ...
+    def screenBounds(self) -> BoundingRect: ...
+    def visibleBounds(self) -> BoundingRect: ...
+    def setVisibleBounds(
+        self, bounds: BoundingRect, transition_time: float = 0.0,
+        max_scale: float = 0.0, set_center_when_scale_rejected: bool = False
+    ) -> None: ...
+    def requestZoomReset(self) -> None: ...
+    def isZoomResetRequested(self) -> bool: ...
+    def setLocatingEnabled(self, enabled: bool) -> None: ...
+    def locatingEnabled(self) -> bool: ...
+    def lengthToScreen(self, len: float) -> float: ...
+    def lengthFromScreen(self, len: float) -> float: ...
+    def sizeToScreen(self, size: Vector2) -> Vector2: ...
+    def sizeFromScreen(self, size: Vector2) -> Vector2: ...
+    def posToScreen(self, pos: Vector2) -> Vector2: ...
+    def posFromScreen(self, pos: Vector2) -> Vector2: ...
+    def overviewPosToScreen(self, pos: Vector2) -> Vector2: ...
+    def overviewPosFromScreen(self, pos: Vector2) -> Vector2: ...
+    def overviewVisible(self) -> bool: ...
+    def overviewVisibleIfAutomatic(self) -> bool: ...
+
+    # Selection and Highlighting
+    def networkItemsInBox(
+        self, pos1: Vector2, pos2: Vector2, for_drop: bool = False, for_select: bool = False
+    ) -> tuple[tuple[NetworkItem, str, int], ...]: ...
+    def setDragSourceData(self, items: Sequence[NetworkItem]) -> None: ...
+    def setDragSourceWorkItem(self, work_item_id: int) -> None: ...
+    def setDropTargetItem(self, item: NetworkItem | None, name: str, index: int) -> None: ...
+    def dropTargetItem(self) -> tuple[NetworkItem | None, str, int]: ...
+    def setDecoratedItem(self, item: NetworkItem | None, interactive: bool) -> None: ...
+    def decoratedItem(self) -> NetworkItem | None: ...
+    def decorationInteractive(self) -> bool: ...
+    def setPreSelectedItems(self, items: Sequence[NetworkItem]) -> None: ...
+    def preSelectedItems(self) -> tuple[NetworkItem, ...]: ...
+    def selectedConnections(self) -> tuple[NodeConnection, ...]: ...
+    def clearAllSelected(self) -> None: ...
+    def setNetworkBoxPendingRemovals(self, items: Sequence[NetworkMovableItem]) -> None: ...
+    def networkBoxPendingRemovals(self) -> tuple[NetworkMovableItem, ...]: ...
+
+    # Decoration
+    def nodeShapes(self) -> tuple[str, ...]: ...
+    def reloadNodeShapes(self) -> tuple[str, ...]: ...
+    def setFootprints(self, footprints: Sequence[Any]) -> None: ...  # NetworkFootprint
+    def footprints(self) -> tuple[Any, ...]: ...  # NetworkFootprint
+    def setCursorMap(self, cursors: dict[tuple[str, int], str]) -> None: ...
+    def cursorMap(self) -> dict[tuple[str, int], str]: ...
+    def setDefaultCursor(self, cursor_name: str) -> None: ...
+    def defaultCursor(self) -> str: ...
+    def setBackgroundImages(self, images: Sequence[Any]) -> None: ...  # NetworkImage
+    def backgroundImages(self) -> tuple[Any, ...]: ...  # NetworkImage
+    def setAdjustments(
+        self, items: Sequence[NetworkMovableItem], adjustments: Any, auto_remove: bool = False
+    ) -> None: ...
+    def setShapes(self, shapes: Sequence[Any]) -> None: ...  # NetworkShape
+    def setOverlayShapes(self, shapes: Sequence[Any]) -> None: ...  # NetworkShape
+    def redraw(self) -> None: ...
+
+    # Network Item Information
+    def itemRect(self, item: NetworkMovableItem, adjusted: bool = True) -> BoundingRect: ...
+    def itemInputPos(self, item: Node | Any, input_index: int, adjusted: bool = True) -> Vector2: ...  # NetworkDot
+    def itemInputDir(self, item: Node | Any, input_index: int) -> Vector2: ...  # NetworkDot
+    def itemOutputPos(self, item: Node | Any, output_index: int, adjusted: bool = True) -> Vector2: ...  # NetworkDot or SubnetIndirectInput
+    def itemOutputDir(self, item: Node | Any, output_index: int) -> Vector2: ...  # NetworkDot or SubnetIndirectInput
+    def allVisibleRects(self, ignore_items: Sequence[NetworkMovableItem]) -> tuple[tuple[NetworkMovableItem, BoundingRect], ...]: ...
+
+    # Prompts
+    def setTooltip(self, tooltip: str) -> None: ...
+    def tooltip(self) -> str: ...
+    def setPrompt(self, prompt: str) -> None: ...
+    def prompt(self) -> str: ...
+    def flashMessage(self, image: str, message: str, duration: float) -> None: ...
+
+    # Standard Menus and Editors
+    def openTabMenu(
+        self, key: str | None = None, auto_place: bool = False, branch: bool = False,
+        src_item: Node | None = None, src_connector_index: int = -1,
+        dest_item: Node | None = None, dest_connector_index: int = -1,
+        node_position: Vector2 | None = None,
+        src_items: Sequence[Node] = [], src_indexes: Sequence[int] = [],
+        dest_items: Sequence[Node] = [], dest_indexes: Sequence[int] = []
+    ) -> None: ...
+    def openNodeMenu(self, node: Node | None = None, items: Sequence[Node] = []) -> None: ...
+    def openVopEffectsMenu(self, node: Any, input_index: int) -> None: ...  # VopNode
+    def openVopOutputInfoMenu(self, node: Any, output_index: int) -> None: ...  # VopNode
+    def openCommentEditor(self, item: Any, select_all: bool = False) -> int: ...  # NetworkBox
+    def openFloatingParameterEditor(self, node: Node) -> None: ...
+    def openNameEditor(self, item: Node, select_all: bool = False) -> int: ...
+    def openNoteEditor(self, stickynote: Any, select_all: bool = False) -> int: ...  # StickyNote
+    def closeTextEditor(self, id: int, apply_changes: bool = True) -> None: ...
+    def runShelfTool(self, tool_name: str) -> None: ...
+
+    # Event Handling
+    def scheduleTimerEvent(self, seconds: float) -> int: ...
+    def handleCurrentKeyboardEvent(self, resend: bool = False) -> None: ...
+    def setVolatileHotkeys(self, hotkey_symbols: Sequence[str]) -> None: ...
+    def isVolatileHotkeyDown(self, hotkey_symbol: str) -> bool: ...
+    def hotkeyAssignments(self, hotkey_symbols: Sequence[str]) -> tuple[tuple[str, ...], ...]: ...
+    def pushEventContext(self, module: str, data: dict[str, Any]) -> bool: ...
+    def popEventContext(self) -> None: ...
+    def eventContextData(self) -> dict[str, Any]: ...
+
+    # Preferences
+    def setPref(self, pref: str, value: str) -> None: ...
+    def getPref(self, pref: str) -> str: ...
+    def setPrefs(self, prefs: dict[str, str]) -> None: ...
+    def getPrefs(self) -> dict[str, str]: ...
+    def registerPref(self, pref: str, value: str, global_pref: bool) -> None: ...
+    def badges(self) -> tuple[tuple[str, ...], ...]: ...
+    def textBadges(self) -> tuple[tuple[str, ...], ...]: ...
+
+    # Parameter Editor
+    def parmFilterEnabled(self) -> bool: ...
+    def setParmFilterEnabled(self, on: bool, keyboard_lock: bool) -> None: ...
+    def parmFilterMode(self) -> parmFilterMode: ...
+    def setParmFilterMode(self, mode: parmFilterMode) -> None: ...
+    def parmFilterCriteria(self) -> parmFilterCriteria: ...
+    def setParmFilterCriteria(self, criteria: parmFilterCriteria) -> None: ...
+    def parmFilterPattern(self) -> str: ...
+    def setParmFilterPattern(self, pattern: str) -> None: ...
+    def parmFilterExactMatch(self) -> bool: ...
+    def setParmFilterExactMatch(self, on: bool) -> None: ...
+    def parmScrollPosition(self) -> Vector2: ...
+    def setParmScrollPosition(self, pos: Vector2) -> None: ...
+    def parmScrollTo(self, parms: Sequence[Parm], scroll_pos: scrollPosition) -> None: ...
+    def parmMoveFocusTo(self, parm: Parm) -> None: ...
+    def setMultiParmTab(self, parm: Parm, tab_index: int) -> None: ...
+    def multiParmTab(self, parm: Parm) -> int: ...
+
+    # Methods from PaneTab (inherited)
+    def name(self) -> str: ...
+    def setName(self, name: str) -> None: ...
+    def type(self) -> paneTabType: ...
+    def setType(self, type: paneTabType) -> 'PaneTab': ...
+    def close(self) -> None: ...
+    def pane(self) -> Any | None: ...  # Pane
+    def floatingPanel(self) -> Any | None: ...  # FloatingPanel
+    def isCurrentTab(self) -> bool: ...
+    def setIsCurrentTab(self) -> None: ...
+    def isFloating(self) -> bool: ...
+    def clone(self) -> 'PaneTab': ...
+    def linkGroup(self) -> paneLinkType: ...
+    def setLinkGroup(self, group: paneLinkType) -> None: ...
+    def isPin(self) -> bool: ...
+    def setPin(self, pin: bool) -> None: ...
+    def size(self) -> tuple[int, int]: ...
+    def contentSize(self) -> tuple[int, int]: ...
+
+    # Methods from PathBasedPaneTab (inherited)
+    def cd(self, path: str) -> None: ...
+    def currentNode(self) -> Node: ...
+    def pwd(self) -> Node: ...
+    def setCurrentNode(self, node: Node, pick_node: bool = True) -> None: ...
+    def setPwd(self, node: Node) -> None: ...
+
 class UndoGroup:
     """Context manager for grouping operations into a single undo."""
     def __init__(self, name: str) -> None: ...
@@ -3728,6 +10566,15 @@ def item(item_path: str) -> NetworkMovableItem|None:
 
 def setPwd(node: Node) -> None:
     """Set current working directory node."""
+    ...
+
+def phm() -> HDAModule:
+    """A shortcut for hou.pwd().hdaModule().
+
+    Returns the HDA module of the current node (from hou.pwd()).
+    This is commonly used in HDA Python callbacks to access functions
+    defined in the HDA's Python module section.
+    """
     ...
 
 def parent() -> Node:
@@ -4068,11 +10915,7 @@ class NodeBundle:
     def clear(self) -> None: ...
     def destroy(self) -> None: ...
 
-# Session module
-class session:
-    """Container for session-specific functions and variables."""
-    ...
-
+# Session module functions
 def sessionModuleSource() -> str:
     """Get session module source code."""
     ...
@@ -4512,252 +11355,251 @@ def saveIndexDataToString(data: bytes) -> str:
 # ==============================================================================
 # SUBMODULES
 # ==============================================================================
+# Note: Submodule stubs are in stubs/hou/*.pyi files
+# These are pre-loaded C++ modules: anim, clone, crowds, data, dop, fs, galleries,
+# hda, hmath, ik, logging, lop, perfMon, playbar, properties, pypanel, session,
+# shelves, styles, takes, text, webServer
+# Accessible as: hou.hmath, hou.dop, hou.logging, etc.
 
-class hmath:
-    """3D math functions for transforms, rotations, and geometric operations."""
+class PerfMonEvent:
+    """Represents an event recorded by the performance monitor for generating statistics.
 
-    # Transform building functions
-    @staticmethod
-    def buildTranslate(tx: float, ty: float, tz: float) -> Matrix4:
-        """Build translation matrix."""
+    Note: All methods may raise hou.OperationFailed if the event was not recorded.
+    Time and memory statistics are reported in milliseconds and bytes respectively.
+    """
+
+    def id(self) -> int:
+        """Return the event's unique identifier used internally by the performance monitor."""
         ...
 
-    @staticmethod
-    def buildRotate(rx: float, ry: float, rz: float, order: str = "xyz") -> Matrix4:
-        """Build rotation matrix from Euler angles (degrees)."""
+    def isAutoNestEnabled(self) -> bool:
+        """Return True if the event automatically nests other events started while this event is running."""
         ...
 
-    @staticmethod
-    def buildRotateAboutAxis(axis: Vector3, angle_in_deg: float) -> Matrix4:
-        """Build rotation matrix about arbitrary axis."""
+    def isRunning(self) -> bool:
+        """Return True if the event has been started but not stopped."""
         ...
 
-    @staticmethod
-    def buildRotateZToAxis(axis: Vector3) -> Matrix4:
-        """Build rotation matrix that rotates Z axis to target axis."""
+    def isTiming(self) -> bool:
+        """Deprecated: Use isRunning() instead."""
         ...
 
-    @staticmethod
-    def buildRotateLookAt(from_pos: Vector3, to_pos: Vector3, up: Vector3) -> Matrix4:
-        """Build rotation matrix for look-at transform."""
+    def name(self) -> str:
+        """Return the event name."""
         ...
 
-    @staticmethod
-    def buildScale(sx: float, sy: float, sz: float) -> Matrix4:
-        """Build scale matrix."""
+    def object(self) -> str:
+        """Return the object that the event applies to."""
         ...
 
-    @staticmethod
-    def buildShear(shearx: float, sheary: float, shearz: float) -> Matrix4:
-        """Build shear matrix."""
+    def startTime(self) -> float:
+        """Return the start time of the event in milliseconds since the epoch date."""
         ...
 
-    @staticmethod
-    def buildTransform(values: dict[str, Any], transform_order: str = "srt", rotate_order: str = "xyz") -> Matrix4:
-        """Build transform matrix from parameter dictionary."""
+    def stop(self) -> tuple[float, int]:
+        """Stop the event timer and return (elapsed_time_ms, memory_growth_bytes)."""
         ...
 
-    @staticmethod
-    def combineLocalTransform(local: Matrix4, world: Matrix4, parent_local: Matrix4 | None = None, mode: Any = ...) -> Matrix4:
-        """Combine local transform with parent world transform."""
+
+class PerfMonProfile:
+    """Represents a performance monitor profile.
+
+    Note: Time and memory statistics are reported in milliseconds and bytes respectively.
+    """
+
+    def cancel(self) -> None:
+        """Stop the profile from recording events and remove it from the performance monitor."""
         ...
 
-    @staticmethod
-    def extractLocalTransform(world: Matrix4, parent_world: Matrix4, parent_local: Matrix4, mode: Any = ...) -> Matrix4:
-        """Extract local transform from world transforms."""
+    def exportAsCSV(self, file_path: str) -> None:
+        """Export the profile statistics to disk using comma-separated (CSV) format."""
         ...
 
-    @staticmethod
-    def identityTransform() -> Matrix4:
-        """Return identity transform matrix."""
+    def id(self) -> int:
+        """Return the profile's unique identifier used internally by the performance monitor."""
         ...
 
-    # Angle conversion
-    @staticmethod
-    def degToRad(degrees: float) -> float:
-        """Convert degrees to radians."""
+    def isActive(self) -> bool:
+        """Return True if the profile is either recording events or is paused."""
         ...
 
-    @staticmethod
-    def radToDeg(radians: float) -> float:
-        """Convert radians to degrees."""
+    def isRecordingCookStats(self) -> bool:
+        """Return True if the profile is recording cook events and statistics."""
         ...
 
-    # Math utilities
-    @staticmethod
-    def clamp(value: float, min_val: float, max_val: float) -> float:
-        """Clamp value to range."""
+    def isRecordingPDGCookStats(self) -> bool:
+        """Return True if the profile is recording PDG node cook events and statistics."""
         ...
 
-    @staticmethod
-    def wrap(value: float, min_val: float, max_val: float) -> float:
-        """Wrap value within range."""
+    def isRecordingDrawStats(self) -> bool:
+        """Return True if the profile is recording draw events and statistics."""
         ...
 
-    @staticmethod
-    def sign(value: float) -> int:
-        """Return sign of value (-1, 0, or 1)."""
+    def isRecordingErrors(self) -> bool:
+        """Return True if the profile is recording errors."""
         ...
 
-    @staticmethod
-    def smooth(value: float, min_val: float, max_val: float) -> float:
-        """Smooth step interpolation."""
+    def isRecordingFrameStats(self) -> bool:
+        """Return True if the profile is recording frame events and statistics."""
         ...
 
-    @staticmethod
-    def fit(value: float, old_min: float, old_max: float, new_min: float, new_max: float) -> float:
-        """Fit value from one range to another."""
+    def isRecordingGPUDrawStats(self) -> bool:
+        """Return True if the profile is recording GPU draw events and statistics."""
         ...
 
-    @staticmethod
-    def fit01(value: float, new_min: float, new_max: float) -> float:
-        """Fit value from 0-1 range to new range."""
+    def isRecordingRenderStats(self) -> bool:
+        """Return True if the profile is recording statistics related to rendering."""
         ...
 
-    @staticmethod
-    def fit10(value: float, new_min: float, new_max: float) -> float:
-        """Fit value from 1-0 range to new range."""
+    def isRecordingScriptStats(self) -> bool:
+        """Return True if the profile is recording script events and statistics."""
         ...
 
-    @staticmethod
-    def fit11(value: float, new_min: float, new_max: float) -> float:
-        """Fit value from -1 to 1 range to new range."""
+    def isRecordingSolveStats(self) -> bool:
+        """Return True if the profile is recording simulation solver events and statistics."""
         ...
 
-    # Random and noise
-    @staticmethod
-    def rand(seed: float) -> float:
-        """Generate random float from seed."""
+    def isRecordingThreadStats(self) -> bool:
+        """Return True if the profile is recording thread statistics."""
         ...
 
-    @staticmethod
-    def noise1d(pos: float) -> float:
-        """Generate 1D Perlin noise."""
+    def isRecordingViewportStats(self) -> bool:
+        """Return True if the profile is recording viewport events and statistics."""
         ...
 
-    @staticmethod
-    def noise3d(pos: Vector3) -> Vector3:
-        """Generate 3D Perlin noise vector."""
+    def isPaused(self) -> bool:
+        """Return True if the profile is paused from recording."""
         ...
 
-    # Geometric tests
-    @staticmethod
-    def orient2d(pa: Vector2, pb: Vector2, point: Vector2) -> float:
-        """Test point orientation relative to 2D line."""
+    def pause(self) -> None:
+        """Pause the profile from recording events and statistics."""
         ...
 
-    @staticmethod
-    def orient3d(pa: Vector3, pb: Vector3, pc: Vector3, point: Vector3) -> float:
-        """Test point orientation relative to 3D plane."""
+    def resume(self) -> None:
+        """Unpause the profile so that it can record events and statistics."""
         ...
 
-    @staticmethod
-    def inCircle(pa: Vector2, pb: Vector2, pc: Vector2, point: Vector2) -> float:
-        """Test if point is inside circle defined by three points."""
+    def save(self, file_path: str) -> None:
+        """Deprecated: Use hou.perfMon.saveProfile() instead."""
         ...
 
-    @staticmethod
-    def inSphere(pa: Vector3, pb: Vector3, pc: Vector3, pd: Vector3, point: Vector3) -> float:
-        """Test if point is inside sphere defined by four points."""
+    def stats(self) -> str:
+        """Return the profile statistics in JSON format."""
         ...
 
-    @staticmethod
-    def intersectPlane(plane_point: Vector3, plane_normal: Vector3, line_origin: Vector3, line_dir: Vector3) -> Vector3:
-        """Compute line-plane intersection point."""
+    def stop(self) -> None:
+        """Stop the profile from recording and generate statistics for recorded events."""
         ...
 
-    # Advanced transforms
-    @staticmethod
-    def slerpTransforms(xforms: list[Matrix4], input_weights: list[float], normalize_weights: bool, slerp_method: Any, slerp_flip_method: Any) -> Matrix4:
-        """Spherical linear interpolation of transforms."""
+    def title(self) -> str:
+        """Return the profile title."""
         ...
 
-class dop:
-    """DOP (Dynamics) related functions for Python script solver context."""
 
-    @staticmethod
-    def isScriptSolverRunning() -> bool:
-        """Check if currently executing in a script solver."""
+class PerfMonRecordOptions:
+    """Options specifying types of statistics to be recorded in a performance monitor profile."""
+
+    def recordCookStats(self) -> bool:
+        """Return True if cook statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverData() -> DopData:
-        """Get the solver data for the current script solver."""
+    def recordPDGCookStats(self) -> bool:
+        """Return True if PDG node and work item cook statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverNetwork() -> OpNode | None:
-        """Get the DOP network containing the current script solver."""
+    def recordDrawStats(self) -> bool:
+        """Return True if node draw statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverSimulation() -> DopSimulation | None:
-        """Get the simulation containing the current script solver."""
+    def recordErrors(self) -> bool:
+        """Return True if warnings and errors should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverObjects() -> tuple[DopObject, ...]:
-        """Get all DOP objects being solved by the current script solver."""
+    def recordFrameStats(self) -> bool:
+        """Return True if frame statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverNewObjects() -> tuple[DopObject, ...]:
-        """Get newly-created DOP objects in the current script solver timestep."""
+    def recordGPUDrawStats(self) -> bool:
+        """Return True if node GPU draw statistics should be recorded."""
         ...
 
-    @staticmethod
-    def scriptSolverTimestepSize() -> float:
-        """Get the timestep size for the current script solver."""
+    def recordMemoryStats(self) -> bool:
+        """Return True if memory statistics should be recorded."""
         ...
 
-class logging:
-    """Logging module for warnings and errors with sources and sinks system."""
-
-    # Classes (forward references - defined elsewhere in hou module)
-    # FileSink, LogEntry, MemorySink, Sink
-
-    @staticmethod
-    def createSource(source_name: str) -> None:
-        """Create a new logging source that can send log entries."""
+    def recordPaneStats(self) -> bool:
+        """Return True if non-viewport pane statistics should be recorded."""
         ...
 
-    @staticmethod
-    def defaultFileSink() -> Any | None:  # Returns FileSink or None
-        """Return shared file sink for the current Houdini session."""
+    def recordRenderStats(self) -> bool:
+        """Return True if Mantra render statistics should be recorded."""
         ...
 
-    @staticmethod
-    def defaultSink(force_create: bool = False) -> Any | None:  # Returns MemorySink or None
-        """Return shared memory sink for the current Houdini session."""
+    def recordScriptStats(self) -> bool:
+        """Return True if hscript and Python statistics should be recorded."""
         ...
 
-    @staticmethod
-    def loadLogsFromFile(filepath: str) -> tuple[Any, ...]:  # tuple of LogEntry
-        """Load tuple of LogEntry objects from JSON file."""
+    def recordSolveStats(self) -> bool:
+        """Return True if DOP solver statistics should be recorded."""
         ...
 
-    @staticmethod
-    def log(entry: Any, source_name: str | None = None) -> None:  # entry is LogEntry
-        """Send LogEntry to all sinks connected to a logging source."""
+    def recordThreadStats(self) -> bool:
+        """Return True if thread statistics should be recorded."""
         ...
 
-    @staticmethod
-    def renderLogVerbosity() -> int:
-        """Return Karma logging verbosity level (0-9)."""
+    def recordViewportStats(self) -> bool:
+        """Return True if viewport statistics should be recorded."""
         ...
 
-    @staticmethod
-    def saveLogsToFile(logs: Any, filepath: str) -> None:  # logs is Iterable[LogEntry]
-        """Save tuple of LogEntry objects to JSON file."""
+    def setRecordCookStats(self, record: bool) -> None:
+        """Turn the recording of node cook statistics on or off."""
         ...
 
-    @staticmethod
-    def setRenderLogVerbosity(verbosity: int) -> None:
-        """Set Karma logging verbosity level (0-9)."""
+    def setRecordPDGCookStats(self, record: bool) -> None:
+        """Turn the recording of PDG node and work item cook statistics on or off."""
         ...
 
-    @staticmethod
-    def sources() -> tuple[str, ...]:
-        """Return tuple of all available log source names."""
+    def setRecordDrawStats(self, record: bool) -> None:
+        """Turn the recording of node draw statistics on or off."""
+        ...
+
+    def setRecordErrors(self, record: bool) -> None:
+        """Turn the recording of warnings and errors on or off."""
+        ...
+
+    def setRecordFrameStats(self, record: bool) -> None:
+        """Turn the recording of frame statistics on or off."""
+        ...
+
+    def setRecordGPUDrawStats(self, record: bool) -> None:
+        """Turn the recording of node GPU draw statistics on or off."""
+        ...
+
+    def setRecordMemoryStats(self, record: bool) -> None:
+        """Turn the recording of memory statistics on or off."""
+        ...
+
+    def setRecordPaneStats(self, record: bool) -> None:
+        """Turn the recording of non-viewport pane statistics on or off."""
+        ...
+
+    def setRecordRenderStats(self, record: bool) -> None:
+        """Turn the recording of Mantra render statistics on or off."""
+        ...
+
+    def setRecordScriptStats(self, record: bool) -> None:
+        """Turn the recording of hscript and Python statistics on or off."""
+        ...
+
+    def setRecordSolveStats(self, record: bool) -> None:
+        """Turn the recording of DOP solver statistics on or off."""
+        ...
+
+    def setRecordThreadStats(self, record: bool) -> None:
+        """Turn the recording of thread statistics on or off."""
+        ...
+
+    def setRecordViewportStats(self, record: bool) -> None:
+        """Turn the recording of viewport statistics on or off."""
         ...
 
