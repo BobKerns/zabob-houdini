@@ -1383,77 +1383,125 @@ class drawable2DMarkerStyle(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DMarkerStyle.html
     """
-    pass
+    Cross: _EnumValue[drawable2DMarkerStyle]  # Cross shape type
+    Diamond: _EnumValue[drawable2DMarkerStyle]  # Filled diamond shape type
+    Dot: _EnumValue[drawable2DMarkerStyle]  # Filled circle shape type
+    HollowDiamond: _EnumValue[drawable2DMarkerStyle]  # Unfilled diamond shape type
+    HollowDot: _EnumValue[drawable2DMarkerStyle]  # Unfilled circle shape type
+    HollowSquare: _EnumValue[drawable2DMarkerStyle]  # Unfilled square shape type
+    Square: _EnumValue[drawable2DMarkerStyle]  # Filled square shape type
+    SquareCross: _EnumValue[drawable2DMarkerStyle]  # A hollow square marker with a cross shape inside
+    XShape: _EnumValue[drawable2DMarkerStyle]  # X shape type
 
 class drawable2DType(_Enum):
     """Enumerator for 2D drawable types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawable2DType.html
     """
-    pass
+    Arc: _EnumValue[drawable2DType]  # Arc drawable type
+    Circle: _EnumValue[drawable2DType]  # Circle drawable type
+    Marker: _EnumValue[drawable2DType]  # Marker drawable type
+    Icon: _EnumValue[drawable2DType]  # Icon drawable type
+    Line: _EnumValue[drawable2DType]  # Line drawable type
+    Shape: _EnumValue[drawable2DType]  # Drawable type for drawing an open or closed shape
+    Rect: _EnumValue[drawable2DType]  # Rectangle drawable type
+    Text: _EnumValue[drawable2DType]  # Drawable type for displaying text
 
 class drawableGeometryFaceStyle(_Enum):
     """Enumeration used to specify the style of faces to draw.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryFaceStyle.html
     """
-    pass
+    Plain: _EnumValue[drawableGeometryFaceStyle]  # Regular face
+    Checker: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in a checker pattern
+    Circle: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in a circle pattern
+    Columns: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in columns
+    Rows: _EnumValue[drawableGeometryFaceStyle]  # Draws faces in rows
 
 class drawableGeometryLineStyle(_Enum):
     """Enumeration used to specify the style of lines to draw.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryLineStyle.html
     """
-    pass
+    Plain: _EnumValue[drawableGeometryLineStyle]  # Regular line
+    Dash1: _EnumValue[drawableGeometryLineStyle]  # Draw half of the line
+    Dash2: _EnumValue[drawableGeometryLineStyle]  # Draw one third of the line
+    Dash3: _EnumValue[drawableGeometryLineStyle]  # Draw one quarter of the line
+    Dot1: _EnumValue[drawableGeometryLineStyle]  # Draw a continuous line of dots
+    Dot2: _EnumValue[drawableGeometryLineStyle]  # Draw every second dot
+    Dot3: _EnumValue[drawableGeometryLineStyle]  # Draw every fourth dot
+    Dot4: _EnumValue[drawableGeometryLineStyle]  # Draw every eighth dot
 
 class drawableGeometryType(_Enum):
     """Enumeration of Geometry Drawable types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableGeometryType.html
     """
-    pass
+    Face: _EnumValue[drawableGeometryType]  # Face drawable type. This drawable allows you to highlight the polygons of the attached geometry
+    Line: _EnumValue[drawableGeometryType]  # Line drawable type. This drawable allows you to highlight the polygon edges of the attached geometry
+    Point: _EnumValue[drawableGeometryType]  # Point drawable type. This drawable allows you to highlight the polygon vertices of the attached geometry
+    Vector: _EnumValue[drawableGeometryType]  # Vector drawable type. This drawable works with point geometries and allows you to draw vectors at each point. Note that a point attribute N is required for the Vector drawable type
 
 class drawableHighlightMode(_Enum):
     """Enumeration used to specify the highlight mode of a drawable matte.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableHighlightMode.html
     """
-    pass
+    Glow: _EnumValue[drawableHighlightMode]  # Display the drawable with a glow by using the color2 parameter
+    Matte: _EnumValue[drawableHighlightMode]  # Display the drawable matte only by using the color1 parameter
+    GlowMinusMatte: _EnumValue[drawableHighlightMode]  # Display a glow around the drawable without drawing the matte, typically used to draw a silhouette
+    MatteOverGlow: _EnumValue[drawableHighlightMode]  # Display the matte over the glow
+    Transparent: _EnumValue[drawableHighlightMode]  # Make the drawable completely transparent. Useful to hide parts of other drawables
 
 class drawableRampClamp(_Enum):
     """Enumeration used to specify how to wrap the texture generated when using a ramp color.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/drawableRampClamp.html
     """
-    pass
+    Border: _EnumValue[drawableRampClamp]  # Border texture clamping
+    Edge: _EnumValue[drawableRampClamp]  # Edge texture clamping
+    Mirror: _EnumValue[drawableRampClamp]  # Mirror repeat texture clamping
+    Repeat: _EnumValue[drawableRampClamp]  # Repeat texture clamping
 
 class flipbookAntialias(_Enum):
     """Enum values for flipbook antialiasing settings.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookAntialias.html
     """
-    pass
+    UseViewportSetting: _EnumValue[flipbookAntialias]  # Use the current viewport's antialiasing setting
+    Off: _EnumValue[flipbookAntialias]  # No antialiasing
+    Fast: _EnumValue[flipbookAntialias]  # Fast 2-sample antialiasing
+    Good: _EnumValue[flipbookAntialias]  # 4-sample antialiasing
+    HighQuality: _EnumValue[flipbookAntialias]  # High-quality 8-sample antialiasing
 
 class flipbookMotionBlurBias(_Enum):
     """Enum values used to specify the motion blur subframe range.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookMotionBlurBias.html
     """
-    pass
+    Centered: _EnumValue[flipbookMotionBlurBias]  # Subframe range is centered around the currently rendering frame
+    Forward: _EnumValue[flipbookMotionBlurBias]  # Subframe range begins at the currently rendering frame
+    Previous: _EnumValue[flipbookMotionBlurBias]  # Subframe range ends at the currently rendering frame
 
 class flipbookObjectType(_Enum):
     """Enum values for setting the flipbook's visible object types.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/flipbookObjectType.html
     """
-    pass
+    Visible: _EnumValue[flipbookObjectType]  # All object types that are currently visible will be rendered
+    GeoOnly: _EnumValue[flipbookObjectType]  # Only geometry objects will be rendered, which excludes bone, muscle, null, camera, light, and blend objects
+    GeoExcluded: _EnumValue[flipbookObjectType]  # All object types other than Geometry that are currently visible will be rendered
+    AllObjects: _EnumValue[flipbookObjectType]  # All object types will be rendered, even if their type is not currently visible
 
 class geometryViewportBackgroundImageFitMode(_Enum):
     """Enumeration of image fit modes.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/geometryViewportBackgroundImageFitMode.html
     """
-    pass
+    Horizontal: _EnumValue[geometryViewportBackgroundImageFitMode]  # Horizontal fit mode
+    Vertical: _EnumValue[geometryViewportBackgroundImageFitMode]  # Vertical fit mode
+    Fill: _EnumValue[geometryViewportBackgroundImageFitMode]  # Fill fit mode
+    Scale: _EnumValue[geometryViewportBackgroundImageFitMode]  # Scale fit mode
 
 class geometryViewportEvent(_Enum):
     """Enumeration of the geometry viewport events that can be handled by callback functions.
