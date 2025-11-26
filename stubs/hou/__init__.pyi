@@ -1851,27 +1851,40 @@ class viewportTransparency(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportTransparency.html
     """
-    pass
+
+    Cutout: _EnumValue[viewportTransparency]  # Fast test to render the transparent pixel as opaque (>0) or to discard it (0)
+    Low: _EnumValue[viewportTransparency]  # Render transparent pixels in a separate pass (front-most transparent pixel only)
+    Medium: _EnumValue[viewportTransparency]  # Order-Independent buffer of 8 samples for up to 8 layers of overlapping transparency
+    High: _EnumValue[viewportTransparency]  # Order-Independent buffer of 16 samples for up to 16 layers of overlapping transparency
 
 class viewportVisualizerCategory(_Enum):
     """Enumeration of the different categories of viewport visualizers.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerCategory.html
     """
-    pass
+
+    Common: _EnumValue[viewportVisualizerCategory]  # Viewport visualizers available across all scene files
+    Scene: _EnumValue[viewportVisualizerCategory]  # Viewport visualizers saved to the scene file
+    Node: _EnumValue[viewportVisualizerCategory]  # Node visualizers installed on individual nodes with limited scope
 
 class viewportVisualizerEventType(_Enum):
     """Enumeration of types of events that can happen to viewport visualizers.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerEventType.html
     """
-    pass
+
+    VisualizerParametersChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer's parameters have changed
+    VisualizerFlagsChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer's flags have changed
+    VisualizerActiveChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer's active state has changed
+    CategoryActiveChanged: _EnumValue[viewportVisualizerEventType]  # Runs after a visualizer category's active state has changed
 
 class viewportVisualizerScope(_Enum):
     """Enumeration of the different scopes of viewport visualizers.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/viewportVisualizerScope.html
     """
+
+    # Note: Documentation shows only the class-level description with no specific VALUES section
     pass
 
 class viewportVolumeBSplines(_Enum):
@@ -1915,21 +1928,34 @@ class promptMessageType(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/promptMessageType.html
     """
-    pass
+
+    Error: _EnumValue[promptMessageType]  # Error message displayed in bold red
+    Message: _EnumValue[promptMessageType]  # Regular message displayed in black
+    Prompt: _EnumValue[promptMessageType]  # Prompt message displayed in bold blue
+    Warning: _EnumValue[promptMessageType]  # Warning message displayed in bold yellow
 
 class scenePrimMask(_Enum):
     """Scene Graph Selection Mask.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/scenePrimMask.html
     """
-    pass
+
+    All: _EnumValue[scenePrimMask]  # All primitive types can be selected
+    Camera: _EnumValue[scenePrimMask]  # Only camera primitive types can be selected
+    Geometry: _EnumValue[scenePrimMask]  # Only geometry primitive types can be selected
+    Light: _EnumValue[scenePrimMask]  # Only light primitive types can be selected
+    LightAndCamera: _EnumValue[scenePrimMask]  # Only light and camera primitive types can be selected
+    ViewerSetting: _EnumValue[scenePrimMask]  # Use the viewer setting for the primitive selection mask (default)
 
 class snapSelectionMode(_Enum):
     """Filter for primitive snapping in the LOPs viewer.
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/snapSelectionMode.html
     """
-    pass
+
+    SnapToAll: _EnumValue[snapSelectionMode]  # Snapping is not restricted by selection; all primitives can be snapped
+    SnapToSelected: _EnumValue[snapSelectionMode]  # Restrict snapping to only selected primitives (useful for picking pivot points)
+    SnapToNonSelected: _EnumValue[snapSelectionMode]  # Restrict snapping to only non-selected primitives (avoids self-snapping when transforming)
 
 # ============================================================================
 # WEBSERVER ENUMERATIONS
@@ -1940,7 +1966,10 @@ class webServerVerbosity(_Enum):
 
     See: https://www.sidefx.com/docs/houdini/hom/hou/webServerVerbosity.html
     """
-    pass
+
+    Low: _EnumValue[webServerVerbosity]  # The server will log as little information as possible
+    Medium: _EnumValue[webServerVerbosity]  # The server will log most information (e.g., thread count) but omit request/response data
+    High: _EnumValue[webServerVerbosity]  # The server will log all possible information
 
 # ============================================================================
 # CLASS DEFINITIONS
