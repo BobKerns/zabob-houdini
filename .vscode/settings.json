@@ -63,7 +63,7 @@
         "editor.defaultFormatter": "vscode.json-language-features"
     },
     "python.analysis.include": [
-        "stubs/**/*.pyi"
+        "src/**/*.py"
     ],
     "explorer.autoRevealExclude": {
         "**/.mypy_cache": true,
