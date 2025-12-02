@@ -6,13 +6,13 @@ These tests run in hython and create actual circular node graphs.
 
 import hou
 
-from zabob_houdini.utils import ignore
+from zabob_houdini.utils import ignore, JsonObject
 from zabob_houdini.core import context
 
 ignore(ignore)
 
 
-def test_circular_three_node_cycle():
+def h_test_circular_three_node_cycle() -> JsonObject:
     """Test creating a 3-node circular graph."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
@@ -52,7 +52,7 @@ def test_circular_three_node_cycle():
     }
 
 
-def test_self_referencing_node():
+def h_test_self_referencing_node() -> JsonObject:
     """Test a node that references itself."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
@@ -76,7 +76,7 @@ def test_self_referencing_node():
     }
 
 
-def test_two_node_cycle():
+def h_test_two_node_cycle() -> JsonObject:
     """Test a simple 2-node cycle: A -> B -> A."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
@@ -107,7 +107,7 @@ def test_two_node_cycle():
     }
 
 
-def test_circular_with_context():
+def h_test_circular_with_context() -> JsonObject:
     """Test circular graph construction using NodeContext."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
@@ -141,8 +141,8 @@ def test_circular_with_context():
     }
 
 
-def test_complex_intersecting_cycles():
-    """Test a graph with multiple intersecting cycles."""
+def h_test_complex_intersecting_cycles() -> JsonObject:
+    """Test multiple intersecting cycles."""
     # Cycle 1: A -> B -> C -> A
     # Cycle 2: B -> D -> E -> B
 
@@ -182,7 +182,7 @@ def test_complex_intersecting_cycles():
             cycle_count += 1
 
     return {
-        
+
         "node_count": 5,
         "cycle_count": cycle_count
     }
