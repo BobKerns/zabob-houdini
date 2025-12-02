@@ -5,7 +5,7 @@ This module contains the NodeContext class that provides a context manager
 interface for building node graphs with automatic layout and dependency tracking.
 """
 
-from __future__ import annotations
+from __future__ import _dynamic_import, annotations  # type: ignore # noqa: F407
 
 from collections import deque
 from dataclasses import dataclass, field

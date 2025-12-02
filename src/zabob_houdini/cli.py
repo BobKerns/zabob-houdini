@@ -328,6 +328,34 @@ def diagnose() -> None:
         click.echo("✗ No .venv directory found")
         click.echo("  → Run 'uv sync' to create virtual environment")
 
+    # Houdini pythonrc.py check
+    if hython_found:
+        click.echo("\n[Houdini pythonrc.py]")
+        from zabob_houdini.houdini_config import find_houdini_pref_dir
+        from zabob_houdini.package_installer import get_houdini_python_version
+
+        user_prefs = find_houdini_pref_dir()
+        if user_prefs:
+            py_version_str = get_houdini_python_version()
+            if py_version_str:
+                py_version = f"python{py_version_str}libs"
+                pythonrc_path = user_prefs / py_version / "pythonrc.py"
+
+                if pythonrc_path.exists():
+                    content = pythonrc_path.read_text()
+                    if 'zabob-houdini' in content:
+                        click.echo(f"✓ Installed: {pythonrc_path}")
+                    else:
+                        click.echo(f"⚠ Exists but not zabob-houdini: {pythonrc_path}")
+                        click.echo("  → Run: zabob-houdini install-package")
+                else:
+                    click.echo(f"✗ Not installed: {pythonrc_path}")
+                    click.echo("  → Run: zabob-houdini install-package")
+            else:
+                click.echo("✗ Could not determine Houdini Python version")
+        else:
+            click.echo("✗ Could not find Houdini preferences directory")
+
     click.echo("\n" + "=" * 70)
     click.echo("Troubleshooting Tips:")
     click.echo("• If zabob-houdini is not from .venv, run: source .venv/bin/activate")
@@ -454,15 +482,24 @@ def show(version: str | None = None) -> None:
               help='Open the saved HIP file in Houdini application (implies --save)')
 @click.option('--verbose', '-v', is_flag=True,
               help='Show verbose output from script execution')
+@click.option('--python', '-p', is_flag=True,
+              help='Run with regular Python instead of hython (no Houdini environment)')
 def run(script_path: str,
         script_args: tuple[str, ...],
         hipfile: str | None, save: bool,
         open_app: bool, verbose: bool,
+        python: bool,
         ) -> None:
     """
-    Run a Python script in hython and optionally save the resulting hip file.
+    Run a Python script in hython (or regular Python with --python flag).
 
-    SCRIPT_PATH: Path to the Python script to execute in hython
+    By default, runs the script in hython (Houdini's Python environment).
+    Use --python to run in regular Python without Houdini.
+
+    Scripts using 'from __future__ import _dynamic_import' will have
+    dynamic import transformation applied automatically.
+
+    SCRIPT_PATH: Path to the Python script to execute
     SCRIPT_ARGS: Additional arguments to pass to the script
 
     Examples:
@@ -470,11 +507,52 @@ def run(script_path: str,
         zabob-houdini run examples/diamond_chain_demo.py --save
         zabob-houdini run my_script.py --hipfile /tmp/result.hip
         zabob-houdini run examples/diamond_chain_demo.py --save --open
-        zabob-houdini run examples/diamond_chain_demo.py arg1 arg2 --hipfile scene.hip
+        zabob-houdini run myscript.py --python
+        zabob-houdini run myscript.py arg1 arg2 --python --verbose
     """
     from pathlib import Path
     import subprocess
     import sys
+
+    # Validate option combinations
+    if python and (save or hipfile or open_app):
+        click.echo("Error: --python cannot be used with --save, --hipfile, or --open", err=True)
+        sys.exit(1)
+
+    # Handle --python mode: run in regular Python with dynamic import support
+    if python:
+        from zabob_houdini.dyn_loader import transform_script
+
+        script_path_obj = Path(script_path).resolve()
+
+        if verbose:
+            click.echo(f"Running script in Python: {script_path_obj}")
+            click.echo(f"Arguments: {script_args}")
+
+        try:
+            # Set up sys.argv as if the script was called directly
+            sys.argv = [str(script_path_obj)] + list(script_args)
+
+            # Read and transform the script if needed
+            script_code = script_path_obj.read_text()
+            script_obj, was_transformed = transform_script(script_code, str(script_path_obj))
+
+            if verbose and was_transformed:
+                click.echo("✓ Applied dynamic import transformation")
+
+            # Execute in a namespace with __name__ set to '__main__'
+            exec(script_obj, {'__name__': '__main__', '__file__': str(script_path_obj)})
+
+            if verbose:
+                click.echo("✓ Script executed successfully")
+            return
+
+        except Exception as e:
+            import traceback
+            click.echo(f"✗ Script failed with error: {e}", err=True)
+            if verbose:
+                traceback.print_exc()
+            sys.exit(1)
 
     # --open implies --save
     if open_app:
@@ -514,7 +592,6 @@ def run(script_path: str,
         except subprocess.CalledProcessError as e:
             # Script failed - hython already printed the error, just exit with same code
             sys.exit(e.returncode)
-
 
 
 main.add_command(houdini)
