@@ -3,7 +3,7 @@
 from zabob_houdini.utils import HoudiniResult, JsonObject, error_result
 
 
-def _test_dependency_tracking() -> 'JsonObject | HoudiniResult':
+def h_test_dependency_tracking() -> 'JsonObject | HoudiniResult':
     """Test that node dependencies are tracked correctly."""
     try:
         from zabob_houdini.solo_fns import node, context

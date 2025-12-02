@@ -4,7 +4,7 @@ from zabob_houdini.solo_fns import node, chain
 from zabob_houdini.utils import JsonArray, JsonObject
 
 
-def _test_positional_reordering() -> JsonObject:
+def h_test_positional_reordering() -> JsonObject:
     """Test Chain.copy() positional reordering functionality."""
     geo = node("/obj", "geo")
     # Create chain with named nodes
@@ -40,7 +40,7 @@ def _test_positional_reordering() -> JsonObject:
     }
 
 
-def _test_copy_signature_includes_args() -> JsonObject:
+def h_test_copy_signature_includes_args() -> JsonObject:
     """Collect copy method signature information for validation."""
     import inspect
 

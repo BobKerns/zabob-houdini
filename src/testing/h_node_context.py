@@ -4,7 +4,7 @@ from zabob_houdini.utils import JsonObject, ignore
 from zabob_houdini.core import node, chain, context, merge, NodeInstance
 
 
-def _test_node_context_dataclass() -> JsonObject:
+def h_test_node_context_dataclass() -> JsonObject:
     """Test context object has proper parent attribute."""
     # Create a context
     parent = node("/obj", "geo", "test_geo")
@@ -18,7 +18,7 @@ def _test_node_context_dataclass() -> JsonObject:
     }
 
 
-def _test_node_context_context_manager() -> JsonObject:
+def h_test_node_context_context_manager() -> JsonObject:
     """Test context object works as a context manager."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -33,7 +33,7 @@ def _test_node_context_context_manager() -> JsonObject:
     return result
 
 
-def _test_node_context_mutable() -> JsonObject:
+def h_test_node_context_mutable() -> JsonObject:
     """Test context object is mutable (no longer frozen)."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -46,7 +46,7 @@ def _test_node_context_mutable() -> JsonObject:
     }
 
 
-def _test_context_with_node_instance() -> JsonObject:
+def h_test_context_with_node_instance() -> JsonObject:
     """Test context function with NodeInstance parent."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -57,7 +57,7 @@ def _test_context_with_node_instance() -> JsonObject:
     }
 
 
-def _test_context_with_string_path() -> JsonObject:
+def h_test_context_with_string_path() -> JsonObject:
     """Test context function with string path parent."""
     ctx = context("/obj")
 
@@ -68,7 +68,7 @@ def _test_context_with_string_path() -> JsonObject:
     }
 
 
-def _test_context_usage_example() -> JsonObject:
+def h_test_context_usage_example() -> JsonObject:
     """Test realistic usage pattern with context manager."""
     # Create geometry container
     geo = node("/obj", "geo", "geometry1")
@@ -89,7 +89,7 @@ def _test_context_usage_example() -> JsonObject:
     return result
 
 
-def _test_context_preserves_parent_type() -> JsonObject:
+def h_test_context_preserves_parent_type() -> JsonObject:
     """Test context function preserves NodeInstance type."""
     parent = node("/obj", "geo", "test_geo")
     ctx = context(parent)
@@ -100,7 +100,7 @@ def _test_context_preserves_parent_type() -> JsonObject:
     }
 
 
-def _test_node_context_node_method() -> JsonObject:
+def h_test_node_context_node_method() -> JsonObject:
     """Test context.node() method creates nodes under the context parent."""
     geo = node("/obj", "geo", "test_geo")
     ctx = context(geo)
@@ -117,7 +117,7 @@ def _test_node_context_node_method() -> JsonObject:
     }
 
 
-def _test_node_context_name_lookup() -> JsonObject:
+def h_test_node_context_name_lookup() -> JsonObject:
     """Test context name registration and lookup."""
     geo = node("/obj", "geo", "test_geo")
     ctx = context(geo)
@@ -152,7 +152,7 @@ def _test_node_context_name_lookup() -> JsonObject:
     }
 
 
-def _test_node_context_chain_method() -> JsonObject:
+def h_test_node_context_chain_method() -> JsonObject:
     """Test context.chain() method with string name lookup."""
     geo = node("/obj", "geo", "geometry1")
 
@@ -196,7 +196,7 @@ def _test_node_context_chain_method() -> JsonObject:
         }
 
 
-def _test_node_context_chain_registration() -> JsonObject:
+def h_test_node_context_chain_registration() -> JsonObject:
     """Test context.chain() registers new named nodes in context."""
     geo = node("/obj", "geo", "geometry1")
     ctx = context(geo)
@@ -244,7 +244,7 @@ def _test_node_context_chain_registration() -> JsonObject:
     }
 
 
-def _test_node_context_integration() -> JsonObject:
+def h_test_node_context_integration() -> JsonObject:
     """Test full context workflow with node creation and lookup."""
     geo = node("/obj", "geo", "geometry1")
 
@@ -277,7 +277,7 @@ def _test_node_context_integration() -> JsonObject:
         }
 
 
-def _test_node_context_merge_method() -> JsonObject:
+def h_test_node_context_merge_method() -> JsonObject:
     """Test context merge() method string argument lookup and basic functionality."""
 
     # Create parent and context
@@ -301,7 +301,7 @@ def _test_node_context_merge_method() -> JsonObject:
     }
 
 
-def _test_node_context_merge_registration() -> JsonObject:
+def h_test_node_context_merge_registration() -> JsonObject:
     """Test that named merge nodes are registered in context and lookupable."""
 
     # Create parent and context
@@ -361,7 +361,7 @@ def _test_node_context_merge_registration() -> JsonObject:
     }
 
 
-def _test_node_context_parent_validation() -> JsonObject:
+def h_test_node_context_parent_validation() -> JsonObject:
     """Test context validates nodes have same parent as context."""
 
     # Create two different geometry containers
@@ -423,7 +423,7 @@ def _test_node_context_parent_validation() -> JsonObject:
     }
 
 
-def _test_parent_validation_chain() -> JsonObject:
+def h_test_parent_validation_chain() -> JsonObject:
     """Test that chain() validates all nodes have the same parent."""
 
     # Create nodes with different parents
@@ -464,7 +464,7 @@ def _test_parent_validation_chain() -> JsonObject:
     }
 
 
-def _test_parent_validation_merge() -> JsonObject:
+def h_test_parent_validation_merge() -> JsonObject:
     """Test that merge() validates all nodes have the same parent."""
 
     # Create nodes with different parents

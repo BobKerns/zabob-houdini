@@ -6,7 +6,7 @@ from zabob_houdini.core import node, hou_node
 from zabob_houdini.utils import JsonObject
 
 
-def _test_parameter_setting() -> JsonObject:
+def h_test_parameter_setting() -> JsonObject:
     '''Test setting and retrieving node parameters.'''
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_params")
@@ -38,7 +38,7 @@ def _test_parameter_setting() -> JsonObject:
     }
 
 
-def _test_geometry_creation(node_type: str) -> JsonObject:
+def h_test_geometry_creation(node_type: str) -> JsonObject:
     """Test creation of various geometry node types."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", f"test_{node_type}")
@@ -53,7 +53,7 @@ def _test_geometry_creation(node_type: str) -> JsonObject:
     }
 
 
-def _test_diamond_pattern_creation() -> JsonObject:
+def h_test_diamond_pattern_creation() -> JsonObject:
     """Test diamond pattern node creation without duplication."""
     from zabob_houdini.core import chain
     from zabob_houdini.utils import JsonArray
@@ -113,7 +113,7 @@ def _test_diamond_pattern_creation() -> JsonObject:
     }
 
 
-def _test_multiple_input_merge() -> JsonObject:
+def h_test_multiple_input_merge() -> JsonObject:
     """Test merge node with multiple inputs."""
     from zabob_houdini.core import chain
 
@@ -145,7 +145,7 @@ def _test_multiple_input_merge() -> JsonObject:
     }
 
 
-def _test_chain_input_connections() -> JsonObject:
+def h_test_chain_input_connections() -> JsonObject:
     """Test that chain input connections work correctly."""
     from zabob_houdini.core import chain
 

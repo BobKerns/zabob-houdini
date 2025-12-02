@@ -7,7 +7,7 @@ from zabob_houdini.utils import HoudiniResult, JsonObject, error_result, success
 from zabob_houdini.core_utils import hou_node
 
 
-def _test_layout_stress_test() -> HoudiniResult:
+def h_test_layout_stress_test() -> HoudiniResult:
     """Run a built-in layout algorithm stress test and return statistics."""
     # Create a geometry object for testing
     _obj = hou_node("/obj")
@@ -87,7 +87,7 @@ def _test_layout_stress_test() -> HoudiniResult:
         )
 
 
-def _test_simple_layout_demo() -> HoudiniResult:
+def h_test_simple_layout_demo() -> HoudiniResult:
     """Test a simple layout demo to verify basic functionality."""
     try:
         # Create a geometry object for testing

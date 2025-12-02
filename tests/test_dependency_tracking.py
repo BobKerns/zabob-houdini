@@ -6,7 +6,7 @@ class TestDependencyTracking:
 
     def test_dependency_tracking(self, hython_test):
         """Test that dependencies are correctly tracked for nodes and chains."""
-        result = hython_test("_test_dependency_tracking")
+        result = hython_test("h_test_dependency_tracking")
 
         # Basic dependency tracking
         assert result['box_has_dependent'], "Box should have dependents"

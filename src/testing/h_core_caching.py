@@ -12,7 +12,7 @@ from zabob_houdini.solo_fns import (
 from zabob_houdini.core_utils import hou_node
 
 
-def _test_create_caches_result() -> JsonObject:
+def h_test_create_caches_result() -> JsonObject:
     """Test NodeInstance.create() caching behavior."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -36,7 +36,7 @@ def _test_create_caches_result() -> JsonObject:
     }
 
 
-def _test_create_different_instances_different_nodes() -> JsonObject:
+def h_test_create_different_instances_different_nodes() -> JsonObject:
     """Test different NodeInstance objects create different nodes."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -60,7 +60,7 @@ def _test_create_different_instances_different_nodes() -> JsonObject:
     }
 
 
-def _test_create_returns_tuple_of_node_instances() -> JsonObject:
+def h_test_create_returns_tuple_of_node_instances() -> JsonObject:
     """Test Chain.create() returns tuple of NodeInstance copies."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -92,7 +92,7 @@ def _test_create_returns_tuple_of_node_instances() -> JsonObject:
     }
 
 
-def _test_copy_creates_independent_instance() -> JsonObject:
+def h_test_copy_creates_independent_instance() -> JsonObject:
     """Test NodeInstance.copy() creates independent copies."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -124,7 +124,7 @@ def _test_copy_creates_independent_instance() -> JsonObject:
     }
 
 
-def _test_copy_with_chain_inputs() -> JsonObject:
+def h_test_copy_with_chain_inputs() -> JsonObject:
     """Test NodeInstance.copy() with various input types."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -155,7 +155,7 @@ def _test_copy_with_chain_inputs() -> JsonObject:
     }
 
 
-def _test_copy_creates_independent_chain() -> JsonObject:
+def h_test_copy_creates_independent_chain() -> JsonObject:
     """Test Chain.copy() creates independent copy."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -184,7 +184,7 @@ def _test_copy_creates_independent_chain() -> JsonObject:
     }
 
 
-def _test_copy_deep_copies_node_instances() -> JsonObject:
+def h_test_copy_deep_copies_node_instances() -> JsonObject:
     """Test Chain.copy() deep copies NodeInstances."""
     from zabob_houdini.core import NodeInstance
 
@@ -216,7 +216,7 @@ def _test_copy_deep_copies_node_instances() -> JsonObject:
     }
 
 
-def _test_copy_deep_copies_nested_chains() -> JsonObject:
+def h_test_copy_deep_copies_nested_chains() -> JsonObject:
     """Test Chain.copy() recursively copies nested chains."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -248,7 +248,7 @@ def _test_copy_deep_copies_nested_chains() -> JsonObject:
     }
 
 
-def _test_copy_preserves_non_chain_inputs() -> JsonObject:
+def h_test_copy_preserves_non_chain_inputs() -> JsonObject:
     """Test NodeInstance.copy() preserves non-Chain inputs as-is."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -279,7 +279,7 @@ def _test_copy_preserves_non_chain_inputs() -> JsonObject:
     }
 
 
-def _test_convenience_methods_with_created_nodes() -> JsonObject:
+def h_test_convenience_methods_with_created_nodes() -> JsonObject:
     """Test Chain convenience methods for accessing created hou.Node instances."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -311,7 +311,7 @@ def _test_convenience_methods_with_created_nodes() -> JsonObject:
     }
 
 
-def _test_convenience_methods_empty_chain() -> HoudiniResult:
+def h_test_convenience_methods_empty_chain() -> HoudiniResult:
     """Test methods on an empty Chain."""
     try:
         # Fail to create empty chain
@@ -323,7 +323,7 @@ def _test_convenience_methods_empty_chain() -> HoudiniResult:
                               )
 
 
-def _test_node_registry_functionality() -> JsonObject:
+def h_test_node_registry_functionality() -> JsonObject:
     """Test NodeInstance registry functionality."""
 
     # Create geometry object for testing
@@ -360,7 +360,7 @@ def _test_node_registry_functionality() -> JsonObject:
     }
 
 
-def _test_merge_inputs_sparse_handling() -> JsonObject:
+def h_test_merge_inputs_sparse_handling() -> JsonObject:
     """Test _merge_inputs function with sparse (None) inputs."""
     from zabob_houdini.core_node import _merge_inputs
     from zabob_houdini.core_types import UnresolvedConnections

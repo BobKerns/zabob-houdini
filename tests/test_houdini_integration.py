@@ -10,7 +10,7 @@ import pytest
 @pytest.mark.integration
 def test_hou_module_available(hython_test):
     """Test that hou module is available in Houdini environment."""
-    result_data = hython_test("_test_hou_module_available")
+    result_data = hython_test("h_test_hou_module_available")
     assert "hou_version" in result_data
     assert "hou_app" in result_data
     assert isinstance(result_data["hou_version"], list)
@@ -22,7 +22,7 @@ def test_hou_module_available(hython_test):
 @pytest.mark.integration
 def test_basic_node_creation_in_houdini(hython_test):
     """Test basic Houdini node creation."""
-    result_data = hython_test("_test_basic_node_creation_in_houdini")
+    result_data = hython_test("h_test_basic_node_creation_in_houdini")
     assert "geo_path" in result_data
     assert "box_path" in result_data
     assert result_data["geo_path"].endswith("test_geo")
@@ -32,7 +32,7 @@ def test_basic_node_creation_in_houdini(hython_test):
 @pytest.mark.integration
 def test_zabob_node_creation(hython_test):
     """Test Zabob NodeInstance creation and execution in Houdini."""
-    result_data = hython_test("_test_zabob_node_creation")
+    result_data = hython_test("h_test_zabob_node_creation")
     assert "created_path" in result_data
     assert "sizex" in result_data
     assert result_data["created_path"].endswith("zabob_box")
@@ -42,7 +42,7 @@ def test_zabob_node_creation(hython_test):
 @pytest.mark.integration
 def test_zabob_chain_creation(hython_test):
     """Test Zabob Chain creation and execution in Houdini."""
-    result_data = hython_test("_test_zabob_chain_creation")
+    result_data = hython_test("h_test_zabob_chain_creation")
     assert "chain_length" in result_data
     assert "node_paths" in result_data
     assert result_data["chain_length"] == 3
@@ -58,7 +58,7 @@ def test_zabob_chain_creation(hython_test):
 @pytest.mark.integration
 def test_node_input_connections(hython_test):
     """Test node input connections work correctly."""
-    result_data = hython_test("_test_node_input_connections")
+    result_data = hython_test("h_test_node_input_connections")
     assert "box_path" in result_data
     assert "xform_path" in result_data
     assert "connection_exists" in result_data
@@ -70,7 +70,7 @@ def test_node_input_connections(hython_test):
 @pytest.mark.integration
 def test_node_parentage(hython_test):
     """Test that created nodes have correct parentage."""
-    data = hython_test("_test_node_parentage")
+    data = hython_test("h_test_node_parentage")
     assert data['box_path'] == '/obj/test_geo/test_box1'
     assert data['geo_path'] == '/obj/test_geo'
     assert data['obj_path'] == '/obj'

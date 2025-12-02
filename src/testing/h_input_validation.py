@@ -5,7 +5,7 @@ from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
-def _test_parameter_validation_comprehensive() -> JsonObject:
+def h_test_parameter_validation_comprehensive() -> JsonObject:
     """Test parameter validation in Houdini environment."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_validation")
@@ -48,7 +48,7 @@ def _test_parameter_validation_comprehensive() -> JsonObject:
     }
 
 
-def _test_chain_rejects_input_parameter() -> JsonObject:
+def h_test_chain_rejects_input_parameter() -> JsonObject:
     """Test that chain() properly rejects the deprecated _input parameter."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_rejection")
@@ -90,7 +90,7 @@ def _test_chain_rejects_input_parameter() -> JsonObject:
     }
 
 
-def _test_valid_input_patterns() -> JsonObject:
+def h_test_valid_input_patterns() -> JsonObject:
     """Test that valid input patterns work correctly."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_valid")
@@ -121,7 +121,7 @@ def _test_valid_input_patterns() -> JsonObject:
     }
 
 
-def _test_node_input_validation() -> JsonObject:
+def h_test_node_input_validation() -> JsonObject:
     '''
     Test node input connections and validation.
     '''
@@ -160,7 +160,7 @@ def _test_node_input_validation() -> JsonObject:
     }
 
 
-def _test_invalid_input_types(input_type: str) -> JsonObject:
+def h_test_invalid_input_types(input_type: str) -> JsonObject:
     """Test that invalid input types are handled appropriately."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_invalid")

@@ -6,7 +6,7 @@ from zabob_houdini.utils import JsonObject, JsonValue
 from zabob_houdini.core import ROOT, node, chain, hou_node
 
 
-def _test_basic_node_creation_in_houdini() -> JsonObject:
+def h_test_basic_node_creation_in_houdini() -> JsonObject:
     """Test basic node creation in Houdini."""
     # Create a geometry object
     _obj = hou_node("/obj")
@@ -21,7 +21,7 @@ def _test_basic_node_creation_in_houdini() -> JsonObject:
     }
 
 
-def _test_zabob_chain_creation() -> JsonObject:
+def h_test_zabob_chain_creation() -> JsonObject:
     """Test Zabob Chain creation in Houdini."""
     # Create a geometry object for testing
     _obj = hou_node("/obj")
@@ -44,7 +44,7 @@ def _test_zabob_chain_creation() -> JsonObject:
     }
 
 
-def _test_zabob_node_creation() -> JsonObject:
+def h_test_zabob_node_creation() -> JsonObject:
     """Test Zabob NodeInstance creation in Houdini."""
     # Create a geometry object for testing
     _obj = hou_node("/obj")
@@ -60,7 +60,7 @@ def _test_zabob_node_creation() -> JsonObject:
     }
 
 
-def _test_node_input_connections() -> JsonObject:
+def h_test_node_input_connections() -> JsonObject:
     """Test node creation with input connections."""
     # Create a geometry object for testing
     _obj = hou_node("/obj")
@@ -86,7 +86,7 @@ def _test_node_input_connections() -> JsonObject:
     }
 
 
-def _test_node_parentage() -> JsonObject:
+def h_test_node_parentage() -> JsonObject:
     """Test that parentage is correctly handled in NodeInstance."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
@@ -102,7 +102,7 @@ def _test_node_parentage() -> JsonObject:
     }
 
 
-def _test_hou_module_available() -> JsonObject:
+def h_test_hou_module_available() -> JsonObject:
     """Simple test to verify hou module is available."""
     version = hou.applicationVersion()
     app_name = hou.applicationName()

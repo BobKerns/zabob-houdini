@@ -4,7 +4,7 @@ from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
-def _test_diamond_no_duplication() -> JsonObject:
+def h_test_diamond_no_duplication() -> JsonObject:
     """Test that diamond pattern doesn't create duplicate nodes - this should expose the bug!"""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_diamond_duplication")
@@ -69,7 +69,7 @@ def _test_diamond_no_duplication() -> JsonObject:
     }
 
 
-def _test_chain_reference_vs_copy() -> JsonObject:
+def h_test_chain_reference_vs_copy() -> JsonObject:
     """Test that chains are referenced, not copied when used as inputs."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_reference_vs_copy")

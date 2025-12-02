@@ -4,7 +4,7 @@ from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
-def _test_input_connections_basic() -> JsonObject:
+def h_test_input_connections_basic() -> JsonObject:
     """Test that input connections are set up correctly on nodes."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_connections")
@@ -60,7 +60,7 @@ def _test_input_connections_basic() -> JsonObject:
     }
 
 
-def _test_chain_input_delegation() -> JsonObject:
+def h_test_chain_input_delegation() -> JsonObject:
     """Test that Chain.inputs properly delegates to first node."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_delegation")
@@ -91,7 +91,7 @@ def _test_chain_input_delegation() -> JsonObject:
     }
 
 
-def _test_multiple_inputs_basic() -> JsonObject:
+def h_test_multiple_inputs_basic() -> JsonObject:
     """Test that nodes can accept multiple inputs correctly."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_multi")
