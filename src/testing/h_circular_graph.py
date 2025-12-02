@@ -4,8 +4,12 @@ Houdini integration tests for circular graph construction.
 These tests run in hython and create actual circular node graphs.
 """
 
-from zabob_houdini.core import context
 import hou
+
+from zabob_houdini.utils import ignore
+from zabob_houdini.core import context
+
+ignore(ignore)
 
 
 def test_circular_three_node_cycle():
@@ -21,9 +25,9 @@ def test_circular_three_node_cycle():
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_node1 = ctx["node1"].create()
-    hou_node2 = ctx["node2"].create()
-    hou_node3 = ctx["node3"].create()
+    hou_node1 = ctx["node1"].resolved.create()
+    hou_node2 = ctx["node2"].resolved.create()
+    hou_node3 = ctx["node3"].resolved.create()
 
     # Verify nodes exist
     assert hou_node1 is not None
@@ -59,7 +63,7 @@ def test_self_referencing_node():
 
     # Node is created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_node = ctx["self_ref"].create()
+    hou_node = ctx["self_ref"].resolved.create()
 
     # Check if it has an input connection
     inputs = hou_node.inputs()
@@ -84,8 +88,8 @@ def test_two_node_cycle():
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_a = ctx["node_a"].create()
-    hou_b = ctx["node_b"].create()
+    hou_a = ctx["node_a"].resolved.create()
+    hou_b = ctx["node_b"].resolved.create()
 
     # Verify both nodes exist and have inputs
     a_inputs = hou_a.inputs()
@@ -116,9 +120,9 @@ def test_circular_with_context():
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_a = ctx["A"].create()
-    hou_b = ctx["B"].create()
-    hou_c = ctx["C"].create()
+    hou_a = ctx["A"].resolved.create()
+    hou_b = ctx["B"].resolved.create()
+    hou_c = ctx["C"].resolved.create()
 
     # Check for cycle
     a_inputs = hou_a.inputs()
@@ -157,11 +161,12 @@ def test_complex_intersecting_cycles():
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_a = ctx["A"].create()
-    hou_b = ctx["B"].create()
-    hou_c = ctx["C"].create()
-    hou_d = ctx["D"].create()
-    hou_e = ctx["E"].create()
+    hou_a = ctx["A"].resolved.create()
+    hou_b = ctx["B"].resolved.create()
+    hou_c = ctx["C"].resolved.create()
+    hou_d = ctx["D"].resolved.create()
+    hou_e = ctx["E"].resolved.create()
+    ignore(hou_d)
 
     # Count cycles by checking input connections
     cycle_count = 0
@@ -177,7 +182,7 @@ def test_complex_intersecting_cycles():
             cycle_count += 1
 
     return {
-        "success": True,
+        
         "node_count": 5,
         "cycle_count": cycle_count
     }

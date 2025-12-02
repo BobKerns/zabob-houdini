@@ -3,18 +3,16 @@ Entry point for zabob-houdini CLI and hython dispatch.
 """
 
 import click
-import json
 import sys
 
 
 from zabob_houdini.cli import main as dev_main, houdini
 from zabob_houdini.__version__ import __version__, __distribution__
-from zabob_houdini.houdini_bridge import invoke_houdini_function
-from zabob_houdini.utils import write_error_result, write_response
 from zabob_houdini.utils_dev import DEV_LAYOUT as layout, generate
 
 
 IN_HOUDINI: bool = 'hou' in sys.modules
+
 
 @click.group()
 @click.version_option(version=__version__, prog_name=__distribution__)
@@ -25,6 +23,7 @@ def main() -> None:
     Simple CLI for validating Houdini integration and listing node types.
     """
     pass
+
 
 if IN_HOUDINI:
     from zabob_houdini.houdini_dev import (
@@ -38,7 +37,7 @@ if IN_HOUDINI:
     if layout.testing is not None:
         if layout.vscode_tmp is not None:
             generate.add_command(_generate_test_list, "tests")
-        houdini_info.add_command(_run_test, "runtest")
+        houdini_info.add_command(_run_test, "run-test")
 else:
     # Don't load houdini_versions in hython.
     # It is not needed, and depends on dotenv, which is not installed

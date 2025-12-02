@@ -29,11 +29,13 @@ class HythonSessionFn(Protocol):
 
 def fmt_location(name: str, loc: Location | None) -> str:
     if loc is None:
-        return "<unknown location>"
-    file = str(Path(loc.get("file", "")))
+        return ""
+    file = str(Path(loc.get("file", "")).relative_to(Path.cwd()))
+
     line = loc.get("line", 0)
     fn = loc.get("name", "<unknown>")
-    return f'{name} "{file}", line {line}, in {fn}'
+
+    return f'{name} "{file}:{line}", in {fn}'
 
 
 @pytest.fixture
@@ -58,9 +60,9 @@ def hython_test(hython_session: 'HythonSession', request) -> HythonSessionFn:
                     while caller_frame:
                         caller_file = Path(caller_frame.f_code.co_filename)
                         if caller_file.name.startswith('test_') and caller_file.suffix == '.py':
-                            # Convert test_foo.py to testing._foo
+                            # Convert test_foo.py to testing.h_foo
                             pytest_module = caller_file.stem  # e.g., "test_houdini_integration"
-                            hython_module = f"testing._{pytest_module[5:]}"  # "testing._houdini_integration"
+                            hython_module = f"testing.h_{pytest_module[5:]}"  # "testing.h_houdini_integration"
                             module = hython_module
                             break
                         caller_frame = caller_frame.f_back
@@ -68,13 +70,13 @@ def hython_test(hython_session: 'HythonSession', request) -> HythonSessionFn:
                 # Fallback - this shouldn't happen with proper test organization
                 if not module:
                     raise ValueError(f"Could not determine module for test function {test_func_name}. "
-                                   "Make sure the test is called from a test_*.py file.")
+                                     "Make sure the test is called from a test_*.py file.")
             finally:
                 del frame
 
         try:
             result = hython_session.call_function(test_func_name, *args,
-                                            module=module)
+                                                  module=module)
         except RuntimeError as e:
             if "Could not start hython" in str(e):
                 pytest.skip("hython not found - Houdini not installed or not in PATH")
@@ -89,20 +91,27 @@ def hython_test(hython_session: 'HythonSession', request) -> HythonSessionFn:
             error_msg = result.get("error", "Unknown error")
             separator = "------Hython Error Traceback------"
             traceback_info = result.get("traceback", "")
-            loc_sep = "------ Location (Test, Error) ------"
+            loc_sep = "------ Location (Test, Step, Error) ------"
             test_loc = fmt_location("Tst>", result.get('test_location'))
+            step_loc = fmt_location("Stp>", result.get('step_location'))
             error_loc = fmt_location("Err>", result.get('error_location'))
-            msg = "\n".join((
-                heading, error_msg, "",
-                separator, traceback_info,
-                loc_sep, test_loc, error_loc
-            ))
+            msg = "\n".join(
+                p for p in (
+                    heading, error_msg, "",
+                    separator, traceback_info,
+                    loc_sep, test_loc, step_loc, error_loc
+                )
+                if p.strip()
+            )
             pytest.fail(msg)
 
         # At this point we know success=True, so result field must be present
         if "result" not in result:
             pytest.fail("Houdini test did not return a result field")
         print(fmt_location('Tst>', result['test_location']), file=sys.stderr)
+        step_loc = result.get('step_location')
+        if step_loc:
+            print(fmt_location('Stp>', step_loc), file=sys.stderr)
         return result['result']
 
     return run_houdini_test
@@ -152,16 +161,17 @@ class HythonSession:
                         bufsize=1,  # Line buffered
                         env=env
                     )
-                    if (self.process.poll() is None
-                        and self.process.stdout
-                        and self.process.stdin
-                        and not self.process.stdout.closed
-                        and not self.process.stdin.closed
-                        ):
-                            self._started = True
-                            return True
+                    if (
+                            self.process.poll() is None
+                            and self.process.stdout
+                            and self.process.stdin
+                            and not self.process.stdout.closed
+                            and not self.process.stdin.closed
+                            ):
+                        self._started = True
+                        return True
                 except Exception:
-                    pass # Ignore exceptions and retry
+                    pass  # Ignore exceptions and retry
             return False
 
     def call_function(self, func_name: str, *args, module: str) -> HoudiniResult:

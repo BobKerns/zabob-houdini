@@ -1,11 +1,15 @@
 """Core caching test functions."""
 
+
+from zabob_houdini.utils import HoudiniResult, JsonObject, error_result, success_result
 from zabob_houdini.core_node import (
-    node, hou_node, NodeInstance,
+    NO_CONNECTION, NodeInstance,
     get_node_instance, wrap_node,
 )
-from zabob_houdini.core_chain import chain
-from zabob_houdini.utils import JsonObject
+from zabob_houdini.solo_fns import (
+    chain, node
+)
+from zabob_houdini.core_utils import hou_node
 
 
 def _test_create_caches_result() -> JsonObject:
@@ -67,17 +71,16 @@ def _test_create_returns_tuple_of_node_instances() -> JsonObject:
     node2 = node(geo.path(), "sphere", name="chain_sphere")
     test_chain = chain(node1, node2)
 
-    result_tuple = test_chain.create()
+    hou_nodes = test_chain.create()
+    nodes = test_chain.nodes
 
     # Check return type and length
-    is_tuple = isinstance(result_tuple, tuple)
-    tuple_length = len(result_tuple)
+    is_tuple = isinstance(hou_nodes, tuple)
+    tuple_length = len(nodes)
 
     # Check that items are NodeInstance objects
-    all_node_instances = all(isinstance(item, NodeInstance) for item in result_tuple)
+    all_node_instances = all(isinstance(item, NodeInstance) for item in nodes)
 
-    # Test that they can create hou nodes
-    hou_nodes = [item.create() for item in result_tuple]
     all_created = all(node is not None for node in hou_nodes)
 
     return {
@@ -136,14 +139,14 @@ def _test_copy_with_chain_inputs() -> JsonObject:
     copied = original.copy()
 
     # Test input structure
-    has_inputs = copied.inputs is not None
-    input_length = len(copied.inputs) if copied.inputs else 0
+    has_inputs = copied.inputs != ()
+    input_length = len(copied.inputs)
 
     # The input chain should be copied (different object)
     input_copied = False
     if copied.inputs and len(copied.inputs) > 0:
         # Check if it's a different Chain object - inputs now returns (node, output_index) tuples or None
-        input_copied = copied.inputs[0] is not None and copied.inputs[0][0] is not inner_chain
+        input_copied = copied.inputs[0] != NO_CONNECTION and copied.inputs[0][0] != inner_chain
 
     return {
         'has_inputs': has_inputs,
@@ -179,9 +182,6 @@ def _test_copy_creates_independent_chain() -> JsonObject:
         'nodes_not_shared': nodes_not_shared,
         'nodes_not_equal': nodes_not_equal,
     }
-
-
-
 
 
 def _test_copy_deep_copies_node_instances() -> JsonObject:
@@ -264,33 +264,18 @@ def _test_copy_preserves_non_chain_inputs() -> JsonObject:
     has_inputs = copied.inputs is not None
     input_length = len(copied.inputs) if copied.inputs else 0
     # inputs now returns (node, output_index) tuples for actual nodes, None for None inputs
-    first_input_same = (copied.inputs[0][0] is input_node and copied.inputs[0][1] == 0) if copied.inputs and len(copied.inputs) > 0 and copied.inputs[0] is not None else False
-    second_input_none = copied.inputs[1] is None if copied.inputs and len(copied.inputs) > 1 else False
+    first_input_same = (
+        (copied.inputs[0][0] is input_node and copied.inputs[0][1] == 0)
+        if copied.inputs and len(copied.inputs) > 0 and copied.inputs[0] is not None
+        else False
+    )
+    second_input_none = copied.inputs[1] == NO_CONNECTION if copied.inputs and len(copied.inputs) > 1 else False
 
     return {
         'has_inputs': has_inputs,
         'input_length': input_length,
         'first_input_same': first_input_same,
         'second_input_none': second_input_none,
-    }
-
-
-def _test_create_empty_chain_returns_empty_tuple() -> JsonObject:
-    """Test Chain.create() with empty chain returns empty tuple."""
-    # Create geometry object for testing
-    _obj = hou_node("/obj")
-    geo = _obj.createNode("geo", "test_geo")
-
-    # Create empty chain
-    test_chain = chain()  # Empty chain
-    result = test_chain.create()
-
-    is_tuple = isinstance(result, tuple)
-    tuple_length = len(result)
-
-    return {
-        'is_tuple': is_tuple,
-        'tuple_length': tuple_length,
     }
 
 
@@ -309,7 +294,7 @@ def _test_convenience_methods_with_created_nodes() -> JsonObject:
     # Test convenience methods
     first = test_chain.first_node()
     last = test_chain.last_node()
-    all_nodes = test_chain.hou_nodes()
+    all_nodes = test_chain.hou_nodes
     nodes_list = list(test_chain.nodes_iter())
 
     first_last_different = first is not last
@@ -326,40 +311,16 @@ def _test_convenience_methods_with_created_nodes() -> JsonObject:
     }
 
 
-def _test_convenience_methods_empty_chain() -> JsonObject:
+def _test_convenience_methods_empty_chain() -> HoudiniResult:
     """Test methods on an empty Chain."""
-    # Create geometry object for testing
-    _obj = hou_node("/obj")
-    geo = _obj.createNode("geo", "test_geo")
-
-    # Create empty chain
-    test_chain = chain()
-
-    # Test methods that should work with empty chain
-    all_nodes = test_chain.hou_nodes()
-    nodes_list = list(test_chain.nodes_iter())
-
-    # Test methods that should raise ValueError
-    first_error = None
-    last_error = None
-
     try:
-        test_chain.first_node()
-    except ValueError as e:
-        first_error = str(e)
-
-    try:
-        test_chain.last_node()
-    except ValueError as e:
-        last_error = str(e)
-
-    return {
-        'all_nodes_empty': len(all_nodes) == 0,
-        'nodes_iter_empty': len(nodes_list) == 0,
-        'parent': test_chain.parent.name,
-        'first_error': first_error,
-        'last_error': last_error,
-    }
+        # Fail to create empty chain
+        chain()  # type: ignore
+        return error_result("Chain() with no nodes did not raise an error")
+    except Exception as e:
+        return success_result(error_creating_chain=str(e),
+                              _func=_test_convenience_methods_empty_chain,
+                              )
 
 
 def _test_node_registry_functionality() -> JsonObject:
@@ -389,7 +350,7 @@ def _test_node_registry_functionality() -> JsonObject:
 
     # The first node in the chain should not be the original NodeInstance
     # Chain creates new NodeInstances owned by the chain.
-    first_chain_node_is_original = created_chain_nodes[0].create() is created_hou_node
+    first_chain_node_is_original = created_chain_nodes[0] == created_hou_node
 
     return {
         'found_original': found_original,
@@ -402,7 +363,7 @@ def _test_node_registry_functionality() -> JsonObject:
 def _test_merge_inputs_sparse_handling() -> JsonObject:
     """Test _merge_inputs function with sparse (None) inputs."""
     from zabob_houdini.core_node import _merge_inputs
-    from zabob_houdini import Inputs
+    from zabob_houdini.core_types import UnresolvedConnections
 
     # Create test nodes to use as inputs
     _obj = hou_node("/obj")
@@ -411,35 +372,35 @@ def _test_merge_inputs_sparse_handling() -> JsonObject:
     node2 = node(geo.path(), "sphere", name="sphere1")
     c1 = (node1, 0)
     c2 = (node2, 0)
-    in1: Inputs = (c1, )
-    in2: Inputs = (c2, )
+    in1: UnresolvedConnections = (c1, )
+    in2: UnresolvedConnections = (c2, )
 
     # Test case 1: Both inputs are None - result should be None
-    result1 = _merge_inputs((None,), (None,))
-    both_none_result = result1[0] if result1 else None
+    result1 = _merge_inputs((NO_CONNECTION,), (NO_CONNECTION,))
+    both_none_result = result1[0] if result1 == NO_CONNECTION else None
 
     # Test case 2: First is None, second is not None - result should be second
-    result2 = _merge_inputs((None,), in2)
-    first_none_result = result2[0] if result2 else None
-    first_none_is_node2 = first_none_result is c2
+    result2 = _merge_inputs((NO_CONNECTION,), in2)
+    first_none_result = result2[0]
+    first_none_is_node2 = first_none_result == c2
 
     # Test case 3: First is not None, second is None - result should be first
-    result3 = _merge_inputs(in1, (None,))
-    second_none_result = result3[0] if result3 else None
-    second_none_is_node1 = second_none_result is c1
+    result3 = _merge_inputs(in1, (NO_CONNECTION,))
+    second_none_result = result3[0]
+    second_none_is_node1 = second_none_result == c1
 
     # Test case 4: Both are not None - result should be first (preferring in1)
     result4 = _merge_inputs(in1, in2)
-    both_not_none_result = result4[0] if result4 else None
-    both_not_none_is_node1 = both_not_none_result is c1
+    both_not_none_result = result4[0]
+    both_not_none_is_node1 = both_not_none_result == c1
 
     # Test case 5: Multiple positions with mixed None/not-None
-    result5 = _merge_inputs((c1, None, c1), (None, c2, c2))
+    result5 = _merge_inputs((c1, (None, 0), c1), ((None, 0), c2, c2))
     multi_pos_correct = (
         len(result5) == 3 and
-        result5[0] is c1 and  # First prefers in1
-        result5[1] is c2 and  # None in1, so use in2
-        result5[2] is c1      # Both not None, prefer in1
+        result5[0] == c1 and  # First prefers in1
+        result5[1] == c2 and  # None in1, so use in2
+        result5[2] == c1      # Both not None, prefer in1
     )
 
     # Test case 6: Empty lists
@@ -448,7 +409,7 @@ def _test_merge_inputs_sparse_handling() -> JsonObject:
 
     # Test case 7: One empty, one with content
     result7 = _merge_inputs((), (c1, c2))
-    one_empty_result = len(result7) == 2 and result7[0] is c1 and result7[1] is c2
+    one_empty_result = len(result7) == 2 and result7[0] == c1 and result7[1] == c2
 
     return {
         'both_none_is_none': both_none_result is None,

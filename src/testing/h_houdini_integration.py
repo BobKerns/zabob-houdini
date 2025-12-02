@@ -1,8 +1,9 @@
 """Houdini integration test functions."""
 
 import hou
+
+from zabob_houdini.utils import JsonObject, JsonValue
 from zabob_houdini.core import ROOT, node, chain, hou_node
-from zabob_houdini.utils import JsonObject
 
 
 def _test_basic_node_creation_in_houdini() -> JsonObject:
@@ -35,7 +36,7 @@ def _test_zabob_chain_creation() -> JsonObject:
     created_nodes = processing_chain.create()
 
     # Get the paths from the created NodeInstance objects
-    node_paths = [created_node.create().path() for created_node in created_nodes]
+    node_paths: list[JsonValue] = [created_node.path() for created_node in created_nodes]
 
     return {
         'chain_length': len(created_nodes),

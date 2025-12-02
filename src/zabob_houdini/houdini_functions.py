@@ -59,6 +59,7 @@ def get_houdini_info() -> JsonObject:
     except Exception as e:
         return {'houdini_error': str(e)}
 
+
 @contextmanager
 def with_argv(*args: str):
     """Context manager to temporarily set sys.argv for a block of code."""
@@ -69,14 +70,14 @@ def with_argv(*args: str):
     finally:
         sys.argv = original_argv
 
-def save_hipfile(hipfile: str | None = None, open_app: bool=False) -> None:
+
+def save_hipfile(hipfile: str | None = None, open_app: bool = False) -> None:
     import click
     if hipfile:
         hipfile_path = Path(hipfile)
         hipfile_path.parent.mkdir(parents=True, exist_ok=True)
         hou.hipFile.save(str(hipfile_path))
         click.echo(f"✓ Scene saved to: {hipfile_path}")
-
 
     # After hython exits, open the file if requested
     if open_app and hipfile:
@@ -102,8 +103,6 @@ def _run_in_hython(script_path: str, *script_args: str,
                    ) -> None:
     """
     Run a Python script in hython and optionally save the resulting hip file.
-
-    This is the actual implementation that gets called by the @houdini_command decorator.
     """
     import click
 
@@ -127,17 +126,16 @@ def _run_in_hython(script_path: str, *script_args: str,
         if script_dir not in sys.path:
             sys.path.insert(0, script_dir)
 
-        # Store original sys.argv to restore later
-        original_argv = sys.argv.copy()
         script_path_str = str(script_path_obj)
         try:
             with with_argv(script_path_str, *script_args):
-            # Set up sys.argv as if the script was called directly
+                # Set up sys.argv as if the script was called directly
                 sys.argv = [str(script_path_obj)] + list(script_args)
 
                 # Read and execute the script
+                from zabob_houdini.dyn_loader import transform_script
                 script_code = script_path_obj.read_text()
-                script_obj = compile(script_code, str(script_path_obj), 'exec')
+                script_obj, _ = transform_script(script_code, str(script_path_obj))
                 # Execute in global namespace so imports and variables persist
                 exec(script_obj, {'__name__': '__main__', '__file__': str(script_path_obj)})
 
@@ -157,9 +155,9 @@ def _run_in_hython(script_path: str, *script_args: str,
                 for frame in tb:
                     # Include if it's from the user's script
                     if verbose or (
-                        __file__ not in frame.filename
-                        and '/hou.py' not in frame.filename
-                        ):
+                                __file__ not in frame.filename
+                                and '/hou.py' not in frame.filename
+                            ):
                         relevant_frames.append(frame)
 
                 # Move to the next exception in the chain
@@ -195,6 +193,7 @@ def _run_in_hython(script_path: str, *script_args: str,
             import traceback
             traceback.print_exc()
         sys.exit(1)
+
 
 def _run_with_more(*script_args: str) -> None:
     """

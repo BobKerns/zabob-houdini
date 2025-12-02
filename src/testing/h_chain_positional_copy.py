@@ -1,6 +1,6 @@
 """Chain positional copy test functions."""
 
-from zabob_houdini.core import node, chain
+from zabob_houdini.solo_fns import node, chain
 from zabob_houdini.utils import JsonArray, JsonObject
 
 

@@ -112,15 +112,6 @@ class TestChainCreateBehavior:
         assert result_data["all_created"] is True
         assert len(result_data["node_paths"]) == 2
 
-    @pytest.mark.integration
-    def test_create_empty_chain_returns_empty_tuple(self, hython_test):
-        """Chain.create() with empty chain should return empty tuple."""
-        result_data = hython_test("_test_create_empty_chain_returns_empty_tuple")
-
-        assert result_data["is_tuple"] is True
-        assert result_data["tuple_length"] == 0
-
-
 class TestChainConvenienceMethods:
     """Test Chain convenience methods for accessing created hou.Node instances."""
 
@@ -139,10 +130,7 @@ class TestChainConvenienceMethods:
         """Test convenience methods on empty chain raise appropriate errors."""
         result_data = hython_test("_test_convenience_methods_empty_chain")
 
-        assert result_data["all_nodes_empty"] is True
-        assert result_data["nodes_iter_empty"] is True
-        assert "Cannot get first node of empty chain" in result_data["first_error"]
-        assert "Cannot get last node of empty chain" in result_data["last_error"]
+        assert result_data["error_creating_chain"]
 
     @pytest.mark.integration
     def test_convenience_methods_single_node(self, hython_test):

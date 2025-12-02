@@ -77,7 +77,9 @@ For complete examples including multi-output connections, chain indexing, type n
 
 ### Prerequisites
 
-**UV Package Manager** - Install UV first:
+**UV Package Manager**
+
+- Install UV first:
 
 **macOS and Linux:**
 

@@ -1,6 +1,5 @@
 """Tests for node dependency tracking functionality."""
 
-import pytest
 
 class TestDependencyTracking:
     """Test dependency tracking between nodes."""

@@ -24,31 +24,24 @@ import hou
 
 # Import type aliases from core_types module
 from zabob_houdini.core_types import (
-    NodeParent,
-    NodeType,
-    CreatableNode,
-    ChainableNode,
-    InputNodeSpec,
-    InstanceNodeSpec,
-    InputNode,
-    InputNodes,
-    ResolvedConnection,
-    Inputs,
-    ChainCopyParam,
+    UnresolvedConnection, UnresolvedConnections, ResolvedConnection, NativeNodeType,
+    RawParent, ResolvedParent,
 )
 from zabob_houdini.core_utils import hou_node
 from zabob_houdini.core_node import (
-    NodeBase, NodeInstance, node, ROOT,
+    NodeBase, NodeInstance, ROOT,
     ForwardReference, wrap_node, get_node_instance
 )
-from zabob_houdini.core_chain import Chain, ChainBuilder, chain
-from zabob_houdini.core_context import NodeContext, context
+from zabob_houdini.core_chain import Chain, ChainBuilder
+from zabob_houdini.core_context import NodeContext
+from zabob_houdini.solo_fns import (
+    node, chain, context,
+)
 
 if TYPE_CHECKING:
     T = TypeVar('T', bound=hou.Node)
 else:
     T = TypeVar('T')
-
 
 
 def merge(*inputs: 'NodeInstance | Chain | ForwardReference', **attributes: Any) -> NodeInstance:
@@ -123,14 +116,13 @@ def merge(*inputs: 'NodeInstance | Chain | ForwardReference', **attributes: Any)
     )
 
 
-
-
 # For the type checker's benefit. This must be in sync with the
 # one in __init__.py.
 
 __all__ = (
-    "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent",
-    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", "ChainBuilder",
-    "InputNodes", "Inputs", "ChainCopyParam",
+    "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext",
+    "NativeNodeType", "RawParent", "ResolvedParent",
+    "NodeBase", "ChainBuilder", "ForwardReference",
     "get_node_instance", "wrap_node", "hou_node", 'ROOT',
+    "ResolvedConnection", "UnresolvedConnection", "UnresolvedConnections",
 )

@@ -87,16 +87,16 @@ def _test_diamond_pattern_creation() -> JsonObject:
 
     # Get all node paths for validation
     all_nodes = list(chain_A_created) + list(chain_B2_created) + list(chain_B3_created)
-    node_paths: JsonArray = [node.create().path() for node in all_nodes]
+    node_paths: JsonArray = [node.path() for node in all_nodes]
 
     # Check for duplicates (there shouldn't be any in chain_A since B2/B3 reference it)
     unique_paths = list(set(node_paths))
     no_duplicates = len(unique_paths) == len(node_paths)
 
     # Verify connections
-    scale_up_node = chain_B2_created[0].create()
-    scale_down_node = chain_B3_created[0].create()
-    center_node = chain_A_created[-1].create()
+    scale_up_node = chain_B2_created[0]
+    scale_down_node = chain_B3_created[0]
+    center_node = chain_A_created[-1]
 
     scale_up_input = scale_up_node.inputs()[0] if scale_up_node.inputs() else None
     scale_down_input = scale_down_node.inputs()[0] if scale_down_node.inputs() else None
@@ -136,7 +136,7 @@ def _test_multiple_input_merge() -> JsonObject:
     merge_created = merge_chain.create()
 
     # Check merge node inputs
-    merge_node = merge_created[0].create()
+    merge_node = merge_created[0]
     merge_inputs = len([inp for inp in merge_node.inputs() if inp])  # Count non-None inputs
 
     return {
@@ -169,8 +169,8 @@ def _test_chain_input_connections() -> JsonObject:
     connected_created = connected_chain.create()
 
     # Verify connection
-    processor_node = connected_created[0].create()
-    transform_node = source_created[-1].create()
+    processor_node = connected_created[0]
+    transform_node = source_created[-1]
 
     processor_input = processor_node.inputs()[0] if processor_node.inputs() else None
     connections_valid = processor_input and processor_input.path() == transform_node.path()

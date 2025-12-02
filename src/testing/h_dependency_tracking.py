@@ -1,12 +1,12 @@
 """Dependency tracking test functions."""
 
-from zabob_houdini.utils import JsonObject
+from zabob_houdini.utils import HoudiniResult, JsonObject, error_result
 
 
-def _test_dependency_tracking() -> JsonObject:
+def _test_dependency_tracking() -> 'JsonObject | HoudiniResult':
     """Test that node dependencies are tracked correctly."""
     try:
-        from zabob_houdini.core import node, chain, context
+        from zabob_houdini.solo_fns import node, context
 
         # Create some nodes with dependencies
         geo = node("/obj", "geo", "test_geo")
@@ -84,9 +84,4 @@ def _test_dependency_tracking() -> JsonObject:
             'merge_not_sink': merge_node not in sinks
         }
     except Exception as e:
-        import traceback
-        return {
-            'success': False,
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }
+        return error_result("Dependency tracking test failed", _error=e)

@@ -60,12 +60,18 @@ def test_basic_feature():
 
     # Verify and return results
     return {
-        "success": True,
         "box_exists": hou_box is not None,
         "sphere_exists": hou_sphere is not None,
         "node_count": len(geo.children())
     }
 ```
+
+The return values can be any JSON object. This is encapsulate
+as the `"result"` field of the `HoudiniResult` typed dict.
+
+`HoudiniResult` objects may be constructed and returned directly,
+constructed with the `success_result()` and `error_result()`
+functions.
 
 ### Key Rules
 
@@ -75,6 +81,7 @@ def test_basic_feature():
 4. **DO NOT** return `hou.Node` objects or other non-serializable types
 5. **DO** clean up nodes if needed (usually not required for tests)
 6. **DO** create parent containers before creating child nodes
+7. **DO NOT WRITE TO STDOUT!** -- it is reserved for communication
 
 ## Return Value Requirements
 
@@ -83,7 +90,6 @@ Functions must return **JSON-serializable dictionaries**:
 ```python
 # ✅ Good - All JSON-serializable types
 return {
-    "success": True,
     "count": 42,
     "names": ["box", "sphere"],
     "positions": [[0, 0], [1, 0]],

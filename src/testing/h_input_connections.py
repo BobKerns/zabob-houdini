@@ -113,6 +113,3 @@ def _test_multiple_inputs_basic() -> JsonObject:
         'merge_has_multiple_inputs': merge_has_multiple_inputs,
         'input_count': input_count,
     }
-
-
-

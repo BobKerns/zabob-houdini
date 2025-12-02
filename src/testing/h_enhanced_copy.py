@@ -3,6 +3,7 @@
 from zabob_houdini.core import node, chain
 from zabob_houdini.utils import JsonArray, JsonObject
 
+
 def _test_enhanced_copy_integration() -> JsonObject:
     """Collect data about enhanced copy functionality for test validation."""
     # Create a geometry container
@@ -73,6 +74,7 @@ def _test_enhanced_copy_integration() -> JsonObject:
         }
     }
 
+
 def _test_copy_signature_includes_args() -> JsonObject:
     """Collect copy method signature information for validation."""
     import inspect
@@ -107,4 +109,3 @@ def _test_copy_signature_includes_args() -> JsonObject:
         "chain_all_parameters": chain_param_names,
         "chain_uses_args": chain_uses_args,
     }
-

@@ -38,9 +38,9 @@ def _test_diamond_no_duplication() -> JsonObject:
     unique_node_paths = list(set(all_node_paths))
 
     # Check connections to verify they're connecting to the right nodes
-    scale_up_node = chain_B2_created[0].create()
-    scale_down_node = chain_B3_created[0].create()
-    center_node = chain_A_created[-1].create()
+    scale_up_node = chain_B2_created[0]
+    scale_down_node = chain_B3_created[0]
+    center_node = chain_A_created[-1]
 
     scale_up_input = scale_up_node.inputs()[0] if scale_up_node.inputs() else None
     scale_down_input = scale_down_node.inputs()[0] if scale_down_node.inputs() else None

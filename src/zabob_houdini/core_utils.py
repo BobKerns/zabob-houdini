@@ -6,10 +6,9 @@ Should only import hou and standard library modules.
 '''
 
 from collections import defaultdict
-from collections.abc import Sequence
-from typing import TYPE_CHECKING
 
 import hou
+
 
 def hou_node(path: str) -> 'hou.Node':
     """Get a Houdini node, raising exception if not found."""
@@ -31,5 +30,3 @@ def _generate_name(parent: str, type: str) -> str:
         path = f"{parent}/{name}"
         if hou.node(path) is None:
             return name
-
-

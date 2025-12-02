@@ -5,6 +5,7 @@ agentic
 Agentic
 Aovs
 argparse
+asname
 Attribs
 attribwrangle
 autofit
@@ -64,6 +65,7 @@ easeout
 easeoutp
 easep
 ehthumbs
+elts
 fanout
 FBIK
 filepattern
@@ -76,8 +78,10 @@ flipbook
 fromlist
 funcs
 genericgenerator
+genexpr
 geometryimport
 getenv
+getframe
 getitem
 Gltf
 gplay
@@ -119,6 +123,7 @@ keymaps
 keystring
 KHTML
 kwargs
+kwonlyargs
 labelsize
 libname
 lookupable
@@ -157,6 +162,7 @@ opdef
 oplibraries
 OPNAMESPACE
 orbolt
+orelse
 orthowidth
 panetab
 panetype
@@ -178,6 +184,7 @@ Pixmap
 playbar
 pointpattern
 popleft
+posonlyargs
 preexec
 prefs
 primpath
@@ -198,6 +205,7 @@ PyPI
 pyproject
 pytest
 Pythonic
+pythonlibs
 PYTHONPATH
 pythonscript
 pyversion
@@ -239,6 +247,7 @@ SIGPIPE
 SIGSEGV
 SIGSEGVing
 simdata
+sitecustomize
 sizex
 sizey
 sizez
@@ -265,12 +274,15 @@ topnet
 uncategorized
 undoable
 undos
+unparses
+unparsing
 Unregisters
 unregistration
 unsetenv
 Untextured
 usdvaluetype
 valueselected
+vararg
 venv
 viewports
 vmatch

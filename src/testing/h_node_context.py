@@ -1,7 +1,7 @@
 """Node context test functions."""
 
+from zabob_houdini.utils import JsonObject, ignore
 from zabob_houdini.core import node, chain, context, merge, NodeInstance
-from zabob_houdini.utils import JsonObject
 
 
 def _test_node_context_dataclass() -> JsonObject:
@@ -139,6 +139,7 @@ def _test_node_context_name_lookup() -> JsonObject:
     # Test KeyError for missing name
     try:
         missing = ctx["nonexistent"]
+        ignore(missing)
         keyerror_raised = False
     except KeyError:
         keyerror_raised = True
@@ -206,6 +207,7 @@ def _test_node_context_chain_registration() -> JsonObject:
     # Create external nodes (not in context yet)
     external_xform = node(geo, "xform", "external_xform")
     external_sphere = node(geo, "sphere", "external_sphere")
+    ignore(external_xform, external_sphere)
 
     # Create chain with ChainBuilder - cannot pre-populate with current API
     with ctx.chain() as mixed_chain:
@@ -220,8 +222,8 @@ def _test_node_context_chain_registration() -> JsonObject:
         can_lookup_after_chain = (
             looked_up_xform.name == "builder_xform" and
             looked_up_sphere.name == "builder_sphere" and
-            looked_up_xform.node_type == "xform" and
-            looked_up_sphere.node_type == "sphere"
+            looked_up_xform.resolved.node_type == "xform" and
+            looked_up_sphere.resolved.node_type == "sphere"
         )
     except KeyError:
         external_nodes_registered = False
@@ -280,14 +282,15 @@ def _test_node_context_merge_method() -> JsonObject:
 
     # Create parent and context
     parent = node("/obj", "geo", "test_geo")
-    ctx = context(parent)
+    with context(parent) as ctx:
 
-    # Add some test nodes to the context
-    box = ctx.node("box", "my_box")
-    sphere = ctx.node("sphere", "my_sphere")
+        # Add some test nodes to the context
+        box = ctx.node("box", "my_box")
+        sphere = ctx.node("sphere", "my_sphere")
+        ignore(box, sphere)
 
-    # Create merge using string arguments (should resolve to existing nodes)
-    merge_node = ctx.merge("my_box", "my_sphere", name="test_merge")
+        # Create merge using string arguments (should resolve to existing nodes)
+        merge_node = ctx.merge("my_box", "my_sphere", name="test_merge")
 
     # Simple validation - just check that we got a merge node
     return {
@@ -314,6 +317,7 @@ def _test_node_context_merge_registration() -> JsonObject:
 
     # Create merge using mix of string lookup and external nodes
     merge_node = ctx.merge("existing_box", external_xform, external_sphere, name="my_merge")
+    ignore(merge_node)
 
     # Check registration - merge should be registered
     merge_registered = "my_merge" in ctx._nodes
@@ -334,9 +338,9 @@ def _test_node_context_merge_registration() -> JsonObject:
             looked_up_merge.name == "my_merge" and
             looked_up_xform.name == "external_xform" and
             looked_up_sphere.name == "external_sphere" and
-            looked_up_merge.node_type == "merge" and
-            looked_up_xform.node_type == "xform" and
-            looked_up_sphere.node_type == "sphere"
+            looked_up_merge.resolved.node_type == "merge" and
+            looked_up_xform.resolved.node_type == "xform" and
+            looked_up_sphere.resolved.node_type == "sphere"
         )
     except KeyError:
         external_nodes_registered = False
@@ -401,7 +405,8 @@ def _test_node_context_parent_validation() -> JsonObject:
     merge_error_mentions_context = False
     try:
         # This should fail because box_wrong_parent has different parent
-        _bad_merge = ctx.merge("box_in_ctx", box_wrong_parent, name="bad_merge")
+        bad_merge = ctx.merge(box_in_ctx, box_wrong_parent, name="bad_merge")
+        ignore(bad_merge)
         merge_validation_works = False  # Should not reach here
     except Exception as e:
         merge_validation_works = True
@@ -431,6 +436,7 @@ def _test_parent_validation_chain() -> JsonObject:
     # This should raise ValueError
     try:
         invalid_chain = chain(box1, box2)
+        ignore(invalid_chain)
         validation_failed = True
         error_message = ""
     except ValueError as e:
@@ -444,6 +450,7 @@ def _test_parent_validation_chain() -> JsonObject:
     try:
         box3 = node(geo1, "sphere", "sphere1")  # Same parent as box1
         valid_chain = chain(box1, box3)
+        ignore(valid_chain)
         valid_chain_works = True
     except Exception as e:
         valid_chain_works = False
@@ -470,6 +477,7 @@ def _test_parent_validation_merge() -> JsonObject:
     # This should raise ValueError
     try:
         invalid_merge = merge(box1, box2)
+        ignore(invalid_merge)
         validation_failed = True
         error_message = ""
     except ValueError as e:
@@ -483,6 +491,7 @@ def _test_parent_validation_merge() -> JsonObject:
     try:
         box3 = node(geo1, "sphere", "sphere1")  # Same parent as box1
         valid_merge = merge(box1, box3)
+        ignore(valid_merge)
         valid_merge_works = True
     except Exception as e:
         valid_merge_works = False

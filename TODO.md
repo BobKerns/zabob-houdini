@@ -64,6 +64,14 @@
   - Provide clean API for loop body definition
   - Handle automatic begin/end node creation and wiring
 
+### Jupyter Integration
+- [ ] Create hython/Jupyter kernel for notebook support
+  - Investigate IPython kernel protocol compatibility with hython
+  - Implement kernel wrapper that launches hython subprocess
+  - Handle hou module imports and state management across cells
+  - Enable interactive Houdini scene manipulation from notebooks
+  - Document setup process for developers
+
 ### Qt Module Stubs Completion
 - [x] Added comprehensive methods for ColorPalette class (14 methods)
 - [x] Added comprehensive methods for ListEditor class (40+ methods)

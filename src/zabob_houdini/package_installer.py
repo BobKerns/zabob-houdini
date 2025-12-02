@@ -7,6 +7,7 @@ Python nodes, shelf tools, and HDAs.
 
 import json
 import os
+import shutil
 from pathlib import Path
 from zabob_houdini.houdini_config import find_houdini_pref_dir, ensure_houdini_package_dir
 
@@ -100,6 +101,67 @@ def create_package_json(package_dir: Path, zabob_src_path: Path) -> Path:
     return package_file
 
 
+def get_houdini_python_version() -> str | None:
+    """
+    Get the Python version string used by Houdini (e.g., '3.11').
+
+    Returns:
+        Version string like '3.11' or None if cannot determine
+    """
+    from zabob_houdini.find_houdini import find_houdini_installations
+
+    installations = find_houdini_installations()
+    if not installations:
+        return None
+
+    # Use the highest version installation
+    highest_version = max(installations.keys())
+    install = installations[highest_version]
+
+    py_version = install.python_version
+    # Version object has major and minor attributes
+    return f"{py_version.major}.{py_version.minor}"
+
+
+def install_pythonrc() -> tuple[bool, str | None]:
+    """
+    Install pythonrc.py to enable dynamic imports in Houdini.
+
+    Returns:
+        Tuple of (success, installed_path or error_message)
+    """
+    # Find Houdini user prefs directory
+    user_prefs = find_houdini_pref_dir()
+    if not user_prefs:
+        return False, "Could not find Houdini preferences directory"
+
+    # Get Houdini's Python version
+    py_version_str = get_houdini_python_version()
+    if not py_version_str:
+        return False, "Could not determine Houdini Python version"
+
+    py_version = f"python{py_version_str}libs"
+    pythonlibs_dir = user_prefs / py_version
+
+    try:
+        pythonlibs_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        return False, f"Could not create {py_version} directory: {e}"
+
+    # Get source template
+    template_path = Path(__file__).parent / "pythonrc_template.py"
+    if not template_path.exists():
+        return False, f"Template not found: {template_path}"
+
+    # Install pythonrc.py
+    pythonrc_path = pythonlibs_dir / "pythonrc.py"
+    try:
+        shutil.copy2(template_path, pythonrc_path)
+        return True, str(pythonrc_path)
+    except Exception as e:
+        return False, f"Could not install pythonrc.py: {e}"
+
+
 def install_houdini_package(src_dir: Path | None = None) -> bool:
     """
     Install zabob-houdini as a Houdini package.
@@ -128,16 +190,29 @@ def install_houdini_package(src_dir: Path | None = None) -> bool:
         print("Available directories:", get_houdini_package_dirs())
         return False
 
+    success = True
+
     try:
         # Create package JSON file
         package_file = create_package_json(package_dir, src_dir)
         print(f"✓ Created Houdini package: {package_file}")
         print(f"  Points to: {src_dir}")
-        return True
 
     except Exception as e:
         print(f"Error creating package: {e}")
-        return False
+        success = False
+
+    # Install pythonrc.py for dynamic imports
+    pythonrc_success, pythonrc_result = install_pythonrc()
+    if pythonrc_success:
+        print(f"✓ Installed pythonrc.py: {pythonrc_result}")
+    else:
+        print(f"Warning: Could not install pythonrc.py: {pythonrc_result}")
+        print("  Dynamic imports may not work in Houdini Python nodes")
+        # Don't fail installation if pythonrc install fails
+        # success = False
+
+    return success
 
 
 def uninstall_houdini_package() -> bool:
@@ -149,6 +224,7 @@ def uninstall_houdini_package() -> bool:
     """
     removed_any = False
 
+    # Remove package JSON files
     for package_dir in get_houdini_package_dirs():
         package_file = package_dir / "zabob_houdini.json"
         if package_file.exists():
@@ -158,6 +234,26 @@ def uninstall_houdini_package() -> bool:
                 removed_any = True
             except Exception as e:
                 print(f"Error removing {package_file}: {e}")
+
+    # Remove pythonrc.py if it exists
+    user_prefs = find_houdini_pref_dir()
+    if user_prefs:
+        py_version_str = get_houdini_python_version()
+        if py_version_str:
+            py_version = f"python{py_version_str}libs"
+            pythonrc_path = user_prefs / py_version / "pythonrc.py"
+            if pythonrc_path.exists():
+                try:
+                    # Check if it's our file (contains zabob-houdini marker)
+                    content = pythonrc_path.read_text()
+                    if 'zabob-houdini' in content:
+                        pythonrc_path.unlink()
+                        print(f"✓ Removed pythonrc.py: {pythonrc_path}")
+                        removed_any = True
+                    else:
+                        print(f"ℹ  Skipped pythonrc.py (not installed by zabob-houdini): {pythonrc_path}")
+                except Exception as e:
+                    print(f"Error removing pythonrc.py: {e}")
 
     if not removed_any:
         print("No zabob-houdini package found to remove")

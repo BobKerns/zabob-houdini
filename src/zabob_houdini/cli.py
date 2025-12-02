@@ -23,6 +23,7 @@ CATEGORIES = [
     'Dop', 'Driver', 'Lop', 'Manager', 'Object', 'Shop',
     'Sop', 'Top', 'Vop']
 
+
 def get_environment_info() -> dict[str, JsonValue]:
     """Get information about the current Python and Houdini environment."""
     info: dict[str, JsonValue] = {
@@ -309,13 +310,13 @@ def diagnose() -> None:
                     venv_src = Path(venv_points_to).resolve()
 
                     if venv_src == current_src:
-                        click.echo(f"✓ Virtual environment points to current worktree")
-                        click.echo(f"  {venv_points_to}")
+                        click.echo("✓ Virtual environment points to current worktree")
+                        click.echo("  {venv_points_to}")
                     else:
-                        click.echo(f"⚠ Virtual environment points to DIFFERENT location!")
-                        click.echo(f"  Expected: {current_src}")
-                        click.echo(f"  Actual:   {venv_src}")
-                        click.echo(f"  → Fix: deactivate 2>/dev/null; rm -rf .venv && uv sync")
+                        click.echo("⚠ Virtual environment points to DIFFERENT location!")
+                        click.echo("  Expected: {current_src}")
+                        click.echo("  Actual:   {venv_src}")
+                        click.echo("  → Fix: deactivate 2>/dev/null; rm -rf .venv && uv sync")
                 except Exception as e:
                     click.echo(f"Error reading .pth file: {e}")
             else:
@@ -339,6 +340,7 @@ def diagnose() -> None:
         click.echo("• To find Houdini installations: zabob-houdini houdini installations")
     click.echo("• To download other versions from SideFX: zabob-houdini sidefx versions")
     click.echo("=" * 70)
+
 
 @click.group("houdini")
 def houdini():
@@ -452,7 +454,11 @@ def show(version: str | None = None) -> None:
               help='Open the saved HIP file in Houdini application (implies --save)')
 @click.option('--verbose', '-v', is_flag=True,
               help='Show verbose output from script execution')
-def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, save: bool, open_app: bool, verbose: bool) -> None:
+def run(script_path: str,
+        script_args: tuple[str, ...],
+        hipfile: str | None, save: bool,
+        open_app: bool, verbose: bool,
+        ) -> None:
     """
     Run a Python script in hython and optionally save the resulting hip file.
 
@@ -469,7 +475,6 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, sav
     from pathlib import Path
     import subprocess
     import sys
-    import os
 
     # --open implies --save
     if open_app:
@@ -503,7 +508,6 @@ def run(script_path: str, script_args: tuple[str, ...], hipfile: str | None, sav
             cmd.append("--open")
 
         # Run with minimal environment
-
 
         try:
             subprocess.run(cmd, check=True, env=minimal_env())

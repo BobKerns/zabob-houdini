@@ -27,14 +27,21 @@
 
     // Exclude .venv from Python LSP analysis
     "python.analysis.exclude": [
-        ".venv/**"
+        ".venv/**",
+        "**/typing.py",
+        "**/typing.pyi"
     ],
 
     // Suppress diagnostics for PySide6 stubs (still allows IntelliSense)
     "python.analysis.ignore": [
         "stubs/PySide6/**",
-        ".venv/**"
+        ".venv/**",
+        "**/typing.py",
+        "**/typing.pyi"
     ],
+
+    // Only report diagnostics for workspace files
+    "python.analysis.diagnosticMode": "workspace",
 
     // Markdown linting configuration - suppress overly strict formatting rules
     // MD013: Line length (overly restrictive for documentation)
@@ -49,8 +56,6 @@
         "MD031": false,
         "MD032": false
     },
-    "editor.defaultFormatter": "ms-python.flake8",
-    "flake8.enabled": false,
     "[jsonc]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
@@ -96,7 +101,16 @@
     "files.associations": {
         "**/LICENSE": "plaintext",
         "**/LICENSE.*": "plaintext"
-    }
+    },
+    "flake8.ignorePatterns": [
+        "${workspaceFolder}/stubs/PySide6/*"
+    ],
+    "errorLens.disableLineComments": {
+        "Flake8": "# noqa"
+    },
+    "python.analysis.typeCheckingMode": "basic",
+
+
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,

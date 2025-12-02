@@ -1,5 +1,6 @@
 """Input validation test functions."""
 
+from zabob_houdini.utils import ignore
 from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.utils import JsonObject
 
@@ -20,8 +21,8 @@ def _test_parameter_validation_comprehensive() -> JsonObject:
         chain_B = chain(
             node(geo_node, "xform", "scale_up", _input=chain_A),
             node(geo_node, "xform", "rotate_y"),
-        )
-
+                        )
+        ignore(chain_B)
         valid_patterns_work = True
     except Exception:
         valid_patterns_work = False
@@ -34,6 +35,7 @@ def _test_parameter_validation_comprehensive() -> JsonObject:
             node(geo_node, "xform", "rotate_z"),
             _input=chain_A,  # This should raise TypeError
         )
+        ignore(bad_chain)
         invalid_patterns_rejected = False  # Should not reach here
     except TypeError:
         invalid_patterns_rejected = True
@@ -175,7 +177,7 @@ def _test_invalid_input_types(input_type: str) -> JsonObject:
             _test_node = node(geo_node, "xform", "test", _input="")  # type: ignore
             handled_appropriately = True
             error_occurred = False
-        except Exception as e:
+        except Exception:
             handled_appropriately = True
             error_occurred = True
         return {
@@ -189,7 +191,8 @@ def _test_invalid_input_types(input_type: str) -> JsonObject:
             _test_node = node(geo_node, "xform", "test", _input=123)  # type: ignore
             handled_appropriately = True
             error_occurred = False
-        except Exception as e:
+            ignore(_test_node)
+        except Exception:
             handled_appropriately = True
             error_occurred = True
         return {
@@ -199,6 +202,3 @@ def _test_invalid_input_types(input_type: str) -> JsonObject:
 
     else:
         return {'handled_appropriately': False, 'unknown_input_type': input_type}
-
-
-
