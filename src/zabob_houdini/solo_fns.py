@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any, overload, TYPE_CHECKING
 
+from zabob_houdini.core_node import ImmediateNode, _merge_inputs
 from zabob_houdini.utils import HashableMapping
 
 if TYPE_CHECKING:
@@ -65,9 +66,11 @@ def node(
     name: str | None = None,
     *,
     _input: 'Any | None' = None,  # InputNode | Sequence[InputNode]
+    _inputs: 'Any | None' = None,  # InputNode | Sequence[InputNode]
     _node: 'hou.Node | None' = None,
     _display: bool = False,
     _render: bool = False,
+    _context: 'NodeContext | None' = None,
     **attributes: Any
 ) -> NodeInstance:
     """
@@ -87,7 +90,9 @@ def node(
         NodeInstance that can be created with .create()
     """
 
-    inputs = _wrap_inputs(_input)
+    inputs = _wrap_inputs(_input, _context)
+    inputs2 = _wrap_inputs(_inputs, _context)
+    inputs = _merge_inputs(inputs, inputs2)
 
     if name is None:
         match parent:
@@ -110,7 +115,7 @@ def node(
     if resolved_parent is None:
         raise RuntimeError(f"Failed to resolve parent node: {parent}")
 
-    return NodeInstance(
+    return ImmediateNode(
         _parent=resolved_parent,
         node_type=node_type,
         name=name,
@@ -186,7 +191,10 @@ def chain(
 
     copies = tuple(node.copy() for node in flattened_nodes)
 
-    return Chain(
+    chain = Chain(
         nodes=copies,  # Only NodeInstance objects now
         context=NodeContext(first_parent),
     )
+    for node in chain.nodes:
+        node.resolved._connect_inputs()
+    return chain

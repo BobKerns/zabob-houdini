@@ -11,6 +11,7 @@ import functools
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from itertools import zip_longest
+import sys
 from typing import Any, Generic, Self, TypeVar, cast, TYPE_CHECKING, overload
 import weakref
 
@@ -37,6 +38,7 @@ else:
     import zabob_houdini.core_context as cctx
 
 T = TypeVar('T', bound='hou.Node')
+AS = TypeVar('AS', bound='NodeInstance | hou.Node')
 
 
 # Global registry to map hou.Node objects back to their originating NodeInstance
@@ -106,6 +108,27 @@ class NodeBase(Generic[T_Node]):
         if resolved is None:
             raise RuntimeError(f"Failed to resolve node: {self}")
         return resolved
+
+    @property
+    def node(self) -> hou.Node:
+        """Return the actual Houdini node.
+
+        Raises RuntimeError if the node cannot be resolved.
+        """
+        return self.resolved.create()
+
+    def as_node(self, as_type: type[T] = hou.Node) -> T:
+        """
+        Returns the actual Houdini node.
+
+        Args:
+            as_type: Expected node type to narrow the return type to (e.g., hou.SopNode).
+                    Defaults to hou.Node for maximum compatibility.
+
+        Returns:
+            The created Houdini node object, cast to the specified type.
+        """
+        return self.resolved.create(as_type)
 
     def copy(self, /,
              name: str | None = None, *,
@@ -179,7 +202,7 @@ class NodeInstance(NodeBase):
     @overload
     def create(self) -> hou.Node: ...
 
-    def create(self, as_type: type[T] | None = None) -> T:
+    def create(self, as_type: type[T] = hou.Node) -> T:
         """
         Create the actual Houdini node.
 
@@ -232,7 +255,7 @@ class NodeInstance(NodeBase):
         '''
         Actually create and cache the node. This is separated from `create`
         to allow caching independent of the arguments passed to `create`.
-        The caching is essential to avoid recursion.
+        The caching is essential to avoid recursion and duplicate nodes.
         '''
 
         # Don't create the parent if we've been supplied _node.
@@ -271,21 +294,28 @@ class NodeInstance(NodeBase):
                         node_type = created_node.type().name()
                         node_name = created_node.name()
                         node_path = created_node.path()
-                        print(f"Warning: Failed to set parameters on {node_type} node '{node_name}' ({node_path}): {e}")
-                        print(f"  Attempted parameters: {dict(self.attributes)}")
+                        print(f"Warning: Failed to set parameters on {node_type} node '{node_name}' ({node_path}): {e}",
+                              file=sys.stderr)
+                        print(f"  Attempted parameters: {dict(self.attributes)}",
+                              file=sys.stderr)
                         # Try to identify which parameters are invalid
                         valid_parms = {parm.name() for parm in created_node.parms()}
                         invalid_parms = set(self.attributes.keys()) - valid_parms
                         if invalid_parms:
-                            print(f"  Invalid parameters for {node_type}: {invalid_parms}")
-                        print(f"  Valid parameters for {node_type}: {sorted(valid_parms)}")
+                            print(f"  Invalid parameters for {node_type}: {invalid_parms}", file=sys.stderr)
+                        print(f"  Valid parameters for {node_type}: {sorted(valid_parms)}", file=sys.stderr)
                 case _:
                     print(
                         f"Warning: Cannot set parameters on node type "
-                        f"{created_node.type().name()} - skipping attributes"
+                        f"{created_node.type().name()} - skipping attributes",
+                        file=sys.stderr
                     )
+        _node_registry[created_node.path()] = self
+        return created_node
 
-        # Connect inputs - resolve ForwardReferences at creation time
+    def _connect_inputs(self) -> hou.Node:
+        """Connect inputs - resolve ForwardReferences at creation time"""
+        created_node = self._do_create()
         for i, (input_node, output_idx) in enumerate(self.resolved_inputs):
             try:
                 match input_node:
@@ -332,6 +362,28 @@ class NodeInstance(NodeBase):
         if isinstance(node, cls):
             return node
         raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")
+
+    def as_type(self, cls: type[AS]) -> AS:
+        """
+        Narrow the type of a node to the specified type if possible.
+        type can be any subtype of hou.Node or NodeInstance.
+
+        Throws a TypeError if the node cannot be cast to the specified type.
+        """
+        if issubclass(cls, NodeInstance):
+            resolved = self.resolve()
+            if resolved is None:
+                raise TypeError(f"Cannot resolve NodeInstance to {cls.__name__}")
+            if isinstance(resolved, cls):
+                return cast(AS, resolved)
+            raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")
+        elif issubclass(cls, hou.Node):
+            if isinstance(self, NodeInstance):
+                return cast(AS, self._do_create())
+                raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")
+            return self._asType(self._do_create(), cls)
+        node = self.create()
+        return self._asType(node, cls)
 
     @functools.cached_property
     def path(self) -> str:
@@ -428,23 +480,39 @@ class NodeInstance(NodeBase):
         )
 
     def __repr__(self) -> str:
-        """Custom repr that avoids circular references from _chain attribute."""
-        from zabob_houdini.core import ForwardReference
-
+        """
+        Custom repr that avoids circular references from _chain or _inputs.
+        """
         # Generate input names for display
-        input_names = []
-        for (inp, idx) in self._inputs:
-            match inp:
-                case None:
-                    pass
-                case NodeInstance() | ForwardReference() as node:
-                    input_names.append(f'{node.name}[{idx}]')
-                case _:
-                    input_names.append(f"<output {inp}>")
+        def input_name(inp: UnresolvedConnection) -> str:
+            node, idx = inp
+            if node is None:
+                return f"<input {idx}>"
+            return f"{node.name}[{idx}]"
+        inputs_str = ', '.join(
+            input_name(inp)
+            for inp in self._inputs
+        )
+        return f"NodeInstance(type={self.node_type!r}, name={self.name!r}, inputs=({inputs_str})"
 
-        inputs_str = f"({', '.join(input_names)})" if input_names else "()"
 
-        return f"NodeInstance(type={self.node_type!r}, name={self.name!r}, inputs={inputs_str})"
+class ImmediateNode(NodeInstance):
+    """
+    A NodeInstance that wraps an existing hou.Node.
+
+    This is used the standalone `node` function is called without a context.
+    Inputs are set immediately on creation.
+    """
+
+    def create(self, as_type: type[T] = hou.Node) -> T:
+        """Return the existing hou.Node, connecting inputs as needed."""
+        if self._node is not None:
+            self._connect_inputs()
+            return self._asType(self._node, as_type)
+        else:
+            node = self._do_create()
+            self._connect_inputs()
+        return self._asType(node, as_type)
 
 
 def _wrap_hou_node(hnode: hou.Node) -> 'NodeBase':
@@ -824,8 +892,6 @@ def _wrap_inputs(inputs: 'RawInputs | None',
         Tuple of (wrapped_node, output_index) for actual nodes, or None for None inputs
     """
 
-    import zabob_houdini.core_chain as cchain
-
     match inputs:
         case _ as input, int() as idx:
             wrapped = _wrap_input(input, idx, context)
@@ -862,7 +928,6 @@ def _wrap_input(input: RawInput, idx: int,
     Returns:
         Tuple of (wrapped_node, output_index) for actual no )des, or None for None inputs
     """
-    import zabob_houdini.core_chain as cchain
 
     # Copilot: There are no implicit returns in _wrap_single_input. (DO NOT REMOVE)
     def _wrap_single_input(input: RawInput) -> NodeBase | None:

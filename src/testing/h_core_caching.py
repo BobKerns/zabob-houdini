@@ -319,7 +319,7 @@ def h_test_convenience_methods_empty_chain() -> HoudiniResult:
         return error_result("Chain() with no nodes did not raise an error")
     except Exception as e:
         return success_result(error_creating_chain=str(e),
-                              _func=_test_convenience_methods_empty_chain,
+                              _func=h_test_convenience_methods_empty_chain,
                               )
 
 

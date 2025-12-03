@@ -8,6 +8,12 @@ the resulting bytecode.
 The dynamic import system allows imports to be deferred until first use, which helps
 break circular dependencies and improves startup time for large modules.
 
+Limitations:
+    Star imports (from module import *) are not transformed and remain as regular
+    imports. This is intentional since star imports are primarily for interactive use,
+    and transforming them would require rewriting every global variable access as a
+    potential import lookup.
+
 Example:
     >>> from zabob_houdini.dyn import transform, show_source
     >>> source = '''

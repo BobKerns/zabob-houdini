@@ -90,7 +90,7 @@ class HoudiniResult(TypedDict):
     """Result structure from Houdini function calls."""
     success: bool
     result: NotRequired[JsonObject]
-    test_location: Location
+    test_location: Location | None
     error: NotRequired[str]
     traceback: NotRequired[str]
     error_location: NotRequired[Location | None]
@@ -146,11 +146,10 @@ def exclude_traceback(*, function: str | None = None,
             stack = traceback.extract_stack()[:-1]
         caller_frame = stack[-1]
         filename = caller_frame.filename
-    else:
-        if function is not None:
-            _excluded_frames.add(function)
-        if filename is not None:
-            _excluded_file_suffixes.add(filename)
+    if function is not None:
+        _excluded_frames.add(function)
+    if filename is not None:
+        _excluded_file_suffixes.add(filename)
 
 
 def current_stack() -> list:
@@ -173,7 +172,11 @@ def stack_filter(frame: traceback.FrameSummary) -> bool:
     return True
 
 
-def filtered_stack(ex: Exception | None = None) -> tuple[Location, Location, list[traceback.FrameSummary]]:
+def filtered_stack(ex: Exception | None = None) -> tuple[
+            Location | None,
+            Location | None,
+            list[traceback.FrameSummary]
+        ]:
     """Get the current stack, filtering out internal frames."""
     stack: list[traceback.FrameSummary] | None = None
     if ex is not None:
@@ -186,8 +189,8 @@ def filtered_stack(ex: Exception | None = None) -> tuple[Location, Location, lis
     excluded = [frame for frame in stack if not stack_filter(frame)]
     for frame in excluded:
         frame.lineno = 0
-    error_location = frame_location(filtered[-1])
-    test_location = frame_location(filtered[0])
+    error_location = frame_location(filtered[-1]) if filtered else None
+    test_location = frame_location(filtered[0]) if filtered else None
 
     return error_location, test_location, filtered
 
@@ -310,6 +313,16 @@ def _is_houdini_success(result: Any) -> bool:
     if not _is_houdini_result(result):
         return False
     return result['success']
+
+
+T = TypeVar('T')
+
+
+def check(_type: type[T], value: Any) -> T:
+    """Check that the module is loaded correctly."""
+    if not isinstance(value, _type):
+        raise TypeError(f"Expected value of type {_type}, got {type(value)}")
+    return cast(T, value)
 
 
 def ignore(*_: Any) -> None:

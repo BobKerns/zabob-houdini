@@ -71,7 +71,9 @@ def h_test_node_input_connections() -> JsonObject:
     box_created = box_node.create()
 
     # Create node with input connection using the hou.Node directly
-    xform_node = node(geo.path(), "xform", name="connected_xform", _input=box_created)
+    xform_node = node(geo.path(), "xform",
+                      name="connected_xform",
+                      _input=box_created)
     xform_created = xform_node.create()
 
     # Check connection

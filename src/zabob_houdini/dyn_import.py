@@ -14,8 +14,12 @@ Usage:
     # Import entire module
     __dynamic__._def('zabob_houdini.core_node', None, 'cn')
 
-    # Import all symbols from module
-    # Leave unmodified, not amenable to dynamic import.
+    # Star imports are NOT transformed:
+    # from module import *  # Left as-is, not amenable to dynamic import
+    #
+    # Star imports remain as regular imports because transforming them would require
+    # rewriting every global variable access as a potential import lookup, which is
+    # impractical. Star imports are primarily for interactive use.
 
     # Later at runtime, symbols/modules load on first access:
     ref = __dynamic__.load('ForwardReference', locals())  # Triggers import

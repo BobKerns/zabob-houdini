@@ -96,7 +96,7 @@ def h_test_context_preserves_parent_type() -> JsonObject:
 
     return {
         'parent_is_same': ctx.parent is parent,
-        'parent_type_correct': type(ctx.parent) is NodeInstance
+        'parent_type_correct': isinstance(ctx.parent, NodeInstance)
     }
 
 

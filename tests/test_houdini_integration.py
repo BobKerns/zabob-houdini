@@ -67,6 +67,7 @@ def test_node_input_connections(hython_test):
     assert result_data["connection_exists"] is True
     assert result_data["connected_to"] == result_data["box_path"]
 
+
 @pytest.mark.integration
 def test_node_parentage(hython_test):
     """Test that created nodes have correct parentage."""

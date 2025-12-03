@@ -4,6 +4,11 @@ Import hook to automatically transform imports into deferred loads.
 Looks for files with `from __future__ import _dynamic_import` and transforms
 all subsequent imports into deferred loading via _Ref tuples that are processed
 by a custom __setattr__ hook.
+
+Note: Star imports (from module import *) are NOT transformed and remain as regular
+imports. This is intentional since star imports are primarily for interactive use,
+and transforming them would require rewriting every global variable access as a
+potential import lookup.
 '''
 
 import os

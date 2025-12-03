@@ -1,16 +1,52 @@
 """Unit tests for dynamic import AST transformation."""
 
 import ast
+import re
 import sys
 from typing import Any
 
 import pytest
 
-from testing.h_circular_graph import ignore
 from zabob_houdini.dyn import (
     DynamicImportTransformer, _SymbolMap, dyn_import,
     transform_source,
 )
+
+_RE_DEDENT = re.compile(r'^(\n?\s*)\b',
+                        re.MULTILINE)
+
+
+def dedent(source: str) -> str:
+    """Helper to dedent source code for testing."""
+    lines = source.splitlines()
+    # Clean trailing whitespace
+    cleaner = (line.rstrip() for line in lines)
+    cleaned = (line[1:] if line.startswith('\n') else line for line in cleaner)
+    nonblank = [line for line in cleaned if line]
+    indents = [_RE_DEDENT.match(line) for line in nonblank]
+    indented_by = [len(m.group(1)) for m in indents if m]
+
+    # Find minimum indent (ignoring empty lines)
+    min_indent = min(indented_by, default=0)
+
+    if min_indent == 0:
+        return source  # No dedent needed
+
+    dedented_lines = (
+        line[min_indent:] if len(line) >= min_indent else line
+        for line in nonblank
+    )
+    return "\n".join(dedented_lines)
+
+
+def assert_transformed(source: str, expected: str) -> None:
+    source = dedent(source)
+    expected = dedent(expected)
+    transformed = transform_source(source)
+    """Helper to assert that source transforms to expected code."""
+    assert expected == transformed
+    # Ensure the transformed source compiles
+    compile(transformed, '<test>', 'exec')
 
 
 class TestASTTransformation:
@@ -18,94 +54,102 @@ class TestASTTransformation:
 
     def test_marker_detection(self):
         """Test that the _dynamic_import marker is detected."""
-        source = """
-from __future__ import _dynamic_import
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
 
-import foo
-"""
-        tree = ast.parse(source)
-        transformer = DynamicImportTransformer("test_module")
-        transformer.visit(tree)
-
-        # Check that dynamic_mode was activated
-        assert transformer.dynamic_mode
+            import foo
+            """,
+            expected="""
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('foo', 'foo')
+            """)
 
     def test_marker_with_other_futures(self):
         """Test that other __future__ imports are preserved."""
-        source = """
-from __future__ import annotations, _dynamic_import
+        assert_transformed(
+            source="""
+            from __future__ import annotations, _dynamic_import
 
-import foo
-"""
-        tree = ast.parse(source)
-        transformer = DynamicImportTransformer("test_module")
-        transformed = transformer.visit(tree)
-
-        # Should have preserved 'annotations' import
-        # First statement should be: from __future__ import annotations
-        first_stmt = transformed.body[0]
-        assert isinstance(first_stmt, ast.ImportFrom)
-        assert first_stmt.module == '__future__'
-        assert len(first_stmt.names) == 1
-        assert first_stmt.names[0].name == 'annotations'
+            import foo
+            """,
+            expected="""
+            from __future__ import annotations
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('foo', 'foo')
+            """)
 
     def test_import_transformation(self):
         """Test that 'import foo' is transformed correctly."""
-        source = """
-from __future__ import _dynamic_import
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
 
-import foo
-"""
-        tree = ast.parse(source)
-        transformer = DynamicImportTransformer("test_module")
-        transformed = transformer.visit(tree)
+            import foo
+            """,
+            expected='''
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('foo', 'foo')
+            ''')
 
+    def test_import_as_transformation(self):
         """Test that 'import foo as bar' is transformed correctly."""
-        source = """
-from __future__ import _dynamic_import
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
 
-import foo as bar
-"""
-        tree = ast.parse(source)
-        transformer = DynamicImportTransformer("test_module")
-        transformed = transformer.visit(tree)
-        ignore(transformed)  # TODO: add assertions
+            import foo as bar
+            """,
+            expected='''
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('foo', 'bar')
+            ''')
 
     def test_from_import_transformation(self):
         """Test that 'from foo import bar' is transformed correctly."""
-        source = """
-from __future__ import _dynamic_import
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
 
-from foo import bar
-"""
-        tree = ast.parse(source)
-        transformer = DynamicImportTransformer("test_module")
-        transformed = transformer.visit(tree)
-        ignore(transformed)  # TODO: add assertions
+            from foo import bar
+            """,
+            expected='''
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def('foo', 'bar', 'bar')
+            ''')
 
     def test_from_import_as_transformation(self):
         """Test that 'from foo import bar as baz' is transformed correctly."""
-        source = """
-from __future__ import _dynamic_import
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
 
-from foo import bar as baz
-"""
-        tree = ast.parse(source)
-        transformer = DynamicImportTransformer("test_module")
-        transformed = transformer.visit(tree)
-        ignore(transformed)  # TODO: add assertions
+            from foo import bar as baz
+            """,
+            expected='''
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def('foo', 'bar', 'baz')
+            ''')
 
     def test_star_import_transformation(self):
         """Test that 'from foo import *' is transformed correctly."""
-        source = """
-from __future__ import _dynamic_import
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
 
-from foo import *
-"""
-        tree = ast.parse(source)
-        transformer = DynamicImportTransformer("test_module")
-        transformed = transformer.visit(tree)
-        ignore(transformed)  # TODO: add assertions
+            from foo import *
+            """,
+            expected='''
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            from foo import *
+            ''')
 
     def test_setup_code_generation(self):
         """Test that setup code is generated correctly."""

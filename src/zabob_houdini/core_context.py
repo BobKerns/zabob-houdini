@@ -75,13 +75,27 @@ class NodeContext:
         if exc_type is None:  # Only if no exception occurred
             for ref in self.resolved():
                 pass
-            # Apply layout to position all nodes
-            self.apply_layout()
 
             # Create all sink nodes (nodes with no dependents)
-            sink_nodes = self.get_sink_nodes()
-            for node in sink_nodes:
+            sink_nodes = set(self.get_sink_nodes())
+            all_nodes = set(self._nodes.values())
+            connect_queue = deque(sink_nodes)
+            connect_queue.extend(all_nodes - sink_nodes)
+            done: set[NodeBase] = set()
+            while connect_queue:
+                node = connect_queue.popleft()
+                done.add(node)
+                node.resolved._connect_inputs()
+                for inp, _ in node.inputs:
+                    if inp is not None and inp not in done:
+                        connect_queue.append(inp)
+            # Second pass for
+
+            for node in self._nodes.values():
                 node.resolved.create()
+
+            # Apply layout to position all nodes
+            self.apply_layout()
 
     def _create_forward_reference_for_name(self, name: str) -> ForwardReference:
         """Create a ForwardReference for an unknown string name."""
@@ -178,6 +192,7 @@ class NodeContext:
             _node=_node,
             _display=_display,
             _render=_render,
+            _context=self,
             **attributes
         )
         self._register_node(node_instance)
@@ -495,19 +510,23 @@ class NodeContext:
     def _compute_layers(self, all_nodes: Sequence[NodeBase]) -> dict[int, list[NodeBase]]:
         """Compute vertical layers using proper top-down traversal."""
         node_depths: dict[NodeBase, int] = {}
+        resolved_nodes = {
+            node.resolved
+            for node in all_nodes
+        }
 
         # Get actual source nodes (no inputs within our context)
-        source_nodes = []
-        for node in all_nodes:
-            has_inputs_in_context = any(
-                inp is not None and inp[0] in all_nodes
-                for inp in node.inputs
-            )
-            if not has_inputs_in_context:
-                source_nodes.append(node)
+        source_nodes = {
+            node.resolved
+            for node in all_nodes
+            if not any(inp
+                       for inp, idx in node.inputs)
+        }
+        unassigned = resolved_nodes - source_nodes
 
         # Top-down traversal to assign depths
         def assign_depth(node: NodeInstance, depth: int) -> None:
+            unassigned.discard(node)
             # Update depth if this path is deeper
             if node in node_depths:
                 if depth > node_depths[node]:
@@ -523,30 +542,15 @@ class NodeContext:
                 if dependent in all_nodes:
                     assign_depth(dependent.resolved, depth + 1)
 
-        # Start from source nodes at depth 0
-        for source in source_nodes:
-            assign_depth(source, 0)
+        # Process all top-level source nodes
+        for node in source_nodes:
+            assign_depth(node, 0)
 
-        # Handle any remaining unprocessed nodes (shouldn't happen in a proper DAG)
-        for node in all_nodes:
-            if node not in node_depths:
-                # Fallback: assign based on input depths
-                input_nodes = [
-                    inp[0] for inp in node.inputs
-                    if inp is not None and inp[0] in all_nodes
-                ]
-                if input_nodes:
-                    # Resolve ForwardReferences for depth calculation
-                    resolved_nodes = []
-                    for inp in input_nodes:
-                        if isinstance(inp, ForwardReference):
-                            resolved_nodes.append(inp.resolve())
-                        else:
-                            resolved_nodes.append(inp)
-                    max_input_depth = max(node_depths.get(inp, 0) for inp in resolved_nodes)
-                    node_depths[node] = max_input_depth + 1
-                else:
-                    node_depths[node] = 0
+        # We can have left-overs due to loops with no clear top.
+
+        while unassigned:
+            node = next(iter(unassigned))
+            assign_depth(node, 0)
 
         # Move all sink nodes to a common bottom layer
         sink_nodes = self.get_sink_nodes()
@@ -669,15 +673,11 @@ class NodeContext:
 
             for node in layer_nodes:
                 # Resolve ForwardReferences in inputs before grouping
-                resolved_inputs = []
-                for inp in node.inputs:
-                    if inp is not None:
-                        input_node = inp[0]
-                        if isinstance(input_node, ForwardReference):
-                            resolved_inputs.append(input_node.resolve())
-                        else:
-                            resolved_inputs.append(input_node)
-                input_nodes = tuple(resolved_inputs)
+                input_nodes = tuple(
+                    inp.resolved
+                    for inp, _ in node.inputs
+                    if inp is not None
+                )
                 if input_nodes not in input_groups:
                     input_groups[input_nodes] = []
                 input_groups[input_nodes].append(node)
@@ -690,16 +690,15 @@ class NodeContext:
                     available_width = sum(node_required_width[node] for node in group_nodes)
                 else:
                     # Calculate span from leftmost to rightmost input
-                    # Resolve ForwardReferences for layout calculations
-                    resolved_input_nodes = []
-                    for inp in input_nodes:
-                        if isinstance(inp, ForwardReference):
-                            resolved_inp = inp.resolve()
-                            resolved_input_nodes.append(resolved_inp)
-                        else:
-                            resolved_input_nodes.append(inp)
-                    input_positions = [positions[inp][0] for inp in resolved_input_nodes]
-                    input_widths = [node_required_width[inp] for inp in resolved_input_nodes]
+                    input_positions = [
+                        positions[inp][0]
+                        for inp in input_nodes
+                        if inp in positions]
+                    input_widths = [
+                        node_required_width[inp]
+                        for inp in input_nodes
+                        if inp in positions
+                    ]
 
                     # Find the allocated span
                     leftmost = min(pos - width/2 for pos, width in zip(input_positions, input_widths))

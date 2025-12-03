@@ -50,6 +50,46 @@
 
     The arguments can refer to nodes by name, index, or supply a new NodeInstance.
 
+### Dynamic Import Configuration System
+- [ ] **HIGH PRIORITY**: Add configurable control over which imports use dynamic loading
+  - Current behavior: All imports dynamically loaded when `from __future__ import _dynamic_import` is present
+  - Problem 1: External imports (e.g., `import numpy`) add unnecessary overhead to every variable access
+  - Problem 2: **Debugger usability** - stepping through code unexpectedly steps into deferred import machinery
+  - Solution: Package-level configuration to specify which imports should be dynamic
+  - **Immediate workaround**: Limit dynamic imports to only `zabob_houdini.*` by default
+
+  **Proposed API:**
+  ```python
+  # In __dynamic__.py configuration file
+  from zabob_houdini.dyn_import import dyn_configure
+
+  dyn_configure('my_package.*', include=(...), exclude=(...))
+  ```
+
+  **Configuration Sources:**
+  1. `__dynamic__.py` file in package (standard approach)
+  2. Environment variable for post-packaging optimization:
+     ```bash
+     PYTHON_DYNAMIC_ENABLE_SOME_PACKAGE=/path/to/alternate/__dynamic__.py
+     ```
+
+  **Default Behavior:**
+  - If `from __future__ import _dynamic_import` is present, enable for all imports (current behavior)
+  - Configuration file can:
+    - Enable dynamic imports for entire packages
+    - Limit scope with include/exclude patterns (standard glob semantics)
+    - Override per-package or per-module
+
+  **Use Cases:**
+  - Only make internal package imports dynamic (break circular deps)
+  - Keep external library imports (numpy, requests) as regular imports (no overhead)
+  - Enable for specific modules known to have circular dependency issues
+
+  **Implementation Notes:**
+  - Configuration loaded by DynamicImportTransformer before transformation
+  - Pattern matching during AST traversal to decide which imports to transform
+  - Falls back to current "transform all" behavior if no configuration present
+
 ### Circular Graph Construction
 - [ ] Implement circular graph support
   - Allow forward references to nodes not yet defined

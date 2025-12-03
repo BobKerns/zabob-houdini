@@ -1,5 +1,6 @@
 """Test that comprehension iteration variables aren't transformed."""
-from __future__ import _dynamic_import  # type: ignore # noqa: F401,F403,F407
+from __future__ import dynamic_import  # type: ignore # noqa: F401,F403,F407
+from typing import Any
 
 from zabob_houdini.core import node, NodeInstance, ROOT  # noqa: F401
 
@@ -16,6 +17,14 @@ def test_function():
     ]
 
     return result
+
+
+def ignore(*args: Any):
+    '''
+    Example function to illustrate that 'node' in comprehensions
+    should not be transformed.
+    '''
+    pass
 
 
 if __name__ == "__main__":

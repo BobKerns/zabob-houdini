@@ -83,7 +83,7 @@ def h_test_layout_stress_test() -> HoudiniResult:
             nodes_per_layer=[len(nodes) for nodes in layers.values()],
             layout_stats=layout_stats,
             hip_file_saved=True,
-            _func=_test_layout_stress_test
+            _func=h_test_layout_stress_test
         )
 
 
@@ -123,7 +123,7 @@ def h_test_simple_layout_demo() -> HoudiniResult:
             return success_result(
                 positions=positions_data,
                 node_count=len(positions),
-                _func=_test_simple_layout_demo
+                _func=h_test_simple_layout_demo
             )
     except Exception as e:
         return error_result(

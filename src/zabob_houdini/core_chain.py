@@ -19,6 +19,7 @@ from zabob_houdini.core_types import (
     RawInputs,
     RawChainCopyNode,
     ResolvedConnections,
+    UnresolvedConnections,
 )
 
 # Import actual dependencies
@@ -313,7 +314,7 @@ class Chain:
 class ChainBuilder:
     """Context manager for building chains without registering intermediate nodes."""
 
-    _inputs: 'cnode.UnresolvedConnections | None'
+    _inputs: 'cnode.UnresolvedConnections'
     _context: 'NodeContext'
     _nodes: list[cnode.NodeBase]
     _chain: Chain | None = None
@@ -322,7 +323,7 @@ class ChainBuilder:
                  _input: 'cnode.UnresolvedConnections | None' = None,
                  ):
         self._context = context
-        self._input = _input
+        self._inputs = _input or ()
         self._nodes = []
 
     @property
@@ -350,8 +351,11 @@ class ChainBuilder:
             return
         if not self._nodes:
             raise RuntimeError("Cannot create an empty chain.")
+        inputs: UnresolvedConnections = self.inputs or ()
         for node in self._nodes:
-            self._context._add_dependency
+            for inp, _ in inputs:
+                if inp:
+                    self._context._add_dependency(inp, node.resolved)
         # First, create the chain without inputs to mark it as complete
         self._chain = Chain(self._nodes, context=self._context)
 
@@ -465,8 +469,10 @@ class ChainBuilder:
         )
 
     @functools.cached_property
-    def inputs(self) -> 'ResolvedConnections':
+    def inputs(self) -> 'UnresolvedConnections':
         """Return the inputs of the first node in the chain."""
-        if self.chain:
-            return self.chain.inputs
-        raise RuntimeError("Cannot access inputs of an incomplete chain.")
+        if self._chain:
+            return self.chain.first.inputs
+        if self._nodes:
+            return cnode._merge_inputs(self._inputs, self._nodes[0].inputs or ())
+        raise RuntimeError("Cannot access inputs of an empty chain.")

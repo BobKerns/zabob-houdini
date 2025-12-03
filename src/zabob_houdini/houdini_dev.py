@@ -74,9 +74,9 @@ def _generate_test_list(show: bool) -> None:
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)  # type: ignore
 
-                # 4. Scan for functions beginning with '_test_'
+                # 4. Scan for functions beginning with 'h_test_'
                 for name, obj in inspect.getmembers(module, inspect.isfunction):
-                    if name.startswith("_test_"):
+                    if name.startswith("h_test_"):
                         test_functions[name] = py_file.name
         except Exception as e:
             print(f"Warning: Failed to import {py_file.name}: {e}", file=sys.stderr)

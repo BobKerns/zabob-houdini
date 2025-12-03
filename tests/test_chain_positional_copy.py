@@ -4,20 +4,13 @@ Tests for enhanced Chain.copy() functionality.
 This module tests the positional reordering capabilities of Chain.copy() method.
 """
 
-import pytest
-
 
 class TestChainCopyPositional:
     """Test Chain.copy() with positional reordering parameters."""
 
-    @pytest.fixture
-    def sample_chain(self, hython_test):
-        """Create a sample chain for testing."""
-        return hython_test('_test_positional_reordering')
-
-    def test_positional_reordering(self, sample_chain):
+    def test_positional_reordering(self, hython_test):
         """Test that Chain.copy() can reorder nodes positionally."""
-        data = sample_chain
+        data = hython_test('h_test_positional_reordering')
 
         # Verify original order
         assert data['original_names'] == ['first', 'second', 'third']
@@ -45,7 +38,7 @@ class TestChainCopyPositional:
 
     def test_copy_signature_includes_args(self, hython_test):
         """Test that Chain.copy() signature supports *args."""
-        data = hython_test('_test_copy_signature_includes_args')
+        data = hython_test('h_test_copy_signature_includes_args')
 
         # Chain.copy() should use *args for positional parameters
         assert data['chain_uses_args']

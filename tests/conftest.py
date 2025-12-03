@@ -95,10 +95,13 @@ def hython_test(hython_session: 'HythonSession', request) -> HythonSessionFn:
             test_loc = fmt_location("Tst>", result.get('test_location'))
             step_loc = fmt_location("Stp>", result.get('step_location'))
             error_loc = fmt_location("Err>", result.get('error_location'))
+            error_hdr = error_msg.split('\n', 1)[0]
+            error_hdr = f'Error: {error_hdr}'
             msg = "\n".join(
                 p for p in (
                     heading, error_msg, "",
                     separator, traceback_info,
+                    error_hdr,
                     loc_sep, test_loc, step_loc, error_loc
                 )
                 if p.strip()
