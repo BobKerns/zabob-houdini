@@ -869,6 +869,18 @@ class DynamicImportLoader(importlib.abc.SourceLoader):
         with open(path, 'rb') as f:
             return f.read()
 
+    def get_source(self, fullname: str) -> str:
+        """Return the source code with _dynamic_import marker removed for coverage parsing."""
+        source = self.get_data(self.path).decode('utf-8')
+        # Remove _dynamic_import from __future__ imports so coverage can parse the file
+        # Replace the import line with blank line to preserve line numbers
+        lines = source.splitlines(keepends=True)
+        for i, line in enumerate(lines):
+            if '_dynamic_import' in line and 'from __future__' in line:
+                # Replace _dynamic_import but keep rest of line
+                lines[i] = line.replace('_dynamic_import', '').replace(', ,', ',').replace('(,', '(').replace(',)', ')')
+        return ''.join(lines)
+
     def exec_module(self, module: Any) -> None:
         """Execute module with transformed source."""
         # Set module attributes that are expected by Python code
@@ -918,6 +930,33 @@ class DynamicImportLoader(importlib.abc.SourceLoader):
 
 
 DYNAMIC_IMPORT_ALLOW = {'zabob_houdini', 'testing', 'tests', 'test_'}
+
+
+def _patch_coverage_for_dynamic_imports():
+    """Patch coverage to handle _dynamic_import marker in source files."""
+    try:
+        import coverage.python
+        original_get_source = coverage.python.PythonFileReporter.source
+
+        def patched_source(self):
+            """Return source with _dynamic_import stripped from __future__ imports."""
+            src = original_get_source(self)
+            if '_dynamic_import' in src:
+                lines = src.splitlines(keepends=True)
+                for i, line in enumerate(lines):
+                    if '_dynamic_import' in line and 'from __future__' in line:
+                        # Remove _dynamic_import and clean up comma artifacts
+                        cleaned = line.replace('_dynamic_import', '')
+                        cleaned = cleaned.replace(', ,', ',').replace('(,', '(').replace(',)', ')')
+                        lines[i] = cleaned
+                return ''.join(lines)
+            return src
+
+        coverage.python.PythonFileReporter.source = property(patched_source)
+    except (ImportError, AttributeError):
+        pass  # Coverage not installed or API changed
+
+
 """
 Allowed module origins for dynamic import processing. A comma-separated list
 of additional origins can be specified via the DYNAMIC_IMPORT_ALLOW environment
@@ -982,10 +1021,16 @@ class DynamicImportFinder(importlib.abc.MetaPathFinder):
 
 
 def install_import_hook() -> None:
-    """Install the dynamic import hook."""
+    """Install the dynamic import hook and patch coverage if needed."""
     if not any(isinstance(finder, DynamicImportFinder) for finder in sys.meta_path):
         sys.meta_path.insert(0, DynamicImportFinder())
+        # Patch coverage to handle _dynamic_import marker
+        _patch_coverage_for_dynamic_imports()
 
 
 # Auto-install when imported
 install_import_hook()
+
+# Also ensure coverage patch is applied if coverage is already loaded
+if 'coverage' in sys.modules:
+    _patch_coverage_for_dynamic_imports()

@@ -110,7 +110,14 @@
     },
     "python.analysis.typeCheckingMode": "basic",
 
+    // Python testing configuration
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [],
+    "python.testing.unittestEnabled": false,
+    "python.testing.cwd": "${workspaceFolder}",
 
+    // Enable coverage in test runs
+    "python-environment-manager.coverageEnabled": true,
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,

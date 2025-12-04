@@ -1,7 +1,15 @@
 """Test variable access transformation for dynamic imports."""
 
-from struct import pack
-from zabob_houdini.dyn import transform_source
+
+from zabob_houdini.dyn import show_code, transform_source
+
+
+def test_simple_compile():
+    print('here')
+    show_code('''
+from __future__ import _dynamic_import
+''',
+              dynamic_mode=False)
 
 
 def test_simple_variable_reference():

@@ -120,6 +120,7 @@ itemcount
 Jalali
 Keccak
 keepachangelog
+keepends
 keymaps
 keystring
 KHTML

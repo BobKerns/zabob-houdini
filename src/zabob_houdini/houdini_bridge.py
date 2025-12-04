@@ -60,9 +60,12 @@ P = ParamSpec('P')
 
 def minimal_env() -> dict[str, str]:
     """Return a minimal environment for subprocess calls, with only necessary variables."""
+    env_vars = ('PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP',
+                'COVERAGE_FILE', 'COVERAGE_RCFILE', 'COVERAGE_PROCESS_START')
     return {
-        key: os.getenv(key, "")  # Be sure they're at least empty strings.
-        for key in ('PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP')
+        key: value
+        for key in env_vars
+        if (value := os.getenv(key)) is not None
     }
 
 
@@ -122,9 +125,15 @@ def _run_function_via_subprocess(func_name: str, args: tuple,
     # Convert arguments to strings
     str_args = [str(arg) for arg in args]
 
-    cmd = [str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
+    # Check if running under coverage - wrap hython with coverage if so
+    if os.getenv('COVERAGE_RUN'):
+        cmd = ['coverage', 'run', '--parallel-mode', '--source=zabob_houdini,testing',
+               str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
+    else:
+        cmd = [str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
+
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, env=minimal_env())
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
         cmdline_args = ' '.join(str_args)
@@ -141,9 +150,15 @@ def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
     # Convert arguments to strings
     str_args = [str(arg) for arg in args]
 
-    cmd = [str(hython_path), "-m", "zabob_houdini", *str_args]
+    # Check if running under coverage - wrap hython with coverage if so
+    if os.getenv('COVERAGE_RUN'):
+        cmd = ['coverage', 'run', '--parallel-mode', '--source=zabob_houdini,testing',
+               str(hython_path), "-m", "zabob_houdini", *str_args]
+    else:
+        cmd = [str(hython_path), "-m", "zabob_houdini", *str_args]
+
     try:
-        subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL, env=minimal_env())
+        subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL)
         return
     except subprocess.CalledProcessError as e:
         # Return code 1 might be due to SIGPIPE on some systems

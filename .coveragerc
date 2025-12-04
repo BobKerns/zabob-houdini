@@ -1,0 +1,36 @@
+# Coverage.py configuration for zabob-houdini
+[run]
+data_file = .coverage
+source = zabob_houdini,testing
+parallel = true
+branch = true
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */stubs/*
+
+[report]
+# Show missing lines in coverage report
+show_missing = true
+skip_covered = false
+skip_empty = true
+
+# Minimum acceptable coverage percentage
+fail_under = 80
+
+# Report precision
+precision = 2
+
+[html]
+directory = htmlcov
+
+[paths]
+source =
+    src/zabob_houdini
+    */zabob_houdini
+    */src/zabob_houdini
+testing =
+    src/testing
+    */testing
+    */src/testing

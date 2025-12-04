@@ -156,14 +156,22 @@ class HythonSession:
                     else:
                         env["PYTHONPATH"] = src_path
 
+                    # Check if running under coverage - wrap hython with coverage if so
+                    if os.getenv('COVERAGE_RUN'):
+                        cmd = ['coverage', 'run', '--parallel-mode', '--source=zabob_houdini,testing',
+                               hython_path, "-m", "zabob_houdini", "_batch_exec"]
+                    else:
+                        cmd = [hython_path, "-m", "zabob_houdini", "_batch_exec"]
+
                     self.process = subprocess.Popen(
-                        [hython_path, "-m", "zabob_houdini", "_batch_exec"],
+                        cmd,
                         stdin=subprocess.PIPE,
                         stdout=subprocess.PIPE,
                         # Pass stderr through for transparency in case of errors
                         stderr=None,
                         text=True,
                         bufsize=1,  # Line buffered
+                        cwd=str(project_root),  # Run from project root for coverage data files
                         env=env
                     )
                     if (

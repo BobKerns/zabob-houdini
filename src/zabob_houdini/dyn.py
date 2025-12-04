@@ -29,7 +29,7 @@ Example:
     node = __dynamic__.load('NodeInstance', locals())('box')
 """
 
-from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+from __future__ import annotations
 
 import ast
 from dis import dis

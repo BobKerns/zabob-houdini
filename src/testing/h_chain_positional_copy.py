@@ -1,6 +1,5 @@
 """Chain positional copy test functions."""
 
-from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from zabob_houdini.solo_fns import node, chain
 from zabob_houdini.utils import JsonArray, JsonObject

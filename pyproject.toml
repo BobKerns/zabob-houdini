@@ -57,11 +57,15 @@ packages = ["src/zabob_houdini"]
 [dependency-groups]
 dev = [
     "build>=1.3.0",
-    "mypy>=1.18.2",
-    "twine>=5.0.0",
+    "mypy>=1.19.0",
+    "twine>=6.2.0",
+    "pytest-cov>=7.0.0",
+    "coverage>=7.12.0",
+    "hatchling>=1.28.0",
+    "hatch-fancy-pypi-readme>=25.1.0",
 ]
 release = [
-    "keepachangelog>=1.1.0",
+    "keepachangelog>=2.0.0",
 ]
 
 [tool.pytest.ini_options]
@@ -78,6 +82,41 @@ markers = [
     "unit: marks tests as unit tests (no external dependencies)",
     "slow: marks tests as slow running",
 ]
+
+[tool.coverage.run]
+data_file = ".coverage"
+source = ["zabob_houdini", "testing"]
+parallel = true
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/stubs/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+skip_empty = true
+fail_under = 80
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.paths]
+source = [
+    "src/zabob_houdini",
+    "*/zabob_houdini",
+    "*/src/zabob_houdini",
+]
+testing = [
+    "src/testing",
+    "*/testing",
+    "*/src/testing",
+]
+
 filterwarnings = [
     "error",
     "ignore::UserWarning",
