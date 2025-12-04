@@ -1015,6 +1015,7 @@ class DynamicImportFinder(importlib.abc.MetaPathFinder):
                                     fullname, loader, origin=str(py_file)
                                 )
                 except (IOError, OSError):
+                    # Continue the scan.
                     pass
 
         return None
