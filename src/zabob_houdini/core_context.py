@@ -9,7 +9,7 @@ from __future__ import _dynamic_import, annotations  # type: ignore # noqa: F407
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, TypeVar, overload
+from typing import Any, Generic, Self, TypeVar, cast, overload
 import weakref
 from collections.abc import Iterator, Sequence
 
@@ -19,6 +19,7 @@ from zabob_houdini.core_types import (
     NativeNodeType,
     RawInput,
     RawInputs,
+    T_Node, T_Parent, T_Ctx, T_Cat
 )
 from zabob_houdini.core_utils import _generate_name
 from zabob_houdini.core_node import (
@@ -34,7 +35,7 @@ D = TypeVar('D')
 
 
 @dataclass
-class NodeContext:
+class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
     """
     A context manager for creating nodes within a specific parent.
 
@@ -44,14 +45,19 @@ class NodeContext:
     Named nodes can be looked up using dictionary-style access: ctx['name']
     """
     parent: NodeInstance
-    _nodes: dict[str, NodeBase] = field(default_factory=dict, init=False)
-    _dependency_registry: weakref.WeakKeyDictionary[NodeBase, list[NodeBase]] = field(
-        default_factory=weakref.WeakKeyDictionary, init=False
-    )
-    _level: int = field(default=0, init=False)
-    pending: deque[ForwardReference] = field(default_factory=deque, init=False)
+    _nodes: dict[str, NodeBase] = field(init=False)
+    _dependency_registry: weakref.WeakKeyDictionary[NodeBase, list[NodeBase]] = field(init=False)
+    _level: int = field(init=False)
+    pending: deque[ForwardReference] = field(init=False)
 
-    def __enter__(self) -> 'NodeContext':
+    def __init__(self, parent: NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node]):
+        self.parent = parent
+        self._nodes = {}
+        self._dependency_registry = weakref.WeakKeyDictionary()
+        self._level = 0
+        self.pending = deque()
+
+    def __enter__(self) -> Self:
         """Enter the context manager."""
         self._level += 1
 
@@ -159,7 +165,7 @@ class NodeContext:
              _display: bool = False,
              _render: bool = False,
              **attributes: Any
-             ) -> NodeInstance:
+             ) -> NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node]:
         """
         Create a node under this context's parent.
 
@@ -196,7 +202,7 @@ class NodeContext:
             **attributes
         )
         self._register_node(node_instance)
-        return node_instance
+        return cast(NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node], node_instance)
 
     def _register_node(self, node_instance: NodeBase) -> None:
         name = node_instance.name
@@ -333,7 +339,7 @@ class NodeContext:
 
     def merge(self, *inputs: RawInput,
               name: str | None = None,
-              **attributes: Any) -> NodeInstance:
+              **attributes: Any) -> NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node]:
         """
         Create a merge node with multiple inputs.
 

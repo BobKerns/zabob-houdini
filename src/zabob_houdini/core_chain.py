@@ -8,7 +8,7 @@ and the ChainBuilder class for building chains within a context manager interfac
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 import functools
-from typing import Any, cast, overload
+from typing import Any, Generic, cast, overload
 from collections.abc import Iterator, Sequence, Mapping
 
 import hou
@@ -19,6 +19,7 @@ from zabob_houdini.core_types import (
     RawInputs,
     RawChainCopyNode,
     ResolvedConnections,
+    TypeVar,
     UnresolvedConnections,
 )
 
@@ -32,7 +33,10 @@ from zabob_houdini.core_node import (
 from zabob_houdini.core_context import NodeContext
 
 
-class Chain:
+T_Child = TypeVar('T_Child', bound=NodeBase)
+
+
+class Chain(Generic[T_Child]):
     """
     Represents a chain of Houdini nodes that can be created.
 

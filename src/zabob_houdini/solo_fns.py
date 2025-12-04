@@ -13,32 +13,55 @@ For more complex cases use:
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from collections.abc import Iterator
-from typing import Any, overload, TYPE_CHECKING
+from typing import Any, overload
 
-from zabob_houdini.core_node import ImmediateNode, _merge_inputs
-from zabob_houdini.utils import HashableMapping
-
-if TYPE_CHECKING:
-    # This file should not have load-time dependencies on the
-    # core modules.
-    from zabob_houdini.core_chain import Chain
-    from zabob_houdini.core_types import RawChainNode, RawParent
-    from zabob_houdini.core_node import (
-        NodeBase, NodeInstance, wrap_node, _wrap_inputs,
-    )
-    from zabob_houdini.core_utils import _generate_name
-    from zabob_houdini.core_context import NodeContext
-else:
-    from zabob_houdini.core_chain import Chain
-    from zabob_houdini.core_node import (
-        _wrap_inputs, wrap_node, NodeInstance
-    )
-    from zabob_houdini.core_utils import _generate_name
-    from zabob_houdini.core_context import NodeContext
 import hou
 
+from zabob_houdini.core_types import (
+    T_Cat,
+    T_Parent,
+    T_Node,
+    T_Child,
+)
+from zabob_houdini.core_node import ImmediateNode, _merge_inputs
+from zabob_houdini.utils import HashableMapping
+from zabob_houdini.core_chain import Chain
+from zabob_houdini.core_types import RawChainNode, RawParent
+from zabob_houdini.core_node import (
+    NodeBase, NodeInstance, wrap_node, _wrap_inputs,
+)
+from zabob_houdini.core_utils import _generate_name
+from zabob_houdini.core_context import NodeContext
 
-def context(parent: 'RawParent') -> 'NodeContext':
+
+@overload
+def context(parent: T_Parent) -> NodeContext[hou.NodeTypeCategory,
+                                             T_Parent,
+                                             hou.Node,
+                                             hou.Node]: ...
+
+
+@overload
+def context(parent: T_Parent,
+            ) -> NodeContext[hou.NodeTypeCategory,
+                             T_Parent,
+                             hou.Node,
+                             hou.Node]: ...
+
+
+@overload
+def context(parent: NodeInstance[T_Cat, T_Parent, T_Node, T_Child],
+            ) -> NodeContext[T_Cat,
+                             T_Parent,
+                             T_Node,
+                             T_Child]: ...
+
+
+@overload
+def context(parent: 'RawParent') -> NodeContext: ...
+
+
+def context(parent: 'RawParent') -> NodeContext:
     """
     Create a NodeContext for organizing nodes under a specific parent.
 

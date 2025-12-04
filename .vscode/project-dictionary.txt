@@ -1,6 +1,7 @@
 actionitem
 addopts
 Affector
+Agda
 agentic
 Agentic
 Aovs

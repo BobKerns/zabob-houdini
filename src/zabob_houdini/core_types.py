@@ -17,6 +17,10 @@ from zabob_houdini.core_chain import Chain
 
 T_Cat = TypeVar('T_Cat', bound=hou.NodeTypeCategory)
 T_Node = TypeVar('T_Node', bound=hou.Node)
+T_Ctx = TypeVar('T_Ctx', bound=hou.Node)
+T_Parent = TypeVar('T_Parent', bound=hou.Node)
+T_Child = TypeVar('T_Child', bound=hou.Node)
+T_Instance = TypeVar('T_Instance', bound=NodeInstance)
 
 LocalNodeName: TypeAlias = str
 """String name of a node within a context, used for forward references."""

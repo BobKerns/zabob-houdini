@@ -952,7 +952,7 @@ def _patch_coverage_for_dynamic_imports():
                 return ''.join(lines)
             return src
 
-        coverage.python.PythonFileReporter.source = property(patched_source)
+        coverage.python.PythonFileReporter.source = property(patched_source)  # type: ignore
     except (ImportError, AttributeError):
         pass  # Coverage not installed or API changed
 

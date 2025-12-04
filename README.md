@@ -165,6 +165,7 @@ from zabob_houdini import node, chain, context
 ## Documentation
 
 - **[API Documentation](API.md)**: Complete reference for all functions, classes, and methods
+- **[Node Type Hierarchies](docs/NODE_TYPE_HIERARCHIES.md)**: Understanding Houdini's node type system and generic type patterns
 - **[Command Line Interface](COMMAND.md)**: CLI reference and usage guide
 - **[Development Guide](DEVELOPMENT.md)**: Setup, testing, and contribution guidelines
 - **[PyPI Setup](docs/PYPI_SETUP.md)**: Publishing and release information

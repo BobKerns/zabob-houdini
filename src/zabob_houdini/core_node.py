@@ -25,7 +25,7 @@ from zabob_houdini.core_types import (
     UnresolvedConnections,
     ResolvedConnection,
     ResolvedConnections,
-    T_Node,
+    T_Node, T_Parent, T_Cat, T_Child,
 )
 from zabob_houdini.utils import HashableMapping
 from zabob_houdini.core_utils import hou_node
@@ -34,7 +34,7 @@ from zabob_houdini.core_context import NodeContext
 
 
 T = TypeVar('T', bound=hou.Node)
-AS = TypeVar('AS', bound='NodeInstance | hou.Node')
+AS = TypeVar('AS', bound='NodeBase | hou.Node')
 
 
 # Global registry to map hou.Node objects back to their originating NodeInstance
@@ -45,7 +45,7 @@ _node_registry: weakref.WeakValueDictionary[str, 'NodeBase'] = weakref.WeakValue
 
 
 @dataclass(frozen=True, eq=False)
-class NodeBase(Generic[T_Node]):
+class NodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
     """
     Base class for Houdini node representations.
 
@@ -163,7 +163,7 @@ class NodeBase(Generic[T_Node]):
 
 
 @dataclass(frozen=True, eq=False)
-class NodeInstance(NodeBase):
+class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
     """
     Represents a single Houdini node with parameters and inputs.
 
@@ -349,7 +349,7 @@ class NodeInstance(NodeBase):
         _node_registry[created_node.path()] = self
         return created_node
 
-    def _asType(self, node: hou.Node, cls: type[T]) -> T:
+    def _asType(self, node: hou.Node, cls: type[AS]) -> AS:
         """
         Narrow the type of a node to the specified type if possible.
 
@@ -376,7 +376,6 @@ class NodeInstance(NodeBase):
         elif issubclass(cls, hou.Node):
             if isinstance(self, NodeInstance):
                 return cast(AS, self._do_create())
-                raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")
             return self._asType(self._do_create(), cls)
         node = self.create()
         return self._asType(node, cls)
