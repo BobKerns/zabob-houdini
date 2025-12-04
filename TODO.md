@@ -90,6 +90,24 @@
   - Pattern matching during AST traversal to decide which imports to transform
   - Falls back to current "transform all" behavior if no configuration present
 
+  **Configuration File Locations (checked in order):**
+  1. `__dynamic__.py` in package root (alongside `__init__.py`)
+  2. `pyproject.toml` section: `[tool.zabob_houdini.dynamic_import]`
+  3. Environment variable: `PYTHON_DYNAMIC_CONFIG=/path/to/config.py`
+
+  **Pattern Matching:**
+  - Glob patterns: `zabob_houdini.*`, `mypackage.core.*`
+  - Specific modules: `zabob_houdini.core`, `zabob_houdini.core_node`
+  - Include/exclude precedence: exclude takes priority over include
+  - Default if no patterns: transform all (current behavior)
+
+  **Quick Fix for Development:**
+  - Add hardcoded default in `DynamicImportTransformer.__init__`:
+    ```python
+    self.include_patterns = ['zabob_houdini.*']  # Only transform internal imports
+    ```
+  - This immediately fixes debugger stepping issue without full config system
+
 ### Circular Graph Construction
 - [ ] Implement circular graph support
   - Allow forward references to nodes not yet defined
@@ -117,7 +135,7 @@
 - [x] Added comprehensive methods for ListEditor class (40+ methods)
 - [x] Added comprehensive methods for InputField class (15 methods)
 - [x] Added comprehensive methods for FileChooserButton class (8 methods)
-- [x] Added comprehensive methods for Icon class (enhanced __init__)
+- [x] Added comprehensive methods for Icon class (enhanced \__init\__)
 - [x] Added comprehensive methods for ParmDialog class (7 methods)
 - [x] Added comprehensive methods for ViewerOverlay class (15 methods)
 - [x] Added comprehensive methods for WindowOverlay class (5 methods)

@@ -6,7 +6,7 @@ and maintainability. These types document the various ways nodes, inputs, and
 connections can be specified in the API.
 """
 
-from __future__ import annotations
+from __future__ import annotations, _dynamic_import  # type: ignore # noqa: F401,F403,F407
 from typing import Literal, TypeAlias, TYPE_CHECKING, TypeVar
 from collections.abc import Sequence
 

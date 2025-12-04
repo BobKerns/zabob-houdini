@@ -5,10 +5,36 @@ Looks for files with `from __future__ import _dynamic_import` and transforms
 all subsequent imports into deferred loading via _Ref tuples that are processed
 by a custom __setattr__ hook.
 
-Note: Star imports (from module import *) are NOT transformed and remain as regular
-imports. This is intentional since star imports are primarily for interactive use,
-and transforming them would require rewriting every global variable access as a
-potential import lookup.
+Limitations:
+    - Star imports (from module import *) are NOT transformed and remain as regular
+      imports. This is intentional since star imports are primarily for interactive use,
+      and transforming them would require rewriting every global variable access as a
+      potential import lookup.
+
+    - Multiline __future__ imports with parentheses are not detected by the regex
+      marker scan. This is an intentional simplification - __future__ imports are
+      conventionally single-line at the top of files, and supporting multiline would
+      add complexity for a case that essentially never occurs in practice.
+
+    - The marker can be disabled with a comment:
+      `from __future__ import annotations  # , _dynamic_import`
+      This allows selective disabling for testing/debugging without removing the marker.
+
+Configuration:
+    By default, only transforms imports from the same top-level package.
+    For example, code in 'zabob_houdini.core' will only transform 'zabob_houdini.*' imports.
+    External library imports pass through unchanged to avoid debugger stepping issues.
+
+    Per-package override via __dynamic__.py:
+        Create a __dynamic__.py file at the package root with:
+
+        patterns = {
+            'include': ['mypackage.*', 'related.*'],
+            'exclude': ['mypackage.vendor.*']
+        }
+
+    This provides zero-config per-package isolation by default, with flexibility
+    when cross-package transformation is needed.
 '''
 
 import os
@@ -17,6 +43,7 @@ import sys
 import ast
 import importlib
 import re
+from fnmatch import fnmatch
 from typing import Any, TypeVar
 try:
     from typing import override  # type: ignore
@@ -31,6 +58,68 @@ Number of lines to check for __future__ import check
 """
 
 T = TypeVar('T')
+
+
+def _load_dynamic_import_config(package_name: str) -> dict[str, list[str]]:
+    """
+    Load dynamic import configuration for a package.
+
+    Configuration is inferred from the package name by default.
+    The top-level package name (e.g., 'zabob_houdini' from 'zabob_houdini.core')
+    is used to create a pattern that matches only that package's imports.
+
+    Args:
+        package_name: Full package name (e.g., 'zabob_houdini.core')
+
+    Returns:
+        dict with 'include' and 'exclude' pattern lists
+    """
+    # Extract top-level package name
+    # 'zabob_houdini.core.types' -> 'zabob_houdini'
+    # '__main__' -> transform nothing by default
+    top_level = package_name.split('.')[0] if package_name else ''
+
+    # Special handling for script contexts (no transformation by default)
+    if not top_level or top_level in ('__main__', '<<string>>') or top_level.startswith('<'):
+        return {
+            'include': [],
+            'exclude': []
+        }
+
+    # Default: only transform imports from the same top-level package
+    return {
+        'include': [f'{top_level}.*'],
+        'exclude': []
+    }
+
+
+def _should_transform_import(module_name: str, config: dict[str, list[str]]) -> bool:
+    """
+    Check if a module import should be transformed based on config patterns.
+
+    Args:
+        module_name: Full module name (e.g., 'zabob_houdini.core')
+        config: Config dict with 'include' and 'exclude' pattern lists
+
+    Returns:
+        True if module should be transformed, False otherwise
+    """
+    # Check exclude patterns first (takes precedence)
+    for pattern in config['exclude']:
+        if fnmatch(module_name, pattern):
+            return False
+
+    # Check include patterns
+    for pattern in config['include']:
+        if fnmatch(module_name, pattern):
+            return True
+
+    # If include list is not empty and we didn't match, exclude it
+    if config['include']:
+        return False
+
+    # Empty include list means include everything (current behavior)
+    return True
 
 
 def check(node: ast.AST, typ: type[T]) -> T:
@@ -51,13 +140,18 @@ def check(node: ast.AST, typ: type[T]) -> T:
 class DynamicImportTransformer(ast.NodeTransformer):
     """Transform imports into deferred _Ref assignments after _dynamic_import marker."""
 
-    def __init__(self, package_name: str, dynamic_mode: bool = False) -> None:
+    def __init__(
+        self, package_name: str, dynamic_mode: bool = False,
+        import_config: dict[str, list[str]] | None = None
+    ) -> None:
         self.package_name = package_name
         self.dynamic_mode = dynamic_mode  # Set to True after seeing the marker
         self.dynamic_names: set[str] = set()  # Track dynamically imported names
         self.in_match_pattern = False  # Skip Name transformation in match patterns
         self.in_function_or_class_body = False  # Skip import transformation in nested scopes
         self.local_names: set[str] = set()  # Track local variables in current scope
+        # Load config: use provided, or infer from package name
+        self.import_config = import_config if import_config is not None else _load_dynamic_import_config(package_name)
 
     def _ensure_location(self, node: ast.AST, source: ast.AST) -> ast.AST:
         """Ensure all nodes in the tree have location info.
@@ -146,8 +240,16 @@ class DynamicImportTransformer(ast.NodeTransformer):
             module_name = alias.name
             dest_name = alias.asname if alias.asname else alias.name
 
+            # Check if this module should be transformed based on config
+            if not _should_transform_import(module_name, self.import_config):
+                # Leave this import unchanged
+                return node
+
             # Track this name as dynamically imported
-            self.dynamic_names.add(dest_name)
+            # For dotted names like 'zabob_houdini.core', track the first component
+            # since that's what appears in the AST as a Name node
+            first_component = dest_name.split('.')[0]
+            self.dynamic_names.add(first_component)
 
             # import foo [as bar] => __dynamic__._def('foo', None, 'bar')
             # Module import: from=None, to=dest_name
@@ -203,6 +305,11 @@ class DynamicImportTransformer(ast.NodeTransformer):
         # Handle relative imports
         if module_name.startswith('.'):
             module_name = f"{self.package_name}.{module_name.lstrip('.')}"
+
+        # Check if this module should be transformed based on config
+        if not _should_transform_import(module_name, self.import_config):
+            # Leave this import unchanged
+            return node
 
         # Check for star import
         if len(node.names) == 1 and node.names[0].name == '*':
@@ -684,13 +791,15 @@ class DynamicImportTransformer(ast.NodeTransformer):
 
 def do_transform(source: str | ast.AST,
                  package_name: str = "<<string>>",
-                 dynamic_mode: bool = False) -> ast.Module:
+                 dynamic_mode: bool = False,
+                 import_config: dict[str, list[str]] | None = None) -> ast.Module:
     """Transform source code or AST module using DynamicImportTransformer.
 
     Args:
         source: The source code string or AST module to transform
         package_name: The package name for resolving relative imports
         dynamic_mode: Whether to enable dynamic import transformation immediately
+        import_config: Optional import configuration (include/exclude patterns)
     Returns:
         The transformed AST module
     """
@@ -700,7 +809,8 @@ def do_transform(source: str | ast.AST,
         tree = source
 
     transformer = DynamicImportTransformer(package_name,
-                                           dynamic_mode=dynamic_mode)
+                                           dynamic_mode=dynamic_mode,
+                                           import_config=import_config)
     transformed_tree = transformer.visit(tree)
     ast.fix_missing_locations(transformed_tree)
     # Double-check: walk the tree and set location on any node that's still missing it
@@ -715,7 +825,7 @@ def do_transform(source: str | ast.AST,
 
 
 _RE_FUTURE_IMPORT = re.compile(
-    r'^\s*from\s+__future__\s+import\s.*\b_dynamic_import\b'
+    r'^\s*from\s+__future__\s+import\s[^#]*\b_dynamic_import\b'
     )
 
 
@@ -763,11 +873,39 @@ class DynamicImportLoader(importlib.abc.SourceLoader):
         """Execute module with transformed source."""
         source = self.get_data(self.path).decode('utf-8')
 
-        package_name = self.fullname.rsplit('.', 1)[0]
-        tree = do_transform(source, package_name)
+        # Determine package name for relative imports
+        package_name = self.fullname.rsplit('.', 1)[0] if '.' in self.fullname else self.fullname
+
+        # Try to load __dynamic__.py config from package directory
+        config = self._load_package_config()
+
+        tree = do_transform(source, package_name, import_config=config)
         # Compile and execute
         code = compile(tree, self.path, 'exec')
         exec(code, module.__dict__)
+
+    def _load_package_config(self) -> dict[str, list[str]] | None:
+        """Load configuration from __dynamic__.py in package directory."""
+        try:
+            # Get package directory
+            pkg_dir = Path(self.path).parent
+            config_file = pkg_dir / '__dynamic__.py'
+
+            if config_file.exists():
+                # Execute __dynamic__.py to get config
+                config_globals: dict[str, Any] = {}
+                with open(config_file, 'r') as f:
+                    exec(f.read(), config_globals)
+
+                # Look for 'patterns' variable
+                if 'patterns' in config_globals:
+                    patterns = config_globals['patterns']
+                    if isinstance(patterns, dict):
+                        return patterns
+        except Exception:
+            pass  # Fall back to default inference
+
+        return None  # Use default package-based inference
 
 
 DYNAMIC_IMPORT_ALLOW = {'zabob_houdini', 'tests', 'test_'}

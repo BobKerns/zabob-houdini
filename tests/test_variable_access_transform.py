@@ -1,5 +1,6 @@
 """Test variable access transformation for dynamic imports."""
 
+from struct import pack
 from zabob_houdini.dyn import transform_source
 
 
@@ -8,9 +9,9 @@ def test_simple_variable_reference():
     source = """
 from __future__ import _dynamic_import
 
-import sys
+import zabob_houdini.core
 
-x = sys.version
+x = zabob_houdini.core.node
 """
 
     code = transform_source(source)
@@ -20,10 +21,10 @@ x = sys.version
     assert "__dynamic__ = __dynamic__(globals())" in code
 
     # Import should be transformed to _def_module call
-    assert "__dynamic__._def_module('sys', 'sys')" in code
+    assert "__dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')" in code
 
-    # Variable reference 'sys' should be transformed to __dynamic__.load() call
-    assert "x = __dynamic__.load('sys', locals()).version" in code
+    # Variable reference 'zabob_houdini' should be transformed to __dynamic__.load() call
+    assert "x = __dynamic__.load('zabob_houdini', locals()).core.node" in code
 
 
 def test_variable_in_function():
@@ -31,19 +32,19 @@ def test_variable_in_function():
     source = """
 from __future__ import _dynamic_import
 
-from sys import version
+from zabob_houdini.core import node
 
-def get_version():
-    return version
+def get_node():
+    return node
 """
 
     code = transform_source(source)
 
     # Import should be transformed to _def call
-    assert "__dynamic__._def('sys', 'version', 'version')" in code
+    assert "__dynamic__._def('zabob_houdini.core', 'node', 'node')" in code
 
     # Variable reference inside function should be transformed to load() call
-    assert "return __dynamic__.load('version', locals())" in code
+    assert "return __dynamic__.load('node', locals())" in code
 
 
 def test_attribute_access():
@@ -51,20 +52,20 @@ def test_attribute_access():
     source = """
 from __future__ import _dynamic_import
 
-import sys
+import zabob_houdini.core
 
 def get_info():
-    return sys.version, sys.platform
+    return zabob_houdini.core.node, zabob_houdini.core.chain
 """
 
     code = transform_source(source)
 
     # Import should be transformed to _def_module
-    assert "__dynamic__._def_module('sys', 'sys')" in code
+    assert "__dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')" in code
 
-    # Both references to 'sys' should use load()
-    assert "__dynamic__.load('sys', locals()).version" in code
-    assert "__dynamic__.load('sys', locals()).platform" in code
+    # Both references to 'zabob_houdini' should use load()
+    assert "__dynamic__.load('zabob_houdini', locals()).core.node" in code
+    assert "__dynamic__.load('zabob_houdini', locals()).core.chain" in code
 
 
 def test_function_call():
@@ -72,18 +73,18 @@ def test_function_call():
     source = """
 from __future__ import _dynamic_import
 
-from os.path import join
+from zabob_houdini.core import node
 
-result = join('a', 'b')
+result = node('box', 'mybox')
 """
 
     code = transform_source(source)
 
     # Import should be transformed to _def
-    assert "__dynamic__._def('os.path', 'join', 'join')" in code
+    assert "__dynamic__._def('zabob_houdini.core', 'node', 'node')" in code
 
     # Function call reference should use load()
-    assert "result = __dynamic__.load('join', locals())('a', 'b')" in code
+    assert "result = __dynamic__.load('node', locals())('box', 'mybox')" in code
 
 
 def test_name_in_expression():
@@ -91,31 +92,40 @@ def test_name_in_expression():
     source = """
 from __future__ import _dynamic_import
 
-import sys
-from os import path
+import zabob_houdini.core
+from zabob_houdini.utils import HashableMapping
 
 # Various contexts where names appear
-a = sys
-b = path
-c = sys.version
-d = [sys, path]
-e = (sys, path)
-f = {'sys': sys, 'path': path}
+a = zabob_houdini.core
+b = HashableMapping
+c = zabob_houdini.core.node
+d = [zabob_houdini.core, HashableMapping]
+e = (zabob_houdini.core, HashableMapping)
+f = {'core': zabob_houdini.core, 'map': HashableMapping}
 """
 
     code = transform_source(source)
 
     # Imports should be transformed
-    assert "__dynamic__._def_module('sys', 'sys')" in code
-    assert "__dynamic__._def('os', 'path', 'path')" in code
+    assert "__dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')" in code
+    assert "__dynamic__._def('zabob_houdini.utils', 'HashableMapping', 'HashableMapping')" in code
 
     # All variable references should use load()
-    assert "a = __dynamic__.load('sys', locals())" in code
-    assert "b = __dynamic__.load('path', locals())" in code
-    assert "c = __dynamic__.load('sys', locals()).version" in code
-    assert "d = [__dynamic__.load('sys', locals()), __dynamic__.load('path', locals())]" in code
-    assert "e = (__dynamic__.load('sys', locals()), __dynamic__.load('path', locals()))" in code
-    assert "f = {'sys': __dynamic__.load('sys', locals()), 'path': __dynamic__.load('path', locals())}" in code
+    assert "a = __dynamic__.load('zabob_houdini', locals()).core" in code
+    assert "b = __dynamic__.load('HashableMapping', locals())" in code
+    assert "c = __dynamic__.load('zabob_houdini', locals()).core.node" in code
+    assert (
+        "d = [__dynamic__.load('zabob_houdini', locals()).core, "
+        "__dynamic__.load('HashableMapping', locals())]"
+    ) in code
+    assert (
+        "e = (__dynamic__.load('zabob_houdini', locals()).core, "
+        "__dynamic__.load('HashableMapping', locals()))"
+    ) in code
+    assert (
+        "f = {'core': __dynamic__.load('zabob_houdini', locals()).core, "
+        "'map': __dynamic__.load('HashableMapping', locals())}"
+    ) in code
 
 
 def test_match_statement_patterns():
@@ -178,7 +188,7 @@ class MyNode(NodeBase):
 
 
 def test_class_generic_base():
-    """Test that Generic[T] in class definitions uses __dynamic__.load() for both parts."""
+    """Test that external imports like typing.Generic are NOT transformed."""
     source = """
 from __future__ import _dynamic_import
 
@@ -191,37 +201,37 @@ class MyClass(Generic[T]):
         pass
 """
 
-    code = transform_source(source)
+    code = transform_source(source, package_name="zabob_houdini")
 
-    # Imports should be transformed
-    assert "__dynamic__._def('typing', 'Generic', 'Generic', 'TypeVar', 'TypeVar')" in code
+    # External imports (typing) should NOT be transformed - left as-is
+    assert "from typing import Generic, TypeVar" in code
+    assert "__dynamic__._def('typing'" not in code
 
-    # Generic[T] should use __dynamic__.load() for Generic, but T is not imported so left alone
-    assert "class MyClass(__dynamic__.load('Generic')[T]):" in code
-    assert "class MyClass(Generic[T]):" not in code
+    # Class definition should remain unchanged since Generic is not transformed
+    assert "class MyClass(Generic[T]):" in code
 
 
 def test_class_generic_with_imported_typevar():
-    """Test that Generic[ImportedType] loads both Generic and the type parameter."""
+    """Test that zabob_houdini base classes with type parameters get transformed."""
     source = """
 from __future__ import _dynamic_import
 
-from typing import Generic
+from zabob_houdini.core_node import NodeBase
 from zabob_houdini.core_types import T_Node
 
-class NodeBase(Generic[T_Node]):
+class MyNode(NodeBase[T_Node]):
     pass
 """
 
     code = transform_source(source)
 
-    # Both imports should be transformed
-    assert "__dynamic__._def('typing', 'Generic', 'Generic')" in code
+    # Both zabob_houdini imports should be transformed
+    assert "__dynamic__._def('zabob_houdini.core_node', 'NodeBase', 'NodeBase')" in code
     assert "__dynamic__._def('zabob_houdini.core_types', 'T_Node', 'T_Node')" in code
 
-    # Both Generic and T_Node should use __dynamic__.load()
-    assert "class NodeBase(__dynamic__.load('Generic')[__dynamic__.load('T_Node')]):" in code
-    assert "class NodeBase(Generic[T_Node]):" not in code
+    # Both NodeBase and T_Node should use __dynamic__.load()
+    assert "class MyNode(__dynamic__.load('NodeBase')[__dynamic__.load('T_Node')]):" in code
+    assert "class MyNode(NodeBase[T_Node]):" not in code
 
 
 def test_imports_inside_functions_not_transformed():
@@ -229,18 +239,18 @@ def test_imports_inside_functions_not_transformed():
     source = """
 from __future__ import _dynamic_import
 
-from typing import Generic
+from zabob_houdini.utils import HashableMapping
 
 def my_function():
-    from zabob_houdini.core import NodeInstance
-    return NodeInstance
+    import sys  # External import inside function
+    return sys
 """
 
     code = transform_source(source)
 
-    # Module-level import should be transformed
-    assert "__dynamic__._def('typing', 'Generic', 'Generic')" in code
+    # Module-level zabob_houdini import should be transformed
+    assert "__dynamic__._def('zabob_houdini.utils', 'HashableMapping', 'HashableMapping')" in code
 
-    # Import inside function should NOT be transformed
-    assert "from zabob_houdini.core import NodeInstance" in code
-    assert "_def('zabob_houdini.core', 'NodeInstance'" not in code
+    # Import inside function should NOT be transformed (even though it's sys, which is external)
+    assert "import sys" in code
+    assert "_def_module('sys'" not in code

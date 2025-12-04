@@ -47,6 +47,7 @@ except PackageNotFoundError:
     # Package is not installed, fallback for development
     __version__ = "0.0.0-dev"
 
+
 # Lazy imports to avoid importing hou when not needed
 def __getattr__(name: str):
     """Lazy import core API components only when accessed."""
@@ -69,15 +70,18 @@ def __getattr__(name: str):
         return globals()[name]
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
+
 # Note: Core API components (node, chain, NodeInstance, Chain, NodeType, NodeParent, etc) are available
 # via lazy loading through __getattr__ but the linter can't check for us, so be careful to keep
 # __all__ accurate.
 # Although these appear to be undefined to static analysis, they are actually defined at runtime.
-__all__ = ['__version__',
-    "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent", # type: ignore
-    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", "ChainBuilder", # type: ignore
-    "InputNodes", "Inputs", "ChainCopyParam", # type: ignore
-    "get_node_instance", "wrap_node", "hou_node", "ROOT", # type: ignore
+__all__ = [
+    '__version__',
+    "node", "chain", "merge", "context", "NodeInstance", "Chain",  # type: ignore
+    "NodeContext", "NodeType", "NodeParent",  # type: ignore
+    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", "ChainBuilder",  # type: ignore
+    "InputNodes", "Inputs", "ChainCopyParam",  # type: ignore
+    "get_node_instance", "wrap_node", "hou_node", "ROOT",  # type: ignore
     ]
 
 # Validate __all__ consistency at import time

@@ -39,11 +39,21 @@ def dedent(source: str) -> str:
     return "\n".join(dedented_lines)
 
 
-def assert_transformed(source: str, expected: str) -> None:
+def assert_transformed(source: str, expected: str, package: str = 'zabob_houdini') -> None:
+    """Helper to assert that source transforms to expected code."""
     source = dedent(source)
     expected = dedent(expected)
-    transformed = transform_source(source)
-    """Helper to assert that source transforms to expected code."""
+    transformed = transform_source(source, package_name=package)
+    lines = zip(
+        expected.splitlines(),
+        transformed.splitlines(),
+    )
+    for expected_line, transformed_line in lines:
+        assert expected_line.strip() == transformed_line.strip(), (
+            f"Transformed line does not match expected:\n"
+            f"Expected: {expected_line!r}\n"
+            f"Got:      {transformed_line!r}"
+        )
     assert expected == transformed
     # Ensure the transformed source compiles
     compile(transformed, '<test>', 'exec')
@@ -58,12 +68,12 @@ class TestASTTransformation:
             source="""
             from __future__ import _dynamic_import
 
-            import foo
+            import zabob_houdini.core
             """,
             expected="""
             from zabob_houdini.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
-            __dynamic__._def_module('foo', 'foo')
+            __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
             """)
 
     def test_marker_with_other_futures(self):
@@ -72,83 +82,99 @@ class TestASTTransformation:
             source="""
             from __future__ import annotations, _dynamic_import
 
-            import foo
+            import zabob_houdini.core
             """,
             expected="""
             from __future__ import annotations
             from zabob_houdini.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
-            __dynamic__._def_module('foo', 'foo')
+            __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
             """)
 
-    def test_import_transformation(self):
-        """Test that 'import foo' is transformed correctly."""
+    def test_external_import_not_transformed(self):
+        """Test that external imports (not zabob_houdini.*) are NOT transformed."""
         assert_transformed(
             source="""
             from __future__ import _dynamic_import
 
-            import foo
+            import numpy
+            from operator import add
             """,
             expected='''
             from zabob_houdini.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
-            __dynamic__._def_module('foo', 'foo')
+            import numpy
+            from operator import add
+            ''')
+
+    def test_import_transformation(self):
+        """Test that 'import zabob_houdini.core' is transformed correctly."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            import zabob_houdini.core
+            """,
+            expected='''
+            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
             ''')
 
     def test_import_as_transformation(self):
-        """Test that 'import foo as bar' is transformed correctly."""
+        """Test that 'import zabob_houdini.core as zcore' is transformed correctly."""
         assert_transformed(
             source="""
             from __future__ import _dynamic_import
 
-            import foo as bar
+            import zabob_houdini.core as zcore
             """,
             expected='''
             from zabob_houdini.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
-            __dynamic__._def_module('foo', 'bar')
+            __dynamic__._def_module('zabob_houdini.core', 'zcore')
             ''')
 
     def test_from_import_transformation(self):
-        """Test that 'from foo import bar' is transformed correctly."""
+        """Test that 'from zabob_houdini.core import node' is transformed correctly."""
         assert_transformed(
             source="""
             from __future__ import _dynamic_import
 
-            from foo import bar
+            from zabob_houdini.core import node
             """,
             expected='''
             from zabob_houdini.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
-            __dynamic__._def('foo', 'bar', 'bar')
+            __dynamic__._def('zabob_houdini.core', 'node', 'node')
             ''')
 
     def test_from_import_as_transformation(self):
-        """Test that 'from foo import bar as baz' is transformed correctly."""
+        """Test that 'from zabob_houdini.core import node as n' is transformed correctly."""
         assert_transformed(
             source="""
             from __future__ import _dynamic_import
 
-            from foo import bar as baz
+            from zabob_houdini.core import node as n
             """,
             expected='''
             from zabob_houdini.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
-            __dynamic__._def('foo', 'bar', 'baz')
+            __dynamic__._def('zabob_houdini.core', 'node', 'n')
             ''')
 
     def test_star_import_transformation(self):
-        """Test that 'from foo import *' is transformed correctly."""
+        """Test that 'from zabob_houdini.core import *' is NOT transformed (star imports unchanged)."""
         assert_transformed(
             source="""
             from __future__ import _dynamic_import
 
-            from foo import *
+            from zabob_houdini.core import *
             """,
             expected='''
             from zabob_houdini.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
-            from foo import *
+            from zabob_houdini.core import *
             ''')
 
     def test_setup_code_generation(self):
@@ -156,7 +182,7 @@ class TestASTTransformation:
         source = """
 from __future__ import _dynamic_import
 
-import foo
+import zabob_houdini.core
 """
         tree = ast.parse(source)
         transformer = DynamicImportTransformer("test_module")
@@ -336,21 +362,21 @@ class TestScopeTracking:
         source = """
 from __future__ import _dynamic_import
 
-from operator import add
+from zabob_houdini.core import node
 
 # Lambda parameter 'x' should not be transformed
-func = lambda x: add(x, 1)
+func = lambda x: node(x, 1)
 """
         code = transform_source(source)
 
         # Import should be transformed
-        assert "__dynamic__._def('operator', 'add', 'add')" in code
+        assert "__dynamic__._def('zabob_houdini.core', 'node', 'node')" in code
 
-        # 'add' in lambda body should be transformed to load()
-        assert "__dynamic__.load('add', locals())" in code
+        # 'node' in lambda body should be transformed to load()
+        assert "__dynamic__.load('node', locals())" in code
 
         # Lambda parameter 'x' should NOT be transformed - appears as plain 'x'
-        # The lambda should look like: lambda x: __dynamic__.load('add', locals())(x, 1)
+        # The lambda should look like: lambda x: __dynamic__.load('node', locals())(x, 1)
         assert "lambda x:" in code
         # Check that x is used directly in the call, not wrapped
         assert "(x, 1)" in code
@@ -393,19 +419,19 @@ nodes = [node for node in range(5)]
         source = """
 from __future__ import _dynamic_import
 
-from operator import add
+from zabob_houdini.core import node
 
 def apply(x, y):
-    # 'add' should be transformed, 'x' and 'y' should not
-    return add(x, y)
+    # 'node' should be transformed, 'x' and 'y' should not
+    return node(x, y)
 """
         code = transform_source(source)
 
         # Import should be transformed
-        assert "__dynamic__._def('operator', 'add', 'add')" in code
+        assert "__dynamic__._def('zabob_houdini.core', 'node', 'node')" in code
 
-        # 'add' should be transformed to load(), but 'x' and 'y' should not
-        assert "return __dynamic__.load('add', locals())(x, y)" in code
+        # 'node' should be transformed to load(), but 'x' and 'y' should not
+        assert "return __dynamic__.load('node', locals())(x, y)" in code
 
         # Function parameters should appear as plain names
         assert "def apply(x, y):" in code
@@ -415,10 +441,10 @@ def apply(x, y):
         source = """
 from __future__ import _dynamic_import
 
-from operator import add
+from zabob_houdini.core import node
 
 # Outer 'x' and inner 'x' are different variables
-result = [[add(x, y) for x in range(3)] for y in range(2)]
+result = [[node(x, y) for x in range(3)] for y in range(2)]
 """
         tree = ast.parse(source)
         transformer = DynamicImportTransformer("test_module")
@@ -427,6 +453,6 @@ result = [[add(x, y) for x in range(3)] for y in range(2)]
 
         # Just verify it transforms without error
         # Both 'x' and 'y' should not be transformed (they're iteration vars)
-        # 'add' should be transformed
+        # 'node' should be transformed
         code = compile(transformed, '<test>', 'exec')
         assert code is not None
