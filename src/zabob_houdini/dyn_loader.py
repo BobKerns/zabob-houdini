@@ -871,6 +871,15 @@ class DynamicImportLoader(importlib.abc.SourceLoader):
 
     def exec_module(self, module: Any) -> None:
         """Execute module with transformed source."""
+        # Set module attributes that are expected by Python code
+        module.__file__ = self.path
+        module.__loader__ = self
+        if self.fullname.endswith('.__init__'):
+            module.__package__ = self.fullname
+            module.__path__ = [str(Path(self.path).parent)]
+        else:
+            module.__package__ = self.fullname.rsplit('.', 1)[0] if '.' in self.fullname else self.fullname
+
         source = self.get_data(self.path).decode('utf-8')
 
         # Determine package name for relative imports
@@ -908,7 +917,7 @@ class DynamicImportLoader(importlib.abc.SourceLoader):
         return None  # Use default package-based inference
 
 
-DYNAMIC_IMPORT_ALLOW = {'zabob_houdini', 'tests', 'test_'}
+DYNAMIC_IMPORT_ALLOW = {'zabob_houdini', 'testing', 'tests', 'test_'}
 """
 Allowed module origins for dynamic import processing. A comma-separated list
 of additional origins can be specified via the DYNAMIC_IMPORT_ALLOW environment

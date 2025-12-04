@@ -6,6 +6,6 @@ dependency resolution while avoiding debugger stepping issues with external libr
 """
 
 patterns = {
-    'include': ['zabob_houdini.*', 'zabob_houdini'],
+    'include': ['zabob_houdini.*', 'testing'],
     'exclude': []
 }

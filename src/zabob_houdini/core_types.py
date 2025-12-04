@@ -7,14 +7,13 @@ connections can be specified in the API.
 """
 
 from __future__ import annotations, _dynamic_import  # type: ignore # noqa: F401,F403,F407
-from typing import Literal, TypeAlias, TYPE_CHECKING, TypeVar
+from typing import Literal, TypeAlias, TypeVar
 from collections.abc import Sequence
 
 import hou
 
-if TYPE_CHECKING:
-    from zabob_houdini.core_node import NodeBase, NodeInstance
-    from zabob_houdini.core_chain import Chain
+from zabob_houdini.core_node import NodeBase, NodeInstance
+from zabob_houdini.core_chain import Chain
 
 T_Cat = TypeVar('T_Cat', bound=hou.NodeTypeCategory)
 T_Node = TypeVar('T_Node', bound=hou.Node)
@@ -22,7 +21,7 @@ T_Node = TypeVar('T_Node', bound=hou.Node)
 LocalNodeName: TypeAlias = str
 """String name of a node within a context, used for forward references."""
 
-ExistingNodeName: TypeAlias = 'str'
+ExistingNodeName: TypeAlias = str
 """String path to an existing node in the Houdini scene, to connect to existing nodes."""
 
 # Type aliases for clarity in function signatures and documentation
@@ -41,7 +40,7 @@ ExistingNodeName: TypeAlias = 'str'
 # Native* types represent the actual hou.Node objects that have been
 # created in Houdini, or other structures in Houdini native form.
 
-RawParent: TypeAlias = "ExistingNodeName | NodeBase | T_Node"
+RawParent: TypeAlias = 'ExistingNodeName | NodeBase | T_Node'
 """
 Raw input: A parent node, either as a path string (e.g., "/obj"),
 NodeInstance, ForwardReference, or hou.Node object."""
@@ -76,7 +75,7 @@ A node or chain that can be used in a chain, or a name to resolve.
 
 _NoConnection: TypeAlias = tuple[None, Literal[0]]
 
-_RawConnection: TypeAlias = 'tuple[_NodeSpec[T_Node], int]'
+_RawConnection: TypeAlias = tuple['_NodeSpec[T_Node]', int]
 
 RawConnection: TypeAlias = '_NodeSpec[T_Node] | _RawConnection[T_Node] | _NoConnection | None'
 """
@@ -103,18 +102,18 @@ RawChainCopyNode: TypeAlias = 'int | str | NodeBase'
 RawParentNode: TypeAlias = 'ExistingNodeName | NodeBase | T_Node'
 """A parent node specification for creating a new node or chain."""
 
-_UnresolvedConnection: TypeAlias = 'tuple[NodeBase, int]'
+_UnresolvedConnection: TypeAlias = tuple['NodeBase', int]
 
-UnresolvedConnection: TypeAlias = '_UnresolvedConnection | _NoConnection'
+UnresolvedConnection: TypeAlias = _UnresolvedConnection | _NoConnection
 """A connection that may contain unresolved ForwardReferences: (node, output_index)."""
 
-UnresolvedConnections: TypeAlias = 'tuple[UnresolvedConnection, ...]'
+UnresolvedConnections: TypeAlias = tuple[UnresolvedConnection, ...]
 """A tuple of unresolved connections for a node's inputs."""
 
 UnresolvedNode: TypeAlias = 'NodeBase'
 """A node that may be unresolved."""
 
-UnresolvedNodes: TypeAlias = tuple[UnresolvedNode, ...]
+UnresolvedNodes: TypeAlias = 'tuple[UnresolvedNode, ...]'
 """A tuple of unresolved nodes."""
 
 _Connection: TypeAlias = 'tuple[NodeInstance, int]'
@@ -126,7 +125,7 @@ ResolvedConnection: TypeAlias = '_Connection | _NoConnection'
 Note: ResolvedConnection is a subset of UnresolvedConnection, with all forward
 references resolved to concrete NodeInstance objects."""
 
-ResolvedConnections: TypeAlias = 'tuple[ResolvedConnection, ...]'
+ResolvedConnections: TypeAlias = tuple[ResolvedConnection, ...]
 """The inputs for a node or chain, as a tuple of ResolvedConnection objects or None for sparse connections."""
 
 ResolvedNode: TypeAlias = 'NodeInstance'

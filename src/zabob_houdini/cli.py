@@ -8,6 +8,8 @@ with regular Python. For actual Houdini node creation, use the package
 within Houdini's Python shelf tools or HDA scripts.
 """
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from typing import cast
 import click
 import os

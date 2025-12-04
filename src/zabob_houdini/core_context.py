@@ -150,12 +150,12 @@ class NodeContext:
                 attempts_without_progress += 1
 
     def node(self,
-             node_type: 'NativeNodeType',
+             node_type: NativeNodeType,
              /,
              name: str | None = None,
              *,
              _input: RawInputs | None = None,
-             _node: 'hou.Node | None' = None,
+             _node: hou.Node | None = None,
              _display: bool = False,
              _render: bool = False,
              **attributes: Any
@@ -304,7 +304,7 @@ class NodeContext:
         """
         return self
 
-    def chain(self, *, _input: 'RawInput | Sequence[RawInput] | None' = None, **attributes: Any) -> ChainBuilder:
+    def chain(self, *, _input: RawInput | Sequence[RawInput] | None = None, **attributes: Any) -> ChainBuilder:
         """
         Create a ChainBuilder context manager for building chains.
 
@@ -331,7 +331,7 @@ class NodeContext:
         processed_input = _wrap_inputs(_input, self)
         return cchain.ChainBuilder(self, _input=processed_input)
 
-    def merge(self, *inputs: 'RawInput',
+    def merge(self, *inputs: RawInput,
               name: str | None = None,
               **attributes: Any) -> NodeInstance:
         """
@@ -378,7 +378,7 @@ class NodeContext:
         # The key insight is that ForwardReferences should be resolved during create() time,
         # not stored in the context permanently.
 
-    def _add_dependency(self, input_node: 'NodeBase', dependent_node: NodeInstance) -> None:
+    def _add_dependency(self, input_node: NodeBase, dependent_node: NodeInstance) -> None:
         """Add a dependency relationship: dependent_node depends on input_node."""
         if isinstance(input_node, ForwardReference):
             # Skip dependency tracking for ForwardReferences at definition time

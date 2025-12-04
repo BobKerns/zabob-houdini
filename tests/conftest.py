@@ -4,6 +4,8 @@ Safe pytest fixtures for Houdini testing.
 This version avoids importing anything that could trigger hou imports.
 """
 
+from __future__ import annotations
+
 from collections.abc import Generator
 from typing import Protocol
 from threading import RLock
@@ -39,7 +41,7 @@ def fmt_location(name: str, loc: Location | None) -> str:
 
 
 @pytest.fixture
-def hython_test(hython_session: 'HythonSession', request) -> HythonSessionFn:
+def hython_test(hython_session: HythonSession, request) -> HythonSessionFn:
     """
     Fixture that provides a function to run test functions in hython.
 

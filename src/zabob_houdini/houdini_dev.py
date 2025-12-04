@@ -2,6 +2,9 @@
 Developer support functions, hython side
 '''
 
+from __future__ import annotations, _dynamic_import # noqa: F407 E261 # type: ignore
+
+
 import sys
 import json
 import importlib.util

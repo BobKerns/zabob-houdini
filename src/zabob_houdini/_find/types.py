@@ -1,3 +1,7 @@
+"""
+Types and utilities for finding Houdini installations.
+"""
+
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -8,7 +12,7 @@ from semver import Version
 import re
 
 
-_RE_DIR_NAME = re.compile (r'^(?:Houdini ?)(\d+\.\d+(?:\.\d+)?)$', re.IGNORECASE)
+_RE_DIR_NAME = re.compile(r'^(?:Houdini ?)(\d+\.\d+(?:\.\d+)?)$', re.IGNORECASE)
 
 ###
 # Note to Copilot:
@@ -25,6 +29,7 @@ _RE_DIR_NAME = re.compile (r'^(?:Houdini ?)(\d+\.\d+(?:\.\d+)?)$', re.IGNORECASE
 # to the attribute, as this will help with documentation and IDE support.
 # It is required to begin on the very next line. It cannot be computed,
 # it must be a literal string.
+
 
 @dataclass
 class HoudiniInstall:
@@ -58,16 +63,18 @@ class HoudiniInstall:
     env_path: Sequence[Path]
     'Additional entries to add to the PATH environment variable'
     exec_prefix: Path  # Python executable prefix directory
-    app_paths: dict[str, Path] # application installation directories
+    app_paths: dict[str, Path]  # application installation directories
 
     def __repr__(self) -> str:
         return f"HoudiniInstall({self.houdini_version}, {self.python_version})"
 
-def _version(version: str|Version) -> Version:
+
+def _version(version: str | Version) -> Version:
     """Convert version string to semver.Version object."""
     if isinstance(version, Version):
         return version
     return Version.parse(version, True)
+
 
 # Add other shared utility functions
 def _get_houdini_version(name_hint: str) -> Version:
@@ -83,25 +90,29 @@ def _get_houdini_version(name_hint: str) -> Version:
         return _version(version_str)
     return Version(0)
 
-def _get_major_minor(version: str|Version) -> Version:
+
+def _get_major_minor(version: str | Version) -> Version:
     """Extract major.minor version from full version string."""
     v = _version(version)
     return Version(v.major, v.minor)  # Set patch and pre-release to zero
+
 
 def _group_by_major_minor(
     installations: dict[Version, HoudiniInstall]
 ) -> dict[Version, list[HoudiniInstall]]:
     """Group installations by major.minor version."""
-    def by_major_minor(a: dict[Version, list[HoudiniInstall]], i: HoudiniInstall) -> dict[Version, list[HoudiniInstall]]:
+    def by_major_minor(a: dict[Version, list[HoudiniInstall]],
+                       i: HoudiniInstall,
+                       ) -> dict[Version, list[HoudiniInstall]]:
         major_minor = _get_major_minor(i.houdini_version)
         a[major_minor].append(i)
         return a
     return reduce(by_major_minor,
-                installations.values(),
-                defaultdict(list))
+                  installations.values(),
+                  defaultdict(list))
 
 
-def _if_exists(path: Path, suffix: str|None = None):
+def _if_exists(path: Path, suffix: str | None = None):
     """
     Check if the path exists.
 

@@ -5,10 +5,10 @@ This module contains the Chain class for representing sequences of connected nod
 and the ChainBuilder class for building chains within a context manager interface.
 """
 
-from __future__ import annotations
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 import functools
-from typing import Any, cast, overload, TYPE_CHECKING
+from typing import Any, cast, overload
 from collections.abc import Iterator, Sequence, Mapping
 
 import hou
@@ -25,13 +25,11 @@ from zabob_houdini.core_types import (
 # Import actual dependencies
 from zabob_houdini.core_utils import _generate_name
 from zabob_houdini.utils import HashableMapping
-import zabob_houdini.core_node as cnode
-if TYPE_CHECKING:
-    from zabob_houdini.core_node import (
-        NodeBase, NodeInstance,
-        ForwardReference, ChainFirstReference, ChainLastReference, ChainReference,
-    )
-    from zabob_houdini.core_context import NodeContext
+from zabob_houdini.core_node import (
+    NodeBase, NodeInstance, _merge_inputs,
+    ForwardReference, ChainFirstReference, ChainLastReference, ChainReference,
+)
+from zabob_houdini.core_context import NodeContext
 
 
 class Chain:
@@ -40,8 +38,8 @@ class Chain:
 
     Nodes in the chain are automatically connected in sequence.
     """
-    nodes: tuple[cnode.NodeBase, ...]
-    by_name: dict[str, cnode.NodeBase]
+    nodes: tuple[NodeBase, ...]
+    by_name: dict[str, NodeBase]
     context: 'NodeContext'
     subset: bool
     '''
@@ -50,8 +48,8 @@ class Chain:
     the context on its own.
     '''
 
-    def __init__(self, nodes: Sequence[cnode.NodeBase], *,
-                 context: 'NodeContext',
+    def __init__(self, nodes: Sequence[NodeBase], *,
+                 context: NodeContext,
                  subset: bool = False,
                  ):
         '''
@@ -74,7 +72,7 @@ class Chain:
         match self.nodes:
             case ():
                 return self.context.parent
-            case cnode.NodeBase() as n, *_:
+            case NodeBase() as n, *_:
                 return n.parent
             case _:
                 raise RuntimeError(f"Invalid parent: {self.nodes[0]}")
@@ -94,7 +92,7 @@ class Chain:
         return self.nodes[-1]
 
     @functools.cached_property
-    def inputs(self) -> 'ResolvedConnections':
+    def inputs(self) -> ResolvedConnections:
         """Return the input nodes for this chain, which are the inputs of the first node."""
         if not self.nodes:
             return tuple()
@@ -104,12 +102,12 @@ class Chain:
     def __getitem__(self, key: int) -> NodeInstance: ...
 
     @overload
-    def __getitem__(self, key: slice) -> 'Chain': ...
+    def __getitem__(self, key: slice) -> Chain: ...
 
     @overload
     def __getitem__(self, key: str) -> NodeBase: ...
 
-    def __getitem__(self, key: int | slice | str) -> 'NodeBase | Chain':
+    def __getitem__(self, key: int | slice | str) -> NodeBase | Chain:
         """
         Access nodes in the chain by index, slice, or name.
 
@@ -142,11 +140,11 @@ class Chain:
         """Return the number of nodes in the chain."""
         return len(self.nodes)
 
-    def __iter__(self) -> "Iterator[NodeBase]":
+    def __iter__(self) -> Iterator[NodeBase]:
         """Return an iterator over the flattened nodes in the chain."""
         return iter(self.nodes)
 
-    def first_node(self) -> 'hou.Node':
+    def first_node(self) -> hou.Node:
         """
         Get the created hou.Node for the first node in the chain.
 
@@ -182,7 +180,7 @@ class Chain:
 
         return created_instances[-1]
 
-    def nodes_iter(self) -> "Iterator[hou.Node]":
+    def nodes_iter(self) -> Iterator[hou.Node]:
         """
         Return an iterator over the created hou.Node instances in the chain.
 
@@ -196,7 +194,7 @@ class Chain:
             yield instance
 
     @property
-    def hou_nodes(self) -> tuple['hou.Node', ...]:
+    def hou_nodes(self) -> tuple[hou.Node, ...]:
         """
         Get all created hou.Node instances in the chain as a tuple.
 
@@ -287,14 +285,14 @@ class Chain:
                     return self.nodes[index]
                 case str() as name:
                     return self.by_name[name]
-                case cnode.NodeBase() as node:
+                case NodeBase() as node:
                     return node
                 case _:
                     raise TypeError(f"Invalid node specification: {node_spec}")
         with self.context.chain() as ctx:
             inputs = _inputs or ()
 
-            def dup(node: RawChainCopyNode) -> cnode.NodeBase:
+            def dup(node: RawChainCopyNode) -> NodeBase:
                 nonlocal inputs
                 n = resolve(node)
                 params = copy_params.get(n.name, empty)
@@ -314,13 +312,13 @@ class Chain:
 class ChainBuilder:
     """Context manager for building chains without registering intermediate nodes."""
 
-    _inputs: 'cnode.UnresolvedConnections'
-    _context: 'NodeContext'
-    _nodes: list[cnode.NodeBase]
+    _inputs: UnresolvedConnections
+    _context: NodeContext
+    _nodes: list[NodeBase]
     _chain: Chain | None = None
 
-    def __init__(self, context: 'NodeContext', *,
-                 _input: 'cnode.UnresolvedConnections | None' = None,
+    def __init__(self, context: NodeContext, *,
+                 _input: UnresolvedConnections | None = None,
                  ):
         self._context = context
         self._inputs = _input or ()
@@ -337,11 +335,11 @@ class ChainBuilder:
         return self._chain
 
     @property
-    def context(self) -> 'NodeContext':
+    def context(self) -> NodeContext:
         """Return the NodeContext associated with this ChainBuilder."""
         return self._context
 
-    def __enter__(self) -> 'ChainBuilder':
+    def __enter__(self) -> ChainBuilder:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -381,7 +379,7 @@ class ChainBuilder:
         self._nodes.append(copied_node)
         return copied_node
 
-    def node(self, node_type: 'NativeNodeType', /,
+    def node(self, node_type: NativeNodeType, /,
              name: str | None = None,
              **attributes: Any
              ) -> NodeInstance:
@@ -389,7 +387,7 @@ class ChainBuilder:
         if self._chain is not None:
             raise RuntimeError("Cannot modify a completed chain.")
         # Create node without registering it with the context
-        node_instance = cnode.NodeInstance(
+        node_instance = NodeInstance(
             _parent=self.context.parent,  # Use the context's parent
             node_type=node_type,
 
@@ -402,7 +400,7 @@ class ChainBuilder:
         return node_instance
 
     @property
-    def last(self) -> 'ForwardReference':
+    def last(self) -> ForwardReference:
         """Return the last node that will be in this chain."""
         return ChainLastReference(
             _parent=self.context.parent,
@@ -412,7 +410,7 @@ class ChainBuilder:
         )
 
     @property
-    def first(self) -> 'NodeBase':
+    def first(self) -> NodeBase:
         """Return the first node that will be in this chain."""
         if self.chain:
             return self.chain.first
@@ -428,7 +426,7 @@ class ChainBuilder:
         )
 
     @overload
-    def __getitem__(self, index: int | str) -> 'NodeBase': ...
+    def __getitem__(self, index: int | str) -> NodeBase: ...
 
     @overload
     def __getitem__(self, index: slice) -> Chain | ChainReference: ...
@@ -469,10 +467,10 @@ class ChainBuilder:
         )
 
     @functools.cached_property
-    def inputs(self) -> 'UnresolvedConnections':
+    def inputs(self) -> UnresolvedConnections:
         """Return the inputs of the first node in the chain."""
         if self._chain:
             return self.chain.first.inputs
         if self._nodes:
-            return cnode._merge_inputs(self._inputs, self._nodes[0].inputs or ())
+            return _merge_inputs(self._inputs, self._nodes[0].inputs or ())
         raise RuntimeError("Cannot access inputs of an empty chain.")

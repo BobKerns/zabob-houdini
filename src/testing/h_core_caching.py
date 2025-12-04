@@ -1,5 +1,6 @@
 """Core caching test functions."""
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from zabob_houdini.utils import HoudiniResult, JsonObject, error_result, success_result
 from zabob_houdini.core_node import (

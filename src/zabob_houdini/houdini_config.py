@@ -2,6 +2,9 @@
 Houdini configuration utilities.
 """
 
+from __future__ import annotations, _dynamic_import # noqa: F407 E261 # type: ignore
+
+
 import subprocess
 import shutil
 from pathlib import Path

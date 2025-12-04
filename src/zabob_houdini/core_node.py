@@ -29,15 +29,11 @@ from zabob_houdini.core_types import (
 )
 from zabob_houdini.utils import HashableMapping
 from zabob_houdini.core_utils import hou_node
-import zabob_houdini.core_chain as cchain
+from zabob_houdini.core_chain import Chain, ChainBuilder
+from zabob_houdini.core_context import NodeContext
 
-if TYPE_CHECKING:
-    from zabob_houdini.core_chain import Chain
-    import zabob_houdini.core_context as cctx
-else:
-    import zabob_houdini.core_context as cctx
 
-T = TypeVar('T', bound='hou.Node')
+T = TypeVar('T', bound=hou.Node)
 AS = TypeVar('AS', bound='NodeInstance | hou.Node')
 
 
@@ -56,22 +52,22 @@ class NodeBase(Generic[T_Node]):
     Provides common functionality for NodeInstance and Chain classes.
     """
 
-    _parent: 'NodeInstance' = field(repr=False)
+    _parent: NodeInstance = field(repr=False)
 
     @property
-    def parent(self) -> 'NodeInstance':
+    def parent(self) -> NodeInstance:
         """Return the parent NodeInstance for this node/chain."""
         return self._parent
 
     name: str
 
     @property
-    def inputs(self) -> 'UnresolvedConnections':
+    def inputs(self) -> UnresolvedConnections:
         """Return the input nodes for this node/chain."""
         return ()
 
     @functools.cached_property
-    def resolved_inputs(self) -> 'ResolvedConnections':
+    def resolved_inputs(self) -> ResolvedConnections:
         """Return the resolved input nodes for this node/chain."""
         return tuple(
             (node.resolved, idx)
@@ -81,16 +77,16 @@ class NodeBase(Generic[T_Node]):
         )
 
     @property
-    def first(self) -> 'NodeBase':
+    def first(self) -> NodeBase:
         """Return the first node for this node/chain."""
         return self
 
     @property
-    def last(self) -> 'NodeBase':
+    def last(self) -> NodeBase:
         """Return the last node for this node/chain."""
         return self
 
-    def resolve(self) -> 'NodeInstance | None':
+    def resolve(self) -> NodeInstance | None:
         """
         Resolve this node to a NodeInstance, if possible.
 
@@ -99,7 +95,7 @@ class NodeBase(Generic[T_Node]):
         return None
 
     @property
-    def resolved(self) -> 'NodeInstance':
+    def resolved(self) -> NodeInstance:
         """Return the resolved NodeInstance for this node/chain, if possible.
 
         Raises RuntimeError if the node cannot be resolved.
@@ -148,8 +144,8 @@ class NodeBase(Generic[T_Node]):
 
     def _copy(self, /,
               name: str | None = None, *,
-              _chain: 'Chain | None' = None,
-              _inputs: 'RawInputs|None' = None,
+              _chain: Chain | None = None,
+              _inputs: RawInputs | None = None,
               _display: bool | None = None,
               _render: bool | None = None,
               **kwargs: NativeParmData,
@@ -193,7 +189,7 @@ class NodeInstance(NodeBase):
         return self._parent
 
     @property
-    def inputs(self) -> 'UnresolvedConnections':
+    def inputs(self) -> UnresolvedConnections:
         return self._inputs
 
     @overload
@@ -393,7 +389,7 @@ class NodeInstance(NodeBase):
         else:
             return f'{self.parent.path}/{self.name or self.node_type}'
 
-    def resolve(self) -> 'NodeInstance':
+    def resolve(self) -> NodeInstance:
         """
         Resolve this node to a NodeInstance, if possible.
 
@@ -515,7 +511,7 @@ class ImmediateNode(NodeInstance):
         return self._asType(node, as_type)
 
 
-def _wrap_hou_node(hnode: hou.Node) -> 'NodeBase':
+def _wrap_hou_node(hnode: hou.Node) -> NodeBase:
     """
     Wrap a hou.Node in a NodeInstance, checking the global registry first.
 
@@ -564,14 +560,14 @@ class ForwardReference(NodeBase):
     and accessing chain properties (.first, .last) before chains are complete.
     Resolution happens at create() time.
     """
-    context: 'cctx.NodeContext'
+    context: NodeContext
     name: str
 
     def __post_init__(self):
         """Register for resolution on context exit"""
         self.context.pending.append(self)
 
-    def resolve(self) -> 'NodeInstance | None':
+    def resolve(self) -> NodeInstance | None:
         """
         Resolve the forward reference to an actual NodeInstance.
         Returns `None` if the reference cannot be resolved at
@@ -623,9 +619,9 @@ class CopyReference(ForwardReference):
     """
     copy_of: ForwardReference
     attributes: HashableMapping[str, NativeParmData] = field(default_factory=_attribute_dict)
-    _inputs: 'UnresolvedConnections' = field(default_factory=tuple)
+    _inputs: UnresolvedConnections = field(default_factory=tuple)
 
-    def resolve(self) -> 'NodeInstance | None':
+    def resolve(self) -> NodeInstance | None:
         """
         Resolve the forward reference to an actual NodeInstance.
         Returns `None` if the reference cannot be resolved at
@@ -646,7 +642,7 @@ class CopyReference(ForwardReference):
     def copy(self, /,
              name: str | None = None, *,
              _inputs: 'RawInputs|None' = None,
-             **kwargs: NativeParmData) -> 'CopyReference':
+             **kwargs: NativeParmData) -> CopyReference:
         """Return a copy with optional modifications."""
         our_inputs = _wrap_inputs(_inputs) if _inputs is not None else self._inputs
         inputs = _merge_inputs(our_inputs, self._inputs)
@@ -680,7 +676,7 @@ class ContextReference(ForwardReference):
 
     index: str
 
-    def resolve(self) -> 'NodeInstance | None':
+    def resolve(self) -> NodeInstance | None:
         """
         Resolve the forward reference to an actual NodeInstance.
         Returns `None` if the reference cannot be resolved at
@@ -705,8 +701,8 @@ class ChainForwardReference(ForwardReference):
     Used when accessing properties or elements of a ChainBuilder before the chain
     construction is complete (while still inside the 'with chain()' block).
     """
-    context: 'cctx.NodeContext'
-    builder: 'cchain.ChainBuilder'
+    context: NodeContext
+    builder: ChainBuilder
 
 
 @dataclass(frozen=True, eq=False)
@@ -718,7 +714,7 @@ class ChainFirstReference(ChainForwardReference):
     the chain has been finalized. Resolution happens at context exit.
     """
 
-    def resolve(self) -> 'NodeInstance | None':
+    def resolve(self) -> NodeInstance | None:
         """
         Resolve the forward reference to an actual NodeInstance.
         Returns `None` if the reference cannot be resolved at
@@ -744,7 +740,7 @@ class ChainLastReference(ChainForwardReference):
     the chain has been finalized. Resolution happens at context exit.
     """
 
-    def resolve(self) -> 'NodeInstance | None':
+    def resolve(self) -> NodeInstance | None:
         """
         Resolve the forward reference to an actual NodeInstance.
         Returns `None` if the reference cannot be resolved at
@@ -772,7 +768,7 @@ class ChainReference(ChainForwardReference):
 
     index: int | str | slice
 
-    def resolve(self) -> 'NodeInstance | None':
+    def resolve(self) -> NodeInstance | None:
         """
         Resolve the forward reference to an actual NodeInstance.
         Returns `None` if the reference cannot be resolved at
@@ -790,30 +786,30 @@ class ChainReference(ChainForwardReference):
 
 
 @overload
-def wrap_node(hnode: hou.Node) -> 'NodeInstance': ...
+def wrap_node(hnode: hou.Node) -> NodeInstance: ...
 
 
 @overload
-def wrap_node(hnode: str, context: 'cctx.NodeContext') -> 'NodeBase': ...
+def wrap_node(hnode: str, context: NodeContext) -> NodeBase: ...
 
 
 @overload
-def wrap_node(hnode: str) -> 'NodeInstance': ...
+def wrap_node(hnode: str) -> NodeInstance: ...
 
 
 @overload
-def wrap_node(hnode: 'NodeInstance') -> 'NodeInstance': ...
+def wrap_node(hnode: NodeInstance) -> NodeInstance: ...
 
 
 @overload
-def wrap_node(hnode: 'ForwardReference') -> 'ForwardReference': ...
+def wrap_node(hnode: ForwardReference) -> ForwardReference: ...
 
 
 @overload
-def wrap_node(hnode: 'NodeBase') -> 'NodeBase': ...
+def wrap_node(hnode: NodeBase) -> NodeBase: ...
 
 
-def wrap_node(hnode: hou.Node | NodeBase | str, context: 'cctx.NodeContext | None' = None) -> 'NodeBase':
+def wrap_node(hnode: hou.Node | NodeBase | str, context: NodeContext | None = None) -> NodeBase:
 
     """
     Wrap a hou.Node in a NodeInstance, preferring the original if available.
@@ -869,8 +865,8 @@ NO_CONNECTION: ResolvedConnection = (None, 0)
 '''No connection placeholder for sparse inputs.'''
 
 
-def _wrap_inputs(inputs: 'RawInputs | None',
-                 context: 'cctx.NodeContext | None' = None,
+def _wrap_inputs(inputs: RawInputs | None,
+                 context: NodeContext | None = None,
                  ) -> UnresolvedConnections:
     """
     Wrap input specifications (plural) and extract output indices.
@@ -903,7 +899,7 @@ def _wrap_inputs(inputs: 'RawInputs | None',
             return (wrapped,)
         case Sequence():
             return tuple(_wrap_input(inp, 0, context) for inp in inputs)
-        case NodeBase() | cchain.Chain() | hou.Node() as input:
+        case NodeBase() | Chain() | hou.Node() as input:
             wrapped = _wrap_input(input, 0, context)
             return (wrapped,)
         case _:
@@ -911,7 +907,7 @@ def _wrap_inputs(inputs: 'RawInputs | None',
 
 
 def _wrap_input(input: RawInput, idx: int,
-                context: 'cctx.NodeContext | None' = None,
+                context: NodeContext | None = None,
                 ) -> UnresolvedConnection:
     """
     Wrap a single input specification and extract output index.
@@ -937,11 +933,11 @@ def _wrap_input(input: RawInput, idx: int,
                 return None
             case NodeBase():
                 return input
-            case cchain.Chain() if len(input.nodes) == 0:
+            case Chain() if len(input.nodes) == 0:
                 return None
-            case cchain.Chain():
+            case Chain():
                 return input.last
-            case cchain.ChainBuilder():
+            case ChainBuilder():
                 return input.last
             case hou.Node():
                 return wrap_node(input)
@@ -977,7 +973,7 @@ def _wrap_input(input: RawInput, idx: int,
             return (wrapped, output_idx)
         case tuple():
             raise ValueError("Input tuple must have exactly 2 elements: (<node>, <output_index>)")
-        case NodeInstance() | cchain.Chain() | cchain.ChainBuilder() | hou.Node() | str() | ForwardReference():
+        case NodeInstance() | Chain() | ChainBuilder() | hou.Node() | str() | ForwardReference():
             # Single node specification, default to output 0
             wrapped = _wrap_single_input(input)
             if wrapped is None:
@@ -1002,7 +998,7 @@ def _merge_inputs(in1: UnresolvedConnections,
     return tuple(merged)
 
 
-def get_node_instance(hnode: hou.Node) -> 'NodeBase | None':
+def get_node_instance(hnode: hou.Node) -> NodeBase | None:
     """
     Get the original NodeInstance that created a hou.Node, if any.
 

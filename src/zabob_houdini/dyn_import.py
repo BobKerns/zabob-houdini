@@ -25,6 +25,7 @@ Usage:
     ref = __dynamic__.load('ForwardReference', locals())  # Triggers import
     node = cn.NodeInstance(...)  # Triggers import via __getattr__
 '''
+from __future__ import annotations
 
 from typing import Any
 from collections.abc import Callable

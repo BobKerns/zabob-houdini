@@ -1,7 +1,9 @@
 """Node duplication test functions."""
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from zabob_houdini.core import node, chain, hou_node
-from zabob_houdini.utils import JsonObject
+from zabob_houdini.utils import JsonObject, ignore
 
 
 def h_test_diamond_no_duplication() -> JsonObject:
@@ -89,6 +91,7 @@ def h_test_chain_reference_vs_copy() -> JsonObject:
     chain_a_created = chain_A.create()
     _node_1_created = node_1.create()
     _node_2_created = node_2.create()
+    ignore(_node_1_created, _node_2_created)  # Avoid unused variable warning
 
     # Count actual nodes in the scene
     all_children = geo_node.children()

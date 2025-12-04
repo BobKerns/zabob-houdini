@@ -10,7 +10,7 @@ For more complex cases use:
           ctx.node('output')
 '''
 
-from __future__ import annotations
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from collections.abc import Iterator
 from typing import Any, overload, TYPE_CHECKING

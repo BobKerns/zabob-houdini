@@ -3,13 +3,10 @@ Test module for verifying dynamic imports work correctly.
 
 This module exists solely to test the dynamic import mechanism.
 """
-from __future__ import _dynamic_import  # pyright: ignore[reportAttributeAccessIssue] # noqa: F407
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from zabob_houdini.core_node import NodeInstance  # noqa: F401
-    from zabob_houdini.core_chain import Chain  # noqa: F401
+from zabob_houdini.core_node import NodeInstance  # noqa: F401
+from zabob_houdini.core_chain import Chain  # noqa: F401
 
 
 def test_dynamic_imports_enabled() -> bool:

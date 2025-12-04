@@ -4,10 +4,10 @@ Core Zabob-Houdini API for creating Houdini node graphs.
 This module assumes it's running in a Houdini environment (mediated by bridge or test fixture).
 """
 
-from __future__ import annotations
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 import sys
-from typing import Any, TypeVar, TYPE_CHECKING
+from typing import Any, TypeVar
 
 if "hou" not in sys.modules:
     # Avoids SIGSEGV when importing hou in non-Houdini environments
@@ -38,13 +38,10 @@ from zabob_houdini.solo_fns import (
     node, chain, context,
 )
 
-if TYPE_CHECKING:
-    T = TypeVar('T', bound=hou.Node)
-else:
-    T = TypeVar('T')
+T = TypeVar('T', bound=hou.Node)
 
 
-def merge(*inputs: 'NodeInstance | Chain | ForwardReference', **attributes: Any) -> NodeInstance:
+def merge(*inputs: NodeInstance | Chain | ForwardReference, **attributes: Any) -> NodeInstance:
     """
     Create a merge node with multiple inputs.
 

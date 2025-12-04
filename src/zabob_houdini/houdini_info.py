@@ -2,6 +2,8 @@
 Extract useful information about the Houdini environment.
 '''
 
+from __future__ import annotations, _dynamic_import # noqa: F407 E261 # type: ignore
+
 import builtins
 from collections import defaultdict
 from collections.abc import Callable, Hashable, MutableMapping
@@ -14,6 +16,7 @@ import click
 import hou
 
 from zabob_houdini.utils import JsonValue
+
 
 JsonData: TypeAlias = JsonValue
 '''

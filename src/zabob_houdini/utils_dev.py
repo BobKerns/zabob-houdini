@@ -2,6 +2,7 @@
 Utilities for developer support, both python and hython sides.
 '''
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from typing import NamedTuple
 from pathlib import Path

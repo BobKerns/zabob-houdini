@@ -1,5 +1,7 @@
 """Input connections test functions."""
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from zabob_houdini.core import node, chain, hou_node
 from zabob_houdini.utils import JsonObject
 

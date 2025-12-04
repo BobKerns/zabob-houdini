@@ -2,6 +2,8 @@
 Get the version number.
 '''
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from importlib.metadata import version, PackageNotFoundError
 
 __distribution__ = "zabob-houdini"

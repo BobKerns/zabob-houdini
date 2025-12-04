@@ -5,10 +5,13 @@ Handles installing zabob-houdini as a proper Houdini package for use in
 Python nodes, shelf tools, and HDAs.
 """
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 import json
 import os
 import shutil
 from pathlib import Path
+
 from zabob_houdini.houdini_config import find_houdini_pref_dir, ensure_houdini_package_dir
 
 

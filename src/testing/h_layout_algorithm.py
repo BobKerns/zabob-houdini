@@ -1,5 +1,7 @@
 """Layout algorithm test functions."""
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 import hou
 from zabob_houdini.core_node import NodeBase
 from zabob_houdini.solo_fns import context

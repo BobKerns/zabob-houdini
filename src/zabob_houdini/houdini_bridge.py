@@ -33,6 +33,8 @@ This approach provides:
 4. **JSON Compatibility**: All data is JSON-serializable for subprocess calls
 """
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 import functools

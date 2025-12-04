@@ -1,5 +1,7 @@
 """Node creation test functions."""
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from typing import Any
 import hou
 from zabob_houdini.core import node, hou_node

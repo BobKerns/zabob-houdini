@@ -2,6 +2,7 @@
 Find Houdini hiding on Windows
 '''
 
+
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
@@ -17,17 +18,18 @@ from zabob_houdini._find.types import (
 )
 from zabob_houdini._find.types import _get_major_minor
 
+
 def _by_regkey():
     try:
         import winreg
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Side Effects Software') as key: # type: ignore
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Side Effects Software') as key:  # type: ignore
             i = 0
             while True:
                 try:
-                    version_key_name = winreg.EnumKey(key, i) # type: ignore
-                    with winreg.OpenKey(key, version_key_name) as version_key: # type: ignore
+                    version_key_name = winreg.EnumKey(key, i)  # type: ignore
+                    with winreg.OpenKey(key, version_key_name) as version_key:  # type: ignore
                         try:
-                            install_path, _ = Path(winreg.QueryValueEx(version_key, 'InstallPath')) # type: ignore
+                            install_path, _ = Path(winreg.QueryValueEx(version_key, 'InstallPath'))  # type: ignore
                             # Check if the installation path is valid
                             # Process the installation
                             yield install_path
@@ -42,6 +44,7 @@ def _by_regkey():
         # The registry key may not exist or be inaccessible;
         # in that case, we simply yield nothing.
         pass
+
 
 def _by_directory():
     """Find Houdini installations in standard directories."""
@@ -59,7 +62,7 @@ def _by_directory():
 def find_installations() -> dict[Version, HoudiniInstall]:
     """Find Houdini installations on Windows systems."""
     installations: dict[Version, HoudiniInstall] = {
-        install.houdini_version:install
+        install.houdini_version: install
         for path in chain(_by_regkey(), _by_directory())
         for install in _process_installation(path)
     }
@@ -75,6 +78,7 @@ def find_installations() -> dict[Version, HoudiniInstall]:
             v: max(installs, key=lambda i: i.houdini_version)
             for v, installs in _group_by_major_minor(installations).items()
         }
+
 
 def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
     """Process a potential Houdini installation directory."""
@@ -103,7 +107,7 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
         if py_version.major < 3:
             return
 
-        app_names ={
+        app_names = {
             "GPlay": "gplay",
             "Apprentice": "happrentice",
             "Education": "heducation",
@@ -128,36 +132,36 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
         yield HoudiniInstall(
             houdini_version=houdini_version,
             python_version=py_version,
-            version_dir=version_dir, # TODO: Verify this
+            version_dir=version_dir,  # TODO: Verify this
             exec_prefix=version_dir,
             hfs_dir=hfs_dir,
             bin_dir=bin_dir,
             hython=hython_path,
             python_libs=lib_dir,
-            hdso_libs= hfs_dir / 'dsolib',
+            hdso_libs=hfs_dir / 'dsolib',
             hh_dir=version_dir / 'houdini',
             toolkit_dir=version_dir / 'toolkit',
             config_dir=version_dir / 'config',
             sbin_dir=version_dir / 'sbin',
             app_paths=app_paths,
-            lib_paths= tuple((
+            lib_paths=tuple((
                *(p
-                    for glob in (
+                 for glob in (
                         f'houdini/{libname}',
                         f'packages/*/{libname}',
                         )
-                    for p in hfs_dir.glob(glob)
-                    if p.is_dir()
-                ),
+                 for p in hfs_dir.glob(glob)
+                 if p.is_dir()
+                 ),
                *(p
-                    for p in (
+                 for p in (
                         lib_dir,
                         lib_dir / 'site-packages',
                         lib_dir / 'site-packages-forced',
                         lib_dir / 'site-packages-ui-forced',
-                    )
-                    if p.is_dir()
-               ),
+                        )
+                 if p.is_dir()
+                 ),
             )),
             env_path=tuple(
                 p

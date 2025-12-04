@@ -2,6 +2,8 @@
 Utility functions and types.
 '''
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from typing import (
     Hashable, NotRequired, TypeAlias, TypedDict,
     Any, TypeVar, Generic, cast, overload,
@@ -112,6 +114,8 @@ _excluded_frames = {
     "_batch_exec",
     "_run_test",
     "filtered_stack",
+    'custom_getattr',
+    'get_symbol',
 }
 
 
@@ -123,6 +127,7 @@ _excluded_file_suffixes = {
     "__main__.py",
     "/click/core.py",
     "/contextlib.py",
+    "/dyn_import.py",
 }
 
 

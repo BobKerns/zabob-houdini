@@ -2,6 +2,7 @@
 Parameter types for the click cli library.
 '''
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from click import Context, ParamType, Parameter
 from semver import Version

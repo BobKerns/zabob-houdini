@@ -1,6 +1,10 @@
 '''
 Commands to locate Houdini installation info.
 '''
+
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
+
 import sys
 from pathlib import Path
 

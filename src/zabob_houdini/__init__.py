@@ -31,6 +31,8 @@ Usage Patterns:
 - Bridge routing is transparent to user code
 """
 
+from __future__ import annotations
+
 from importlib.metadata import version, PackageNotFoundError
 
 lazy_imports = (

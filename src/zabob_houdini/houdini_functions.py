@@ -34,6 +34,9 @@ The decorators handle:
 - JSON serialization compatibility
 """
 
+from __future__ import annotations, _dynamic_import # noqa: F407 E261 # type: ignore
+
+
 from contextlib import contextmanager
 import os
 import sys

@@ -5,6 +5,8 @@ Must not import core_node or core_chain to avoid circular dependencies
 Should only import hou and standard library modules.
 '''
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from collections import defaultdict
 
 import hou
