@@ -4,9 +4,24 @@
 ## Deferred Tasks
 
 ### CI/CD Infrastructure
-- [ ] Install Houdini in CI environment
+- [ ] Enable Houdini integration tests in CI environment [#32](https://github.com/BobKerns/zabob-houdini/issues/32)
   - [x] Requires code to locate download links
+  - [ ] Configure CI to install Houdini with hython
+  - [ ] Set up automated license handling for CI
+  - [ ] Create CI workflow that runs integration tests via hython
   - Complex setup for automated testing with hython
+
+### Coverage Integration
+- [ ] Replace `_dynamic_import` marker with `print_function` to enable coverage [#33](https://github.com/BobKerns/zabob-houdini/issues/33)
+  - Current `_dynamic_import` marker is invalid Python syntax - compiler rejects it
+  - `print_function` is valid `__future__` import, no-op in Python 3.11+
+  - Would require updating:
+    - Marker detection regex in dyn_loader.py
+    - AST transformation to look for print_function instead
+    - All testing files (11 files in src/testing/h_*.py)
+    - Documentation
+  - Benefit: Coverage and other tools would work immediately with valid Python syntax
+  - Note: Python compiler validates __future__ imports in C code, cannot be patched at runtime
 
 ### Future Enhancements
 - [ ] Implement argument serialization for hython subprocess calls
