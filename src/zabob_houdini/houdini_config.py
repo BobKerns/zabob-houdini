@@ -17,26 +17,20 @@ def find_houdini_pref_dir() -> Path | None:
     Returns:
         Path to HOUDINI_USER_PREF_DIR or None if not found
     """
-    hconfig_path = shutil.which("hconfig")
-    if not hconfig_path:
+    hython = shutil.which("hython")
+    if not hython:
         return None
 
     try:
         result = subprocess.run([
-            hconfig_path, "-ap", "HOUDINI_USER_PREF_DIR"
+            hython, "-c", "print(hou.expandString('$HOUDINI_USER_PREF_DIR'))"
         ], capture_output=True, text=True, check=True)
-
-        # Parse the output to find the HOUDINI_USER_PREF_DIR line
-        for line in result.stdout.split('\n'):
-            if line.startswith('$HOUDINI_USER_PREF_DIR = '):
-                pref_dir = line.split(' = ', 1)[1].strip()
-                if pref_dir and pref_dir != '<not defined>':
-                    return Path(pref_dir)
-
+        pref_dir = result.stdout.strip()
+        print(f"Pref dir: {pref_dir}")
+        if pref_dir:
+            return Path(pref_dir)
     except subprocess.CalledProcessError:
-        pass
-
-    return None
+        return None
 
 
 def find_houdini_package_dirs() -> list[Path]:

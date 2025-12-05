@@ -64,7 +64,6 @@ When resolving forward references during `.create()`:
        - Deque empty (success - all resolved)
        - Counter == deque length (deadlock - tried all, none resolved)
 
-
 ### Termination Conditions
 
 1. **Success**: `deque` becomes empty

@@ -17,18 +17,17 @@ def main():
 
     with zcontext(geo) as ctx:
         # Create some source nodes
-        box = ctx.znode("box", "source_box")
-        sphere = ctx.znode("sphere", "source_sphere")
+        box = ctx.node("box", "source_box")
+        sphere = ctx.node("sphere", "source_sphere")
 
         # Create nodes that depend on the sources
-        xform1 = ctx.znode("xform", "transform_box", _input=box)
-        xform2 = ctx.znode("xform", "transform_sphere", _input=sphere)
+        xform1 = ctx.node("xform", "transform_box", _input=box)
+        xform2 = ctx.node("xform", "transform_sphere", _input=sphere)
 
         # Create a merge that depends on both transforms
-        merge = ctx.znode("merge", "combine_both", _input=[xform1, xform2])
-
+        merge = ctx.node("merge", "combine_both", _input=[xform1, xform2])
         # Create a final output node
-        output = ctx.znode("xform", "final_output", _input=merge)
+        output = ctx.node("xform", "final_output", _input=merge)
 
         # Create the entire graph
         output.create()
@@ -59,13 +58,12 @@ def main():
         print("==================")
 
         # Create a processing chain through context for dependency tracking
-        processing_chain = ctx.zchain(
-            ctx.znode("box", "chain_source"),
-            ctx.znode("noise", "add_noise"),
-            ctx.znode("smooth", "smooth_out"),
-            ctx.znode("xform", "final_transform")
-        )
-        processing_chain.create()
+        with ctx.chain() as chn:
+            chn.node("box", "chain_source")
+            chn.node("noise", "add_noise")
+            chn.node("smooth", "smooth_out")
+            chn.node("xform", "final_transform")
+        processing_chain = chn.chain
 
         # Check dependencies in the chain using context
         for i, node_in_chain in enumerate(processing_chain):

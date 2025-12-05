@@ -249,13 +249,13 @@ def _batch_exec() -> None:
             del sys.modules[key]
 
         # Clean up dynamic import state - remove finder and clear dyn_ modules
-        from zabob_houdini.dyn_loader import DynamicImportFinder
+        from zabob_loader.dyn_loader import DynamicImportFinder
         sys.meta_path[:] = [finder for finder in sys.meta_path if not isinstance(finder, DynamicImportFinder)]
 
         # Re-import dyn_loader to reinstall import hooks with fresh state
-        if 'zabob_houdini.dyn_loader' in sys.modules:
-            del sys.modules['zabob_houdini.dyn_loader']
-        import zabob_houdini.dyn_loader  # noqa: F401
+        if 'zabob_loader.dyn_loader' in sys.modules:
+            del sys.modules['zabob_loader.dyn_loader']
+        import zabob_loader.dyn_loader  # noqa: F401
         try:
             request = json.loads(line)
         except json.JSONDecodeError as e:

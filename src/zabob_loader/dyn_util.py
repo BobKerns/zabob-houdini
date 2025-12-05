@@ -15,18 +15,16 @@ Limitations:
     potential import lookup.
 
 Example:
-    >>> from zabob_houdini.dyn import transform, show_source
+    >>> from zabob_loader import transform, show_source
     >>> source = '''
     ... from __future__ import _dynamic_import
-    ... from zabob_houdini.core import ZNode
+    ... from zabob_loader.core import ZNode
     ... node = ZNode("box")
     ... '''
     >>> tree = transform(source)
     >>> show_source(tree)
-    from zabob_houdini.dyn_import import dyn_import as __dynamic__
+    from zabob_loader.dyn_import import dyn_import as __dynamic__
     __dynamic__ = __dynamic__(globals())
-    __dynamic__._def('zabob_houdini.core', 'ZNode', 'ZNode')
-    node = __dynamic__.load('ZNode', locals())('box')
 """
 
 from __future__ import annotations
@@ -35,10 +33,10 @@ import ast
 from dis import dis
 from typing import Literal
 
-from zabob_houdini.dyn_loader import (
+from zabob_loader.dyn_loader import (
     do_transform, DynamicImportTransformer, DynamicImportFinder, DynamicImportLoader,
 )
-from zabob_houdini.dyn_import import _SymbolMap, dyn_import
+from zabob_loader.dyn_import import _SymbolMap, dyn_import
 
 
 def transform(source: str | ast.AST,

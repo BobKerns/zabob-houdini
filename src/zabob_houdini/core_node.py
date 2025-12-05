@@ -76,6 +76,12 @@ class ZNodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
             for node, idx in self.inputs
         )
 
+    @functools.cached_property
+    def path(self) -> str:
+        """Return the path of the node."""
+        return self.parent.path + '/' + self.name or '??'\
+
+
     @property
     def first(self) -> ZNodeBase:
         """Return the first node for this node/chain."""

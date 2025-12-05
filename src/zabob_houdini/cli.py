@@ -446,17 +446,17 @@ def show(version: str | None = None) -> None:
         version_dir = houdini_install.version_dir
         click.echo(f"  {title:>14s}: {version_dir}")
         for key in (
-                    'exec_prefix',
-                    'bin_dir',
-                    'hython',
-                    'hfs_dir',
-                    'python_libs',
-                    'hdso_libs',
-                    'hh_dir',
-                    'config_dir',
-                    'toolkit_dir',
-                    'sbin_dir',
-                ):
+                'exec_prefix',
+                'bin_dir',
+                'hython',
+                'hfs_dir',
+                'python_libs',
+                'hdso_libs',
+                'hh_dir',
+                'config_dir',
+                'toolkit_dir',
+                'sbin_dir',
+                ):  # noqa: 1123
 
             title = key.replace('_', ' ').title()
             title = title.replace('hfs', 'HFS')
@@ -523,7 +523,7 @@ def run(script_path: str,
 
     # Handle --python mode: run in regular Python with dynamic import support
     if python:
-        from zabob_houdini.dyn_loader import transform_script
+        from zabob_loader.dyn_loader import transform_script
 
         script_path_obj = Path(script_path).resolve()
 

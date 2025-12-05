@@ -71,6 +71,14 @@ class HashableMapping(Generic[K, V]):
         return self._mapping.values()
 
 
+# ============================================================================
+# JSON and Houdini Result Types
+# ============================================================================
+# WARNING: These type definitions are duplicated in tests/conftest.py to avoid
+# WARNING: importing zabob_houdini into the pytest environment.
+# WARNING: Keep both copies synchronized when making changes!
+# ============================================================================
+
 JsonAtomicValue: TypeAlias = str | int | float | bool | None
 '''An atomic JSON value, such as a string, number, boolean, or null.'''
 JsonArray: TypeAlias = 'list[JsonValue]'
@@ -97,6 +105,10 @@ class HoudiniResult(TypedDict):
     traceback: NotRequired[str]
     error_location: NotRequired[Location | None]
     step_location: NotRequired[Location | None]
+
+# ============================================================================
+# End of duplicated type definitions
+# ============================================================================
 
 
 def frame_location(frame: traceback.FrameSummary) -> Location:

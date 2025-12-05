@@ -136,7 +136,7 @@ def _run_in_hython(script_path: str, *script_args: str,
                 sys.argv = [str(script_path_obj)] + list(script_args)
 
                 # Read and execute the script
-                from zabob_houdini.dyn_loader import transform_script
+                from zabob_loader.dyn_loader import transform_script
                 script_code = script_path_obj.read_text()
                 script_obj, _ = transform_script(script_code, str(script_path_obj))
                 # Execute in global namespace so imports and variables persist

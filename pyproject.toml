@@ -28,6 +28,7 @@ dependencies = [
     "requests>=2.32.5",
     "semver>=3.0.4",
     "charset-normalizer<3.4.0",
+    "importlib-metadata>=8.7.0",
 ]
 
 [project.urls]
@@ -48,10 +49,11 @@ build-backend = "hatchling.build"
 exclude = [
     "src/testing",
 ]
-packages = ["src/zabob_houdini"]
+packages = ["src/zabob_houdini", "src/zabob_loader"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/zzz_dynamic_imports.pth" = "zzz_dynamic_imports.pth"
+"src/_install_zabob_loader.py" = "z_install_zabob_loader.py"
 
 
 [dependency-groups]

@@ -32,7 +32,7 @@ def main():
         print("🔄 Building processing chains...")
 
         # Path 1: Box -> Transform -> Subdivide
-        with ctx.zchain(_input=box1) as box_path:
+        with ctx.chain(_input=box1) as box_path:
             box_path.node("xform", "box_transform", tx=2, ry=45)
             box_path.node("subdivide", "box_subdivide", iterations=2)
 
@@ -56,7 +56,7 @@ def main():
         # Final merge of both branches
         # output variable is available for use later.
         output = ctx.merge(final_path, alt_path, name="final_output")
-        print(f"✅ Node network defined. output={output.path()}")
+        print(f"✅ Node network defined. output={output.path}")
         print(f"📊 Network Statistics:")
         print(f"  Total nodes: {len(ctx._dependency_registry)}")
         print(f"  Source nodes: {len([n for n in ctx._dependency_registry if len(n.inputs) == 0])}")

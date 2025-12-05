@@ -90,7 +90,7 @@ def create_package_json(package_dir: Path, zabob_src_path: Path) -> Path:
         "env": [
             {
                 "PYTHONPATH": {
-                    "method": "prepend",
+                    "method": "append",
                     "value": str(zabob_src_path)
                 }
             }

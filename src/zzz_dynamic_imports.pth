@@ -1,2 +1,1 @@
-import zabob_houdini._pth_bootstrap
-import __future__ as f; f.dynamic_import = True
+import z_install_zabob_loader

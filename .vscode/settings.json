@@ -18,7 +18,8 @@
 
     // Houdini integration for IntelliSense
     "python.analysis.extraPaths": [
-        "stubs/"
+        "stubs/**",
+        "src/**"
     ],
     "python.analysis.autoImportCompletions": true,
 
@@ -120,6 +121,9 @@
     // Enable coverage in test runs
     "python-environment-manager.coverageEnabled": true,
     "python.analysis.generateWithTypeAnnotation": true,
+    "python.autoComplete.extraPaths": [
+        "src/zabob_loader"
+    ],
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,

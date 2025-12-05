@@ -893,6 +893,7 @@ source = { editable = "." }
 dependencies = [
     { name = "charset-normalizer" },
     { name = "click" },
+    { name = "importlib-metadata" },
     { name = "pytest" },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -917,6 +918,7 @@ release = [
 requires-dist = [
     { name = "charset-normalizer", specifier = "<3.4.0" },
     { name = "click", specifier = ">=8.0.0" },
+    { name = "importlib-metadata", specifier = ">=8.7.0" },
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "requests", specifier = ">=2.32.5" },

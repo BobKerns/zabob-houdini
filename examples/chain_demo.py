@@ -20,30 +20,29 @@ def main():
         name = parent.name
         print(f"   Created geo context: {parent=}, type={type_}, name={name}")
 
-        box_node = ctx.znode("box", name="mybox")
-        transform_node = ctx.znode("xform", name="mytransform", _input=box_node)
+        box_node = ctx.node("box", name="mybox")
+        transform_node = ctx.node("xform", name="mytransform", _input=box_node)
         print(f"   Created box node: {box_node.name}")
         print(f"   Created transform node: {transform_node.name} (connected to {box_node.name})")
-    print()
+        print()
 
     # Example 2: ZChain creation with context
     print("2. ZChain creation with context:")
     with zcontext(znode("/obj", "geo", name="processing")) as ctx:
-        processing_chain = ctx.zchain(
-            ctx.znode("box", name="source"),
-            ctx.znode("xform", name="transform"),
-            ctx.znode("subdivide", name="refine")
-        )
+        with ctx.chain() as ch:
+            ch.node("box", name="source")
+            ch.node("xform", name="transform")
+            ch.node("subdivide", name="refine")
 
-        print(f"   Created chain with {len(processing_chain)} nodes:")
-        for i in range(len(processing_chain)):
-            print(f"     [{i}]: {processing_chain[i].name}")
+    print(f"   Created chain with {len(ch.chain)} nodes:")
+    for i, node in enumerate(ch.chain):
+        print(f"     [{i}]: {node.name}")
     print()
 
     # Example 3: ZChain indexing
     print("3. ZChain indexing:")
-    print(f"   First node: {processing_chain[0].name}")
-    print(f"   Last node: {processing_chain[-1].name}")
+    print(f"   First node: {ch.chain[0].name}")
+    print(f"   Last node: {ch.chain[-1].name}")
 
     # Access nodes by name through context
     transform_node = ctx["transform"]
@@ -53,29 +52,30 @@ def main():
     print("4. Context-based chain operations:")
     with zcontext(znode("/obj", "geo", name="advanced")) as ctx:
         # Create nodes and reference by name
-        ctx.znode("normal", name="normals")
-        ctx.znode("output", name="output")
+        with ctx.chain() as detail_chain:
+            detail_chain.node("normal", name="normals")
+        ctx.node("output", name="output")
 
         # Create chains using string names for lookup
-        detail_chain = ctx.zchain("normals", "source", "transform", "refine", "output")
-
-        print(f"   Detail chain has {len(detail_chain)} nodes:")
-        for i in range(len(detail_chain)):
-            print(f"     [{i}]: {detail_chain[i].name}")
+        with ctx.chain() as details:
+            for n in ("normals", "source", "transform", "refine", "output"):
+                details.node(n)
+        print(f"   Detail chain has {len(detail_chain.chain)} nodes:")
+        for i, node in enumerate(detail_chain.chain):
+            print(f"     [{i}]: {node.name}")
     print()
 
     # Example 5: ZChain with external input using context
     print("5. ZChain with external input using context:")
     with zcontext(znode("/obj", "geo", name="with_input")) as ctx:
-        source_node = ctx.znode("box", name="external_source")
+        source_node = ctx.node("box", name="external_source")
 
-        processing_chain_with_input = ctx.zchain(
-            ctx.znode("xform", _input=source_node),
-            ctx.znode("subdivide")
-        )
+        with ctx.chain() as ch:
+            ch.node("xform", _input=source_node)
+            ch.node("subdivide")
 
         print(f"   ZChain with input from '{source_node.name}':")
-        inputs = processing_chain_with_input.inputs or []
+        inputs = ch.chain.inputs or []
         print(f"   ZChain inputs: {len([inp for inp in inputs if inp is not None])} connections")
     print()
 

@@ -329,7 +329,7 @@ class ZChainBuilder:
         self._nodes = []
 
     @property
-    def chain(self) -> 'ZChain':
+    def chain(self) -> ZChain:
         """
         Return the ZChain we built.
         If the chain is not yet complete, raise an error.

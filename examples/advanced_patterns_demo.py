@@ -120,24 +120,24 @@ def create_processing_network(config: dict):
 
             with ctx.chain(_input=final_input) as post_process:
                 if output_config.get('final_transform', False):
-                    post_process.znode("xform", "final_transform",
-                                       ty=2, scale=1.2)
+                    post_process.node("xform", "final_transform",
+                                      ty=2, scale=1.2)
 
                 if output_config.get('final_material', False):
-                    post_process.znode("material", "final_material")
+                    post_process.node("material", "final_material")
 
                 # Always add output node
                 post_process.node("null", "OUTPUT")
 
             # final_output is available for use later.
-            final_output = post_process
+            final_output = post_process.chain.last
         else:
             # Simple output node
 
             # final_output is available for use later.
             final_output = ctx.node("null", "OUTPUT", _input=final_input)
 
-        print(f'Final output: {final_output.path()}')
+        print(f'Final output: {final_output.path}')
         print(f"📊 Network Statistics:")
         print(f"  Total nodes: {len(ctx._dependency_registry)}")
         print(f"  Source nodes: {len(sources)}")

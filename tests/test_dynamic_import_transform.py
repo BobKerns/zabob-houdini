@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from zabob_houdini.dyn import (
+from zabob_loader import (
     DynamicImportTransformer, _SymbolMap, dyn_import,
-    transform_source,
 )
+from zabob_loader.dyn_util import transform_source
 
 _RE_DEDENT = re.compile(r'^(\n?\s*)\b',
                         re.MULTILINE)
@@ -71,7 +71,7 @@ class TestASTTransformation:
             import zabob_houdini.core
             """,
             expected="""
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
             """)
@@ -86,7 +86,7 @@ class TestASTTransformation:
             """,
             expected="""
             from __future__ import annotations
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
             """)
@@ -101,7 +101,7 @@ class TestASTTransformation:
             from operator import add
             """,
             expected='''
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             import numpy
             from operator import add
@@ -116,7 +116,7 @@ class TestASTTransformation:
             import zabob_houdini.core
             """,
             expected='''
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
             ''')
@@ -130,7 +130,7 @@ class TestASTTransformation:
             import zabob_houdini.core as zcore
             """,
             expected='''
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             __dynamic__._def_module('zabob_houdini.core', 'zcore')
             ''')
@@ -144,7 +144,7 @@ class TestASTTransformation:
             from zabob_houdini.core import node
             """,
             expected='''
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             __dynamic__._def('zabob_houdini.core', 'node', 'node')
             ''')
@@ -158,7 +158,7 @@ class TestASTTransformation:
             from zabob_houdini.core import node as n
             """,
             expected='''
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             __dynamic__._def('zabob_houdini.core', 'node', 'n')
             ''')
@@ -172,7 +172,7 @@ class TestASTTransformation:
             from zabob_houdini.core import *
             """,
             expected='''
-            from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
             __dynamic__ = __dynamic__(globals())
             from zabob_houdini.core import *
             ''')
@@ -191,7 +191,7 @@ import zabob_houdini.core
         # First should be import statement
         import_stmt = transformed.body[0]
         assert isinstance(import_stmt, ast.ImportFrom)
-        assert import_stmt.module == 'zabob_houdini.dyn_import'
+        assert import_stmt.module == 'zabob_loader.dyn_import'
         assert len(import_stmt.names) == 1
         assert import_stmt.names[0].name == 'dyn_import'
         assert import_stmt.names[0].asname == '__dynamic__'

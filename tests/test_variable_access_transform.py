@@ -1,7 +1,7 @@
 """Test variable access transformation for dynamic imports."""
 
 
-from zabob_houdini.dyn import show_code, transform_source
+from zabob_loader.dyn_util import show_code, transform_source
 
 
 def test_simple_compile():
@@ -25,7 +25,7 @@ x = zabob_houdini.core.node
     code = transform_source(source)
 
     # Should have setup code
-    assert "from zabob_houdini.dyn_import import dyn_import as __dynamic__" in code
+    assert "from zabob_loader.dyn_import import dyn_import as __dynamic__" in code
     assert "__dynamic__ = __dynamic__(globals())" in code
 
     # Import should be transformed to _def_module call

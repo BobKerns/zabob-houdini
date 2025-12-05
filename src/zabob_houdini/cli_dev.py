@@ -90,7 +90,7 @@ def _run_example(example_name: str) -> None:
         sys.path.insert(0, str(examples_dir))
 
     # Read and execute the script
-    from zabob_houdini.dyn_loader import transform_script
+    from zabob_loader.dyn_loader import transform_script
     script_code = example_file.read_text()
     script_obj, _ = transform_script(script_code, str(example_file))
     exec(script_obj, {'__name__': '__main__', '__file__': str(example_file)})

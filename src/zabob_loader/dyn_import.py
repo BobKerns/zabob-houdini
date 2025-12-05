@@ -2,7 +2,7 @@
 Dynamic/deferred loading of imports referenced at runtime.
 
 Usage:
-    from zabob_houdini.dyn_import import dyn_import as __dynamic__
+    from zabob loader.dyn_import import dyn_import as __dynamic__
     __dynamic__ = __dynamic__(globals())
 
     # Import specific symbols from submodules
@@ -30,6 +30,8 @@ from __future__ import annotations
 from typing import Any
 from collections.abc import Callable
 import importlib
+
+from zabob_loader.dyn_loader import _trace
 
 
 class _SymbolMap(dict[str, Callable[[], Any]]):
@@ -152,6 +154,7 @@ def dyn_import(caller_globals: dict[str, Any]) -> _SymbolMap:
             raise AttributeError(f"module has no attribute '{attr_name}'")
 
         if attr_name in symbol_map:
+            _trace('load', lambda: f"Loading symbol {caller_globals['__name__']}.{attr_name}")
             getter = symbol_map[attr_name]
             result = getter()
             caller_globals[attr_name] = result

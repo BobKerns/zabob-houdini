@@ -20,9 +20,10 @@ Architecture Layers:
    - Delegates all Houdini functionality to bridge layer
 
 4. **Module Interface** (__init__.py):
-   - Provides lazy imports for core API (node, chain, ZNode, ZChain)
-   - Only loads hou-dependent code when actually needed
+   - Uses dynamic import system for core API (node, chain, ZNode, ZChain)
+   - Only loads hou-dependent code when in Houdini environment
    - Safe to import in regular Python environments
+   - Not safe to load into pytest, however.
 
 Usage Patterns:
 ---------------
@@ -31,17 +32,9 @@ Usage Patterns:
 - Bridge routing is transparent to user code
 """
 
-from __future__ import annotations  # , _dynamic_import  # noqa: F407 E261 # type: ignore
+from __future__ import annotations  # , _dynamic_import  # noqa: F407 # type: ignore
 
 from importlib.metadata import version, PackageNotFoundError
-
-lazy_imports = (
-    "node", "chain", "merge", "context", "ZNode", "ZChain", "ZContext", "NodeType", "NodeParent",
-    "ZNodeBase", "CreatableNode", "ChainableNode", "InputNode", "ZChainBuilder",
-    "InputNodes", "Inputs", "ChainCopyParam",
-    "get_node_instance", "wrap_node", "hou_node", 'ROOT',
-)
-_imports_loaded = False
 
 try:
     __version__ = version("zabob-houdini")
@@ -49,50 +42,19 @@ except PackageNotFoundError:
     # Package is not installed, fallback for development
     __version__ = "0.0.0-dev"
 
+if 'hou' in globals():
+    # In Houdini environment, import core API directly
+    from zabob_houdini.core import (
+        znode, zchain, zmerge, zcontext,
+        ZNode, ZChain, ZContext,
+        ZNodeBase, ZChainBuilder,
+        get_node_instance, wrap_node, hou_node, ROOT,
+    )
 
-# Lazy imports to avoid importing hou when not needed
-def __getattr__(name: str):
-    """Lazy import core API components only when accessed."""
-    import sys
-    global _imports_loaded
-
-    if name in lazy_imports:
-        if "hou" not in sys.modules:
-            raise ImportError(
-                f"Cannot import '{name}' in regular Python environment. "
-                f"Core API components (node, chain, ZNode, etc.) require Houdini's 'hou' module. "
-                f"Use 'hython' instead of 'python', or run integration tests with the hython_test fixture."
-            )
-        if not _imports_loaded:
-            import zabob_houdini.core as core
-            globals().update({
-                attr: getattr(core, attr) for attr in lazy_imports
-            })
-            _imports_loaded = True
-        return globals()[name]
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
-
-
-# Note: Core API components (node, chain, ZNode, ZChain, NodeType, NodeParent, etc) are available
-# via lazy loading through __getattr__ but the linter can't check for us, so be careful to keep
-# __all__ accurate.
-# Although these appear to be undefined to static analysis, they are actually defined at runtime.
 __all__ = [
     '__version__',
-    "node", "chain", "merge", "context", "ZNode", "ZChain",  # type: ignore
-    "ZContext", "NodeType", "NodeParent",  # type: ignore
-    "ZNodeBase", "CreatableNode", "ChainableNode", "InputNode", "ZChainBuilder",  # type: ignore
-    "InputNodes", "Inputs", "ChainCopyParam",  # type: ignore
-    "get_node_instance", "wrap_node", "hou_node", "ROOT",  # type: ignore
+    "znode", "zchain", "zmerge", "zcontext",
+    "ZNode", "ZChain", "ZContext",
+    "ZNodeBase", "ZChainBuilder",
+    "get_node_instance", "wrap_node", "hou_node", "ROOT",
 ]
-
-# Validate __all__ consistency at import time
-_expected_all = set(lazy_imports) | {'__version__'}
-_actual_all = set(__all__)
-if _expected_all != _actual_all:
-    _missing = _expected_all - _actual_all
-    _extra = _actual_all - _expected_all - {'__version__'}
-    raise ImportError(
-        f"__all__ inconsistency: "
-        f"missing={list(_missing)}, unexpected_extra={list(_extra)}"
-    )

@@ -37,6 +37,7 @@ Configuration:
     when cross-package transformation is needed.
 '''
 
+import json
 import os
 from pathlib import Path
 import sys
@@ -45,12 +46,31 @@ import importlib
 import re
 from fnmatch import fnmatch
 from typing import Any, TypeVar
+from collections.abc import Callable
+import importlib.abc
 try:
     from typing import override  # type: ignore
 except ImportError:
     def override(method: Any) -> Any:
         """No-op decorator for compatibility with older Python versions."""
         return method
+
+_dynamic_import_trace = os.getenv('DYNAMIC_IMPORT_TRACE', '')
+DYNAMIC_IMPORT_TRACE = _dynamic_import_trace.strip().replace(',', ' ').split()
+
+
+def _trace(flag: str, message: Callable[[], str]) -> None:
+    """Trace message if the given flag is enabled in DYNAMIC_IMPORT_TRACE."""
+    if ((flag in DYNAMIC_IMPORT_TRACE)
+        or (('all' in DYNAMIC_IMPORT_TRACE)
+            and f'-{flag}' not in DYNAMIC_IMPORT_TRACE)):
+        width = max(len(f)
+                    for f in DYNAMIC_IMPORT_TRACE
+                    if not (flag.startswith('-') and flag[1:] == f))
+        print(f"[DYN-IMPORT {flag:>{width}}] {message()}", file=sys.stderr)
+
+
+_trace('loaded', lambda: f" from {__file__}")
 
 MAX_LINE_CHECK = 100
 """
@@ -81,16 +101,23 @@ def _load_dynamic_import_config(package_name: str) -> dict[str, list[str]]:
 
     # Special handling for script contexts (no transformation by default)
     if not top_level or top_level in ('__main__', '<<string>>') or top_level.startswith('<'):
-        return {
+        config = {
             'include': [],
             'exclude': []
         }
-
-    # Default: only transform imports from the same top-level package
-    return {
-        'include': [f'{top_level}.*'],
-        'exclude': []
-    }
+    else:
+        # Default: only transform imports from the same top-level package
+        config = {
+            'include': [f'{top_level}.*'],
+            'exclude': []
+        }
+    _trace('config',
+           lambda: (
+               '\n'.join((
+                   f"Package '{package_name}' default config:",
+                   json.dumps(config, indent=4))))
+           )
+    return config
 
 
 def _should_transform_import(module_name: str, config: dict[str, list[str]]) -> bool:
@@ -122,7 +149,7 @@ def _should_transform_import(module_name: str, config: dict[str, list[str]]) -> 
     return True
 
 
-def check(node: ast.AST, typ: type[T]) -> T:
+def _check(node: ast.AST, typ: type[T]) -> T:
     """Type check an AST node and cast it to the expected type.
 
     Args:
@@ -189,6 +216,7 @@ class DynamicImportTransformer(ast.NodeTransformer):
             if any(alias.name == '_dynamic_import' for alias in node.names):
                 # Found the marker - switch to dynamic mode
                 self.dynamic_mode = True
+                _trace('activate', lambda: self.package_name)
 
                 # Remove _dynamic_import from the names
                 remaining_names = [alias for alias in node.names if alias.name != '_dynamic_import']
@@ -243,7 +271,10 @@ class DynamicImportTransformer(ast.NodeTransformer):
             # Check if this module should be transformed based on config
             if not _should_transform_import(module_name, self.import_config):
                 # Leave this import unchanged
+                _trace('immediate', lambda: f'import {module_name}')
                 return node
+
+            _trace("defer", lambda: f'import {module_name}')
 
             # Track this name as dynamically imported
             # For dotted names like 'zabob_houdini.core', track the first component
@@ -275,9 +306,9 @@ class DynamicImportTransformer(ast.NodeTransformer):
     def _create_dynamic_setup(self) -> list[ast.AST]:
         """Create the setup code for dynamic imports."""
         return [
-            # from zabob_houdini.dyn_import import dyn_import as __dynamic__
+            # from zabob_loader.dyn_import import dyn_import as __dynamic__
             ast.ImportFrom(
-                module='zabob_houdini.dyn_import',
+                module='zabob_loader.dyn_import',
                 names=[
                     ast.alias(name='dyn_import', asname='__dynamic__')
                 ],
@@ -610,7 +641,7 @@ class DynamicImportTransformer(ast.NodeTransformer):
         Class bodies can contain local variables that shadow dynamically imported names.
         """
         if not self.dynamic_mode:
-            return check(self.generic_visit(node), ast.ClassDef)
+            return _check(self.generic_visit(node), ast.ClassDef)
 
         # Process decorators normally (execute at module level)
         node.decorator_list = [self.visit(decorator) for decorator in node.decorator_list]
@@ -681,7 +712,7 @@ class DynamicImportTransformer(ast.NodeTransformer):
     def visit_ListComp(self, node: ast.ListComp) -> ast.ListComp:
         """Visit list comprehension - track iteration variables in local scope."""
         if not self.dynamic_mode:
-            return check(self.generic_visit(node), ast.ListComp)
+            return _check(self.generic_visit(node), ast.ListComp)
 
         prev_local_names = self.local_names
         # Collect all iteration variables from generators
@@ -692,12 +723,12 @@ class DynamicImportTransformer(ast.NodeTransformer):
         self.local_names = prev_local_names | comp_locals
         result = self.generic_visit(node)
         self.local_names = prev_local_names
-        return check(result, ast.ListComp)
+        return _check(result, ast.ListComp)
 
     def visit_SetComp(self, node: ast.SetComp) -> ast.SetComp:
         """Visit set comprehension - track iteration variables in local scope."""
         if not self.dynamic_mode:
-            return check(self.generic_visit(node), ast.SetComp)
+            return _check(self.generic_visit(node), ast.SetComp)
 
         prev_local_names = self.local_names
         comp_locals = set()
@@ -707,12 +738,12 @@ class DynamicImportTransformer(ast.NodeTransformer):
         self.local_names = prev_local_names | comp_locals
         result = self.generic_visit(node)
         self.local_names = prev_local_names
-        return check(result, ast.SetComp)
+        return _check(result, ast.SetComp)
 
     def visit_DictComp(self, node: ast.DictComp) -> ast.DictComp:
         """Visit dict comprehension - track iteration variables in local scope."""
         if not self.dynamic_mode:
-            return check(self.generic_visit(node), ast.DictComp)
+            return _check(self.generic_visit(node), ast.DictComp)
 
         prev_local_names = self.local_names
         comp_locals = set()
@@ -722,12 +753,12 @@ class DynamicImportTransformer(ast.NodeTransformer):
         self.local_names = prev_local_names | comp_locals
         result = self.generic_visit(node)
         self.local_names = prev_local_names
-        return check(result, ast.DictComp)
+        return _check(result, ast.DictComp)
 
     def visit_GeneratorExp(self, node: ast.GeneratorExp) -> ast.GeneratorExp:
         """Visit generator expression - track iteration variables in local scope."""
         if not self.dynamic_mode:
-            return check(self.generic_visit(node), ast.GeneratorExp)
+            return _check(self.generic_visit(node), ast.GeneratorExp)
 
         prev_local_names = self.local_names
         comp_locals = set()
@@ -737,7 +768,7 @@ class DynamicImportTransformer(ast.NodeTransformer):
         self.local_names = prev_local_names | comp_locals
         result = self.generic_visit(node)
         self.local_names = prev_local_names
-        return check(result, ast.GeneratorExp)
+        return _check(result, ast.GeneratorExp)
 
     def visit_Name(self, node: ast.Name) -> ast.Name | ast.Call:
         """
@@ -855,7 +886,7 @@ def transform_script(source: str, filename: str = '<script>') -> tuple[Any, bool
     return (code, True)
 
 
-class DynamicImportLoader(importlib.abc.SourceLoader):
+class DynamicImportLoader(importlib.machinery.SourceFileLoader):
     """Loader that transforms source code before execution."""
 
     def __init__(self, fullname: str, path: str):
@@ -884,6 +915,7 @@ class DynamicImportLoader(importlib.abc.SourceLoader):
     def exec_module(self, module: Any) -> None:
         """Execute module with transformed source."""
         # Set module attributes that are expected by Python code
+        _trace('exec', lambda: f"Executing module: {self.fullname} from {self.path}")
         module.__file__ = self.path
         module.__loader__ = self
         if self.fullname.endswith('.__init__'):
@@ -1010,6 +1042,8 @@ class DynamicImportFinder(importlib.abc.MetaPathFinder):
                                 break
                             if _RE_FUTURE_IMPORT.match(line):
                                 # Found it - use our transformer
+                                _trace('enable',
+                                       lambda: f"Dynamic import enabled for module: {fullname} from {py_file}")
                                 loader = DynamicImportLoader(fullname, str(py_file))
                                 return importlib.machinery.ModuleSpec(
                                     fullname, loader, origin=str(py_file)
@@ -1023,7 +1057,9 @@ class DynamicImportFinder(importlib.abc.MetaPathFinder):
 
 def install_import_hook() -> None:
     """Install the dynamic import hook and patch coverage if needed."""
-    if not any(isinstance(finder, DynamicImportFinder) for finder in sys.meta_path):
+    if not any(isinstance(finder, DynamicImportFinder)
+               for finder in sys.meta_path):
+        _trace('hook', lambda: "Installing DynamicImportFinder in sys.meta_path")
         sys.meta_path.insert(0, DynamicImportFinder())
         # Patch coverage to handle _dynamic_import marker
         _patch_coverage_for_dynamic_imports()

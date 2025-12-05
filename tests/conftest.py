@@ -7,7 +7,7 @@ This version avoids importing anything that could trigger hou imports.
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Protocol
+from typing import Protocol, TypeAlias, NotRequired, TypedDict
 from threading import RLock
 import inspect
 import os
@@ -18,9 +18,44 @@ import subprocess
 import json
 import shutil
 
-from zabob_houdini.utils import (
-    JsonValue, JsonObject, HoudiniResult, Location,
-)
+# ============================================================================
+# Type definitions copied from zabob_houdini.utils to avoid importing
+# zabob_houdini package into pytest environment (which would trigger hou imports)
+# ============================================================================
+# WARNING: Keep these definitions synchronized with src/zabob_houdini/utils.py
+# WARNING: Any changes here must be reflected in utils.py and vice versa
+# ============================================================================
+
+JsonAtomicValue: TypeAlias = str | int | float | bool | None
+'''An atomic JSON value, such as a string, number, boolean, or null.'''
+JsonArray: TypeAlias = 'list[JsonValue]'
+'''A JSON array, which is a list of JSON values.'''
+JsonObject: TypeAlias = 'dict[str, JsonValue]'
+'''A JSON object, which is a dictionary with string keys and JSON values.'''
+JsonValue: TypeAlias = 'JsonAtomicValue | JsonArray | JsonObject'
+'''A JSON value, which can be an atomic value, array, or object.'''
+
+
+class Location(TypedDict):
+    """Location information for errors."""
+    file: str
+    name: str
+    line: int
+
+
+class HoudiniResult(TypedDict):
+    """Result structure from Houdini function calls."""
+    success: bool
+    result: NotRequired[JsonObject]
+    test_location: Location | None
+    error: NotRequired[str]
+    traceback: NotRequired[str]
+    error_location: NotRequired[Location | None]
+    step_location: NotRequired[Location | None]
+
+# ============================================================================
+# End of copied type definitions
+# ============================================================================
 
 
 class HythonSessionFn(Protocol):
@@ -179,8 +214,7 @@ class HythonSession:
                             and self.process.stdout
                             and self.process.stdin
                             and not self.process.stdout.closed
-                            and not self.process.stdin.closed
-                            ):
+                            and not self.process.stdin.closed):
                         self._started = True
                         return True
                 except Exception:
