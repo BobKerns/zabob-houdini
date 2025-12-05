@@ -1,4 +1,4 @@
-"""Test enhanced NodeInstance.copy() functionality."""
+"""Test enhanced ZNode.copy() functionality."""
 import pytest
 
 
@@ -51,7 +51,7 @@ def test_enhanced_copy_parameter_validation(hython_test):
     """Test copy method parameter validation."""
     data = hython_test("h_test_copy_signature_includes_args")
 
-    # Verify all expected parameters exist for NodeInstance.copy()
+    # Verify all expected parameters exist for ZNode.copy()
     assert data["node_has_inputs"] is True
     assert data["node_has_chain"] is False
     assert data["node_has_name"] is True
@@ -70,6 +70,6 @@ def test_enhanced_copy_parameter_validation(hython_test):
     all_params = data["node_all_parameters"]
     assert "_inputs" in all_params
 
-    # Verify Chain.copy() uses *args for positional reordering
+    # Verify ZChain.copy() uses *args for positional reordering
     assert data["chain_uses_args"] is True
     assert "_inputs" in data["chain_all_parameters"]

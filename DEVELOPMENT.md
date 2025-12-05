@@ -44,7 +44,7 @@ uv run zabob-houdini validate     # Test CLI
 # - HDA Python scripts
 # - Houdini's Python shell
 
-from zabob_houdini import node, chain
+from zabob_houdini import znode, zchain
 # This works within Houdini's Python environment
 ```
 

@@ -178,10 +178,10 @@ def stack_filter(frame: traceback.FrameSummary) -> bool:
 
 
 def filtered_stack(ex: Exception | None = None) -> tuple[
-            Location | None,
-            Location | None,
-            list[traceback.FrameSummary]
-        ]:
+        Location | None,
+        Location | None,
+        list[traceback.FrameSummary]
+        ]:  # noqa: E123
     """Get the current stack, filtering out internal frames."""
     stack: list[traceback.FrameSummary] | None = None
     if ex is not None:
@@ -220,7 +220,7 @@ def error_result(message: str | None = None, /, *,
         error_location=error_location,
         test_location=test_location,
         step_location=step_location,
-        )
+    )
 
 
 def get_test_location(func: Callable) -> Location:

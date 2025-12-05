@@ -81,18 +81,18 @@ def test_function_call():
     source = """
 from __future__ import _dynamic_import
 
-from zabob_houdini.core import node
+from zabob_houdini.core import znode
 
-result = node('box', 'mybox')
+result = znode('box', 'mybox')
 """
 
     code = transform_source(source)
 
     # Import should be transformed to _def
-    assert "__dynamic__._def('zabob_houdini.core', 'node', 'node')" in code
+    assert "__dynamic__._def('zabob_houdini.core', 'znode', 'znode')" in code
 
     # Function call reference should use load()
-    assert "result = __dynamic__.load('node', locals())('box', 'mybox')" in code
+    assert "result = __dynamic__.load('znode', locals())('box', 'mybox')" in code
 
 
 def test_name_in_expression():
@@ -106,7 +106,7 @@ from zabob_houdini.utils import HashableMapping
 # Various contexts where names appear
 a = zabob_houdini.core
 b = HashableMapping
-c = zabob_houdini.core.node
+c = zabob_houdini.core.znode
 d = [zabob_houdini.core, HashableMapping]
 e = (zabob_houdini.core, HashableMapping)
 f = {'core': zabob_houdini.core, 'map': HashableMapping}
@@ -121,7 +121,7 @@ f = {'core': zabob_houdini.core, 'map': HashableMapping}
     # All variable references should use load()
     assert "a = __dynamic__.load('zabob_houdini', locals()).core" in code
     assert "b = __dynamic__.load('HashableMapping', locals())" in code
-    assert "c = __dynamic__.load('zabob_houdini', locals()).core.node" in code
+    assert "c = __dynamic__.load('zabob_houdini', locals()).core.znode" in code
     assert (
         "d = [__dynamic__.load('zabob_houdini', locals()).core, "
         "__dynamic__.load('HashableMapping', locals())]"
@@ -141,13 +141,13 @@ def test_match_statement_patterns():
     source = """
 from __future__ import _dynamic_import
 
-from zabob_houdini.core import NodeInstance, ForwardReference
+from zabob_houdini.core import ZNode, ZNodeForwardRef
 
 def check_input(inp):
     match inp:
         case None:
             return "none"
-        case NodeInstance() | ForwardReference() as node:
+        case ZNode() | ZNodeForwardRef() as node:
             return f"node: {node.name}"
         case _:
             return "other"
@@ -157,13 +157,13 @@ def check_input(inp):
 
     # Imports should be transformed
     assert (
-        "__dynamic__._def('zabob_houdini.core', 'NodeInstance', 'NodeInstance', "
-        "'ForwardReference', 'ForwardReference')"
+        "__dynamic__._def('zabob_houdini.core', 'ZNode', 'ZNode', "
+        "'ZNodeForwardRef', 'ZNodeForwardRef')"
         in code
     )
 
     # Match patterns should use bare names (not transformed)
-    assert "case NodeInstance() | ForwardReference() as node:" in code
+    assert "case ZNode() | ZNodeForwardRef() as node:" in code
     assert "case None:" in code
 
     # The pattern variable 'node' is not a dynamic import, so it shouldn't be wrapped
@@ -175,24 +175,24 @@ def test_class_base_inheritance():
     source = """
 from __future__ import _dynamic_import
 
-from zabob_houdini.core import NodeBase
+from zabob_houdini.core import ZNodeBase
 
-class MyNode(NodeBase):
+class MyNode(ZNodeBase):
     def __init__(self):
-        self.value = NodeBase()  # This should be transformed
+        self.value = ZNodeBase()  # This should be transformed
 """
 
     code = transform_source(source)
 
     # Import should be transformed
-    assert "__dynamic__._def('zabob_houdini.core', 'NodeBase', 'NodeBase')" in code
+    assert "__dynamic__._def('zabob_houdini.core', 'ZNodeBase', 'ZNodeBase')" in code
 
     # Base class should use __dynamic__.load() to trigger import before class definition
-    assert "class MyNode(__dynamic__.load('NodeBase')):" in code
-    assert "class MyNode(NodeBase):" not in code
+    assert "class MyNode(__dynamic__.load('ZNodeBase')):" in code
+    assert "class MyNode(ZNodeBase):" not in code
 
     # Usage in method body should use load()
-    assert "self.value = __dynamic__.load('NodeBase', locals())()" in code
+    assert "self.value = __dynamic__.load('ZNodeBase', locals())()" in code
 
 
 def test_class_generic_base():
@@ -224,22 +224,22 @@ def test_class_generic_with_imported_typevar():
     source = """
 from __future__ import _dynamic_import
 
-from zabob_houdini.core_node import NodeBase
+from zabob_houdini.core_node import ZNodeBase
 from zabob_houdini.core_types import T_Node
 
-class MyNode(NodeBase[T_Node]):
+class MyNode(ZNodeBase[T_Node]):
     pass
 """
 
     code = transform_source(source)
 
     # Both zabob_houdini imports should be transformed
-    assert "__dynamic__._def('zabob_houdini.core_node', 'NodeBase', 'NodeBase')" in code
+    assert "__dynamic__._def('zabob_houdini.core_node', 'ZNodeBase', 'ZNodeBase')" in code
     assert "__dynamic__._def('zabob_houdini.core_types', 'T_Node', 'T_Node')" in code
 
-    # Both NodeBase and T_Node should use __dynamic__.load()
-    assert "class MyNode(__dynamic__.load('NodeBase')[__dynamic__.load('T_Node')]):" in code
-    assert "class MyNode(NodeBase[T_Node]):" not in code
+    # Both ZNodeBase and T_Node should use __dynamic__.load()
+    assert "class MyNode(__dynamic__.load('ZNodeBase')[__dynamic__.load('T_Node')]):" in code
+    assert "class MyNode(ZNodeBase[T_Node]):" not in code
 
 
 def test_imports_inside_functions_not_transformed():

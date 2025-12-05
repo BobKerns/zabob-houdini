@@ -176,26 +176,28 @@ def enliven_build(info: SFXBuildInfo | JSONBuildInfo) -> BuildInfo:
             build_type = build_type or ''
 
     return BuildInfo(
-                full_version=full_version,
-                version=version,
-                build=build,
-                architecture=cast(Architecture, architecture),
-                build_type=cast(BuildType, build_type),
-                os=platform,
-                **{
-                    key: value
-                    for key, value in info.items()
-                    if key not in ('version', 'full_version', 'build', 'architecture', 'build_type', 'os')
-                })  # type: ignore
+        full_version=full_version,
+        version=version,
+        build=build,
+        architecture=cast(Architecture, architecture),
+        build_type=cast(BuildType, build_type),
+        os=platform,
+        **{
+            key: value
+            for key, value in info.items()
+            if key not in ('version', 'full_version', 'build', 'architecture', 'build_type', 'os')
+        })  # type: ignore
 
 
 def is_build_good(build: SFXBuildInfo) -> bool:
     """Check if the build is good based on its quality."""
-    return bool(
-        # Make sure the package exists
-        build.get("package_exists") and
+    return (
+        bool(
+            # Make sure the package exists
+            build.get("package_exists")
+        )
         # Not marked as bad quality
-        not build.get("bad_quality")
+        and not build.get("bad_quality")
     )
 
 
@@ -247,10 +249,10 @@ def _group_by_major_minor(
 
 
 def get_version_ranges(
-        min_version: Version | None = HOUDINI_DEFAULT_MIN_VERSION,
-        cache_file: Path = HOUDINI_VERSIONS_CACHE,
-        session: requests.Session | None = None,
-        ) -> Mapping[Version, Collection[BuildInfo]]:
+            min_version: Version | None = HOUDINI_DEFAULT_MIN_VERSION,  # noqa: B008, E126
+            cache_file: Path = HOUDINI_VERSIONS_CACHE,
+            session: requests.Session | None = None,
+        ) -> Mapping[Version, Collection[BuildInfo]]:  # noqa: E123
     """Get oldest and newest builds for each major.minor release using authenticated API."""
 
     def filter_builds(builds: Collection[BuildInfo]) -> Collection[BuildInfo]:
@@ -262,13 +264,13 @@ def get_version_ranges(
 
     def filter_releases(releases: Mapping[Version, Collection[BuildInfo]]) -> Mapping[Version, Collection[BuildInfo]]:
         return {
-                release: filtered_builds
-                for release, filtered_builds in (
-                                (release, filter_builds(builds))
-                                for release, builds in releases.items()
-                            )
-                if filtered_builds
-            }
+            release: filtered_builds
+            for release, filtered_builds in (
+                (release, filter_builds(builds))
+                for release, builds in releases.items()
+            )
+            if filtered_builds
+        }
 
     # Check if we should use cache first (for GitHub Actions)
     if os.environ.get("CACHE_HIT", "true") == "true":
@@ -395,10 +397,10 @@ def find_build(
     for build in builds:
         # Check if the build matches the requested platform, arch, and build type
         if (
-            build["os"] == platform and
-            not build_type or build["build_type"] == build_type and
-            build["architecture"] == arch and
-            build["full_version"] == version
+            ()
+            and (not build_type or build["build_type"] == build_type)
+            and (build["architecture"] == arch)
+            and (build["full_version"] == version)
         ):
             return build
 
@@ -472,8 +474,8 @@ def download_houdini_installer(version: Version,
                 # Show progress
                 if total_size > 0:
                     done = int(50 * downloaded / total_size)
-                    progress = f"\r[{'=' * done}{' ' * (50-done)}] "
-                    sizes = f"{downloaded/1024/1024:.1f}/{total_size / 1024 / 1024:.1f} MB"
+                    progress = f"\r[{'=' * done}{' ' * (50 - done)}] "
+                    sizes = f"{downloaded / 1024 / 1024:.1f}/{total_size / 1024 / 1024:.1f} MB"
                     sys.stderr.write(progress + sizes)
                     sys.stderr.flush()
 
@@ -616,7 +618,7 @@ def versions_command(
         products: Collection[str] = ('houdini',),
         architectures: Collection[Architecture] = (_ARCH,),
         dev: bool = False,
-        ):
+        ):  # noqa: E123
     """Get Houdini versions for testing."""
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(exist_ok=True, parents=True)
@@ -736,7 +738,7 @@ def show_command(version: Version,
         info("Size", f"{build['size']:,d} bytes")
         info("HASH", build['hash'])
         if cache_file.exists():
-            info("Status",  "Downloaded")
+            info("Status", "Downloaded")
         else:
             info("Status", "Available")
     else:

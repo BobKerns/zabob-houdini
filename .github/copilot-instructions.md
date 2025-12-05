@@ -1,21 +1,21 @@
 # Copilot Instructions for Zabob-Houdini
 
 ## Project Overview
-Zabob-Houdini is a Python API for creating Houdini node graphs programmatically. This is an early-stage project that provides a simplified interface for building and connecting Houdini nodes.
+Zabob-Houdini is a Python API for creating Houdini znode graphs programmatically. This is an early-stage project that provides a simplified interface for building and connecting Houdini nodes.
 
 ## Core Architecture Concepts
 
 ### Node Graph API Design
-- **`node()`** function: Core API for creating individual nodes
+- **`znode()`** function: Core API for creating individual nodes
   - Takes `NodeType`, optional name, and keyword attributes
-  - Returns `NodeInstance` objects
+  - Returns `ZNode` objects
   - Special `_input` keyword connects 0+ input nodes
-- **`chain()`** function: Creates linear node sequences
+- **`zchain()`** function: Creates linear znode sequences
   - Connects nodes in sequence automatically
   - Accepts `_input` for external connections
   - Can be nested/spliced into other chains
-  - Returns `Chain` objects
-- **Instantiation Pattern**: Both `NodeInstance` and `Chain` use `.create()` method for actual creation
+  - Returns `ZChain` objects
+- **Instantiation Pattern**: Both `ZNode` and `ZChain` use `.create()` method for actual creation
 
 ### Project Structure
 - `src/zabob_houdini/`: Main package directory
@@ -41,7 +41,7 @@ When first running terminal commands:
 This ensures commands like `zabob-houdini` use the correct worktree's code, especially important when working with git worktrees.
 
 ### Response Guidelines
-- **Be concise and focused** in all responses to prevent context overflow
+- **Be concise and focused** in all responses to prevent zcontext overflow
 - When performing code changes:
   - Make minimal, targeted edits that address the specific request
   - Avoid explaining what you're doing unless asked
@@ -76,18 +76,18 @@ This ensures commands like `zabob-houdini` use the correct worktree's code, espe
 The project is in early development - the README describes the intended API, but implementation is minimal (just a hello world function). When implementing:
 
 1. **Follow the README specification exactly** - it defines the expected behavior
-2. **Implement the `node()` and `chain()` functions** as the core API
-3. **Create `NodeInstance` and `Chain` classes** with `.create()` methods
-4. **Handle the `_input` keyword parameter** for node connections
-5. **Start with string-based NodeType** (SOP node names like "box", "merge")
-6. **Defer `hou` module calls** - only execute during `.create()`, not during node definition
+2. **Implement the `znode()` and `zchain()` functions** as the core API
+3. **Create `ZNode` and `ZChain` classes** with `.create()` methods
+4. **Handle the `_input` keyword parameter** for znode connections
+5. **Start with string-based NodeType** (SOP znode names like "box", "zmerge")
+6. **Defer `hou` module calls** - only execute during `.create()`, not during znode definition
 7. **Plan for NodeTypeInstance expansion** - namespace resolution for duplicate names across categories
 
 ### Integration Considerations
 - **Abstraction Layer**: This is a Python wrapper that calls Houdini's `hou` module during `.create()` execution
 - **Houdini Python compatibility**: Watch for potential issues with `hython` and other Houdini Python tools due to historical version constraints
 - **NodeType Implementation**:
-  - Initially: strings representing SOP node type names (e.g., "box", "merge", "transform")
+  - Initially: strings representing SOP znode type names (e.g., "box", "zmerge", "transform")
   - Future: `NodeTypeInstance` objects to resolve namespace conflicts across categories
   - Long-term: Context-aware validation (e.g., SOPs under `geo` nodes)
 - **Creation Pattern**: Nodes are defined declaratively, then `.create()` calls `hou` module functions
@@ -95,7 +95,7 @@ The project is in early development - the README describes the intended API, but
 ## Testing & Development
 - **Testing**: Uses pytest framework for testing
 - **Package management**: Uses UV - always run `uv sync` after modifying dependencies in pyproject.toml
-- **Code organization**: Consider dataclasses for structured data (e.g., node configurations)
+- **Code organization**: Consider dataclasses for structured data (e.g., znode configurations)
 - **Modern Python**: Leverage Python 3.13+ features like improved type hints and pattern matching
 - No CI/CD setup yet - runs as console application via entry point
 - Development should focus on implementing the API described in README.md first
@@ -104,7 +104,7 @@ The project is in early development - the README describes the intended API, but
 - **Unit Tests**: Test object construction, equality, hashing, copying WITHOUT importing hou
   - **NEVER mock modules** - restructure tests to avoid import issues instead
   - Focus on dataclass behavior, caching via @functools.cache, immutability
-  - Test the API functions (node(), chain()) rather than classes directly if needed
+  - Test the API functions (znode(), zchain()) rather than classes directly if needed
 - **Integration Tests**: Use `hython_test` fixture to run actual Houdini operations
   - Never mock hou in integration tests - they should run in real Houdini environment
   - Call functions in `houdini_test_functions.py` via the bridge
@@ -118,7 +118,7 @@ The project is in early development - the README describes the intended API, but
 - **When running files that import `hou` directly or indirectly, use `hython` instead of `python`**
 - Examples of files requiring hython:
   - Files importing from `zabob_houdini.core`
-  - Files importing `NodeInstance`, `Chain`, `NodeContext`, or the `node()`, `chain()` functions
+  - Files importing `ZNode`, `ZChain`, `ZContext`, or the `znode()`, `zchain()` functions
   - Integration test modules
 - The `hou` module can only be imported in a Houdini Python environment
 - Use regular `python` only for:
@@ -127,7 +127,7 @@ The project is in early development - the README describes the intended API, but
   - Type checking and linting
 
 ### Context Overflow Prevention
-- **Be extremely concise** - this project has hit context limits multiple times
+- **Be extremely concise** - this project has hit zcontext limits multiple times
 - When architectural changes are needed, focus on ONE specific issue at a time
 - Don't explain what you're doing unless asked - just make the minimal change
 - If you find yourself in an edit loop, stop and ask for clarification

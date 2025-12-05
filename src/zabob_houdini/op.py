@@ -10,18 +10,18 @@ from typing import Any, TypeVar  # noqa: F407 E261 # type: ignore
 import hou
 
 from zabob_houdini.core import (
-    NodeContext, NodeInstance, Chain,
+    ZContext, ZNode, ZChain,
 )
-from zabob_houdini.core_node import NodeBase
+from zabob_houdini.core_node import ZNodeBase
 
 T_OpNode = TypeVar('T_OpNode', bound=hou.OpNode)
 T_OpCtx = TypeVar('T_OpCtx', bound=hou.OpNode)
 T_OpParent = TypeVar('T_OpParent', bound=hou.OpNode)
 T_OpChild = TypeVar('T_OpChild', bound='hou.OpNode')
-T_OpInstance = TypeVar('T_OpInstance', bound='OpInstance')
+T_OpInstance = TypeVar('T_OpInstance', bound='ZOpNode')
 
 
-class OpBase(NodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
+class ZOpNodeBase(ZNodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
     """
     Base class for operator (Op) nodes.
 
@@ -39,8 +39,8 @@ class OpBase(NodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
     pass
 
 
-class OpInstance(NodeInstance[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild],
-                 NodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
+class ZOpNode(ZNode[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild],
+              ZNodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
     """
     Concrete instance of an operator node.
 
@@ -53,7 +53,7 @@ class OpInstance(NodeInstance[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_Op
         T_OpChild: Child types this can contain (e.g., hou.SopNode for geo containers)
 
     Example:
-        OpInstance[hou.ObjNode, hou.SopNode, hou.OpNode]
+        ZOpNode[hou.ObjNode, hou.SopNode, hou.OpNode]
         - Parent is ObjNode (geo container)
         - This is a SopNode (geometry operator)
         - Children are generic OpNodes (SOPs are typically leaf nodes)
@@ -61,7 +61,7 @@ class OpInstance(NodeInstance[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_Op
     pass
 
 
-class OpContext(NodeContext[hou.OpNodeTypeCategory, T_OpParent, T_OpCtx, T_OpNode]):
+class ZOpContext(ZContext[hou.OpNodeTypeCategory, T_OpParent, T_OpCtx, T_OpNode]):
     """
     Context manager for creating operator nodes.
 
@@ -74,35 +74,35 @@ class OpContext(NodeContext[hou.OpNodeTypeCategory, T_OpParent, T_OpCtx, T_OpNod
         T_OpNode: Types of nodes this context creates
 
     Example:
-        with OpContext(geo_node) as ctx:
+        with ZOpContext(geo_node) as ctx:
             # Creates SOP nodes inside the geo container
-            box = ctx.node('box', 'box1')
+            box = ctx.znode('box', 'box1')
     """
-    def __init__(self, parent: OpInstance[T_OpParent, T_OpCtx, T_OpNode]):
+    def __init__(self, parent: ZOpNode[T_OpParent, T_OpCtx, T_OpNode]):
         super().__init__(parent)
 
-    def node(self,
-             node_type: str,
-             name: str,
-             /,
-             **parms: Any,
-             ) -> OpInstance[T_OpCtx, T_OpNode, hou.OpNode]:
+    def znode(self,
+              node_type: str,
+              name: str,
+              /,
+              **parms: Any,
+              ) -> ZOpNode[T_OpCtx, T_OpNode, hou.OpNode]:
         """Create or get an Op node within this context."""
         node = super().node(node_type, name, **parms)
-        return node.as_type(OpInstance[T_OpCtx, T_OpNode, hou.OpNode])
+        return node.as_type(ZOpNode[T_OpCtx, T_OpNode, hou.OpNode])
 
-    def context(self) -> OpContext[T_OpCtx, T_OpNode, hou.OpNode]:
-        """Create a nested OpContext within this context."""
-        return OpContext(self.parent.as_type(OpInstance[T_OpCtx, T_OpNode, hou.OpNode]))
+    def context(self) -> ZOpContext[T_OpCtx, T_OpNode, hou.OpNode]:
+        """Create a nested ZOpContext within this context."""
+        return ZOpContext(self.parent.as_type(ZOpNode[T_OpCtx, T_OpNode, hou.OpNode]))
 
 
-class OpChain(Chain[NodeBase[hou.OpNodeTypeCategory,
-                             T_OpParent,
-                             T_OpNode,
-                             T_OpChild]]):
-    def __init__(self, nodes: tuple[OpBase[T_OpParent,
-                                           T_OpNode,
-                                           T_OpChild], ...], *,
-                 context: OpContext[hou.OpNode, T_OpParent, T_OpNode],
+class ZOpChain(ZChain[ZNodeBase[hou.OpNodeTypeCategory,
+                                T_OpParent,
+                                T_OpNode,
+                                T_OpChild]]):
+    def __init__(self, nodes: tuple[ZOpNodeBase[T_OpParent,
+                                                T_OpNode,
+                                                T_OpChild], ...], *,
+                 context: ZOpContext[hou.OpNode, T_OpParent, T_OpNode],
                  subset: bool = False,):
         super().__init__(nodes, context=context, subset=subset)

@@ -94,17 +94,17 @@ def show_houdini(version: Version | None = None):
         version_dir = houdini.version_dir
         print(f"  {title:>14s}: {version_dir}")
         for key in (
-                    'exec_prefix',
-                    'bin_dir',
-                    'hython',
-                    'hfs_dir',
-                    'python_libs',
-                    'hdso_libs',
-                    'hh_dir',
-                    'config_dir',
-                    'toolkit_dir',
-                    'sbin_dir',
-                ):
+            'exec_prefix',
+            'bin_dir',
+            'hython',
+            'hfs_dir',
+            'python_libs',
+            'hdso_libs',
+            'hh_dir',
+            'config_dir',
+            'toolkit_dir',
+            'sbin_dir',
+        ):
 
             title = key.replace('_', ' ').title()
             title = title.replace('hfs', 'HFS')

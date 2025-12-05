@@ -1,8 +1,8 @@
 """
-Chain and ChainBuilder classes for Zabob-Houdini.
+ZChain and ZChainBuilder classes for Zabob-Houdini.
 
-This module contains the Chain class for representing sequences of connected nodes,
-and the ChainBuilder class for building chains within a context manager interface.
+This module contains the ZChain class for representing sequences of connected nodes,
+and the ZChainBuilder class for building chains within a context manager interface.
 """
 
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
@@ -27,24 +27,24 @@ from zabob_houdini.core_types import (
 from zabob_houdini.core_utils import _generate_name
 from zabob_houdini.utils import HashableMapping
 from zabob_houdini.core_node import (
-    NodeBase, NodeInstance, _merge_inputs,
-    ForwardReference, ChainFirstReference, ChainLastReference, ChainReference,
+    ZNodeBase, ZNode, _merge_inputs,
+    ZNodeForwardRef, ZChainFirstRef, ZChainLastRef, ZChainRef,
 )
-from zabob_houdini.core_context import NodeContext
+from zabob_houdini.core_context import ZContext
 
 
-T_Child = TypeVar('T_Child', bound=NodeBase)
+T_Child = TypeVar('T_Child', bound=ZNodeBase)
 
 
-class Chain(Generic[T_Child]):
+class ZChain(Generic[T_Child]):
     """
     Represents a chain of Houdini nodes that can be created.
 
     Nodes in the chain are automatically connected in sequence.
     """
-    nodes: tuple[NodeBase, ...]
-    by_name: dict[str, NodeBase]
-    context: 'NodeContext'
+    nodes: tuple[ZNodeBase, ...]
+    by_name: dict[str, ZNodeBase]
+    context: 'ZContext'
     subset: bool
     '''
     True if this chain is a subset of another chain,
@@ -52,15 +52,15 @@ class Chain(Generic[T_Child]):
     the context on its own.
     '''
 
-    def __init__(self, nodes: Sequence[NodeBase], *,
-                 context: NodeContext,
+    def __init__(self, nodes: Sequence[ZNodeBase], *,
+                 context: ZContext,
                  subset: bool = False,
                  ):
         '''
-        Initialize a Chain with the given nodes. We don't copy here,
+        Initialize a ZChain with the given nodes. We don't copy here,
         but rather where we can receive non-context nodes.
 
-        There's no need to copy ChainBuilder's nodes.
+        There's no need to copy ZChainBuilder's nodes.
         '''
         self.context = context
         self.nodes = tuple(nodes)
@@ -72,27 +72,27 @@ class Chain(Generic[T_Child]):
         self.subset = subset
 
     @property
-    def parent(self) -> NodeInstance:
+    def parent(self) -> ZNode:
         match self.nodes:
             case ():
                 return self.context.parent
-            case NodeBase() as n, *_:
+            case ZNodeBase() as n, *_:
                 return n.parent
             case _:
                 raise RuntimeError(f"Invalid parent: {self.nodes[0]}")
 
     @property
-    def first(self) -> NodeBase:
+    def first(self) -> ZNodeBase:
         """Return the first node in this chain."""
         if not self.nodes:
-            raise RuntimeError("Chain is empty.")
+            raise RuntimeError("ZChain is empty.")
         return self.nodes[0]
 
     @property
-    def last(self) -> NodeBase:
+    def last(self) -> ZNodeBase:
         """Return the last node in this chain."""
         if not self.nodes:
-            raise RuntimeError("Chain is empty.")
+            raise RuntimeError("ZChain is empty.")
         return self.nodes[-1]
 
     @functools.cached_property
@@ -103,15 +103,15 @@ class Chain(Generic[T_Child]):
         return self.first.resolved_inputs
 
     @overload
-    def __getitem__(self, key: int) -> NodeInstance: ...
+    def __getitem__(self, key: int) -> ZNode: ...
 
     @overload
-    def __getitem__(self, key: slice) -> Chain: ...
+    def __getitem__(self, key: slice) -> ZChain: ...
 
     @overload
-    def __getitem__(self, key: str) -> NodeBase: ...
+    def __getitem__(self, key: str) -> ZNodeBase: ...
 
-    def __getitem__(self, key: int | slice | str) -> NodeBase | Chain:
+    def __getitem__(self, key: int | slice | str) -> ZNodeBase | ZChain:
         """
         Access nodes in the chain by index, slice, or name.
 
@@ -119,7 +119,7 @@ class Chain(Generic[T_Child]):
             key: Integer index, slice, or node name string
 
         Returns:
-            NodeInstance for int/str keys, Chain for slice keys
+            ZNode for int/str keys, ZChain for slice keys
         """
         nodes = self.nodes
 
@@ -127,9 +127,9 @@ class Chain(Generic[T_Child]):
             case int() as index:
                 return nodes[index]
             case slice() as slice_obj:
-                # Return a new Chain with the subset of nodes
+                # Return a new ZChain with the subset of nodes
                 subset = nodes[slice_obj]
-                return Chain(
+                return ZChain(
                     nodes=subset,
                     context=self.context,
                     subset=True
@@ -138,13 +138,13 @@ class Chain(Generic[T_Child]):
                 # Find node by name
                 return self.by_name[name]
             case _:
-                raise TypeError(f"Chain indices must be integers, slices, or strings, not {type(key).__name__}")
+                raise TypeError(f"ZChain indices must be integers, slices, or strings, not {type(key).__name__}")
 
     def __len__(self) -> int:
         """Return the number of nodes in the chain."""
         return len(self.nodes)
 
-    def __iter__(self) -> Iterator[NodeBase]:
+    def __iter__(self) -> Iterator[ZNodeBase]:
         """Return an iterator over the flattened nodes in the chain."""
         return iter(self.nodes)
 
@@ -210,20 +210,20 @@ class Chain(Generic[T_Child]):
         return tuple(self.nodes_iter())
 
     @overload
-    def resolve(self, key: int | str | slice) -> NodeInstance: ...
+    def resolve(self, key: int | str | slice) -> ZNode: ...
 
     @overload
-    def resolve(self) -> tuple[NodeInstance, ...]: ...
+    def resolve(self) -> tuple[ZNode, ...]: ...
 
-    def resolve(self, key: int | str | slice | None = None) -> tuple[NodeInstance, ...] | NodeInstance | None:
+    def resolve(self, key: int | str | slice | None = None) -> tuple[ZNode, ...] | ZNode | None:
         """
-        Resolve the chain to its constituent NodeInstance objects.
+        Resolve the chain to its constituent ZNode objects.
 
         Args:
             key: Optional index or name to resolve a specific node. If None, resolves all nodes
 
-        Returns: tuple[NodeInstance, ...] | None
-            NodeInstance objects for each node in the chain.
+        Returns: tuple[ZNode, ...] | None
+            ZNode objects for each node in the chain.
         """
         match key:
             case int() as index:
@@ -232,7 +232,7 @@ class Chain(Generic[T_Child]):
                 return self.by_name[name].resolved
             case None:
                 if all(n.resolve() for n in self.nodes):
-                    return cast(tuple[NodeInstance, ...], tuple(n.resolve() for n in self.nodes))
+                    return cast(tuple[ZNode, ...], tuple(n.resolve() for n in self.nodes))
                 return tuple(node.resolved for node in self.nodes)
 
     @functools.cache
@@ -240,11 +240,11 @@ class Chain(Generic[T_Child]):
         """
         Create the actual chain of Houdini nodes.
 
-        Chain connections are now handled through each node's _inputs,
+        ZChain connections are now handled through each node's _inputs,
         so we just need to create each node.
 
         Returns:
-            Tuple of NodeInstance objects for created nodes. Same instances
+            Tuple of ZNode objects for created nodes. Same instances
             returned on subsequent calls (cached via @functools.cache).
         """
         return tuple(
@@ -257,20 +257,20 @@ class Chain(Generic[T_Child]):
              _display: bool | None = None,
              _render: bool | None = None,
              **copy_params: 'Mapping[str, NativeParmData]',
-             ) -> 'Chain':
+             ) -> 'ZChain':
         """
-        Return a copy of this Chain with nodes reordered, dropped, or inserted.
+        Return a copy of this ZChain with nodes reordered, dropped, or inserted.
 
         Args:
             *copy_params: Parameters specifying nodes to copy:
                 - int: Index of existing node to copy (can reorder/duplicate)
                 - str: Name of existing node to copy
-                - NodeInstance: New node to insert at this position
+                - ZNode: New node to insert at this position
                 If no arguments given, copies all nodes in original order
             _inputs: Input nodes for the first node in the new chain
 
         Returns:
-            New Chain with specified nodes in specified order
+            New ZChain with specified nodes in specified order
 
         Examples:
             chain.copy(3, 2, 1, 0)      # Reverse 4-element chain
@@ -283,20 +283,20 @@ class Chain(Generic[T_Child]):
             nodes = tuple(self.nodes)
         # Build new node list
 
-        def resolve(node_spec: RawChainCopyNode, *, _inputs: RawInputs = None) -> NodeBase:
+        def resolve(node_spec: RawChainCopyNode, *, _inputs: RawInputs = None) -> ZNodeBase:
             match node_spec:
                 case int() as index:
                     return self.nodes[index]
                 case str() as name:
                     return self.by_name[name]
-                case NodeBase() as node:
+                case ZNodeBase() as node:
                     return node
                 case _:
                     raise TypeError(f"Invalid node specification: {node_spec}")
         with self.context.chain() as ctx:
             inputs = _inputs or ()
 
-            def dup(node: RawChainCopyNode) -> NodeBase:
+            def dup(node: RawChainCopyNode) -> ZNodeBase:
                 nonlocal inputs
                 n = resolve(node)
                 params = copy_params.get(n.name, empty)
@@ -313,15 +313,15 @@ class Chain(Generic[T_Child]):
         return ctx.chain
 
 
-class ChainBuilder:
+class ZChainBuilder:
     """Context manager for building chains without registering intermediate nodes."""
 
     _inputs: UnresolvedConnections
-    _context: NodeContext
-    _nodes: list[NodeBase]
-    _chain: Chain | None = None
+    _context: ZContext
+    _nodes: list[ZNodeBase]
+    _chain: ZChain | None = None
 
-    def __init__(self, context: NodeContext, *,
+    def __init__(self, context: ZContext, *,
                  _input: UnresolvedConnections | None = None,
                  ):
         self._context = context
@@ -329,21 +329,21 @@ class ChainBuilder:
         self._nodes = []
 
     @property
-    def chain(self) -> 'Chain':
+    def chain(self) -> 'ZChain':
         """
-        Return the Chain we built.
+        Return the ZChain we built.
         If the chain is not yet complete, raise an error.
         """
         if self._chain is None:
-            raise RuntimeError("Chain is not yet complete.")
+            raise RuntimeError("ZChain is not yet complete.")
         return self._chain
 
     @property
-    def context(self) -> NodeContext:
-        """Return the NodeContext associated with this ChainBuilder."""
+    def context(self) -> ZContext:
+        """Return the ZContext associated with this ZChainBuilder."""
         return self._context
 
-    def __enter__(self) -> ChainBuilder:
+    def __enter__(self) -> ZChainBuilder:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -359,16 +359,16 @@ class ChainBuilder:
                 if inp:
                     self._context._add_dependency(inp, node.resolved)
         # First, create the chain without inputs to mark it as complete
-        self._chain = Chain(self._nodes, context=self._context)
+        self._chain = ZChain(self._nodes, context=self._context)
 
     @property
-    def parent(self) -> NodeInstance:
-        """Return the parent NodeInstance for this chain."""
+    def parent(self) -> ZNode:
+        """Return the parent ZNode for this chain."""
         return self.context.parent
 
-    def copy(self, node: NodeBase, /,
+    def copy(self, node: ZNodeBase, /,
              **copy_params: 'NativeParmData'
-             ) -> 'NodeBase':
+             ) -> 'ZNodeBase':
         """Add a copy of the given node to this chain."""
         if self._chain is not None:
             raise RuntimeError("Cannot modify a completed chain.")
@@ -386,12 +386,12 @@ class ChainBuilder:
     def node(self, node_type: NativeNodeType, /,
              name: str | None = None,
              **attributes: Any
-             ) -> NodeInstance:
+             ) -> ZNode:
         """Add a node to this chain (not registered with context until chain completes)."""
         if self._chain is not None:
             raise RuntimeError("Cannot modify a completed chain.")
         # Create node without registering it with the context
-        node_instance = NodeInstance(
+        node_instance = ZNode(
             _parent=self.context.parent,  # Use the context's parent
             node_type=node_type,
 
@@ -404,9 +404,9 @@ class ChainBuilder:
         return node_instance
 
     @property
-    def last(self) -> ForwardReference:
+    def last(self) -> ZNodeForwardRef:
         """Return the last node that will be in this chain."""
-        return ChainLastReference(
+        return ZChainLastRef(
             _parent=self.context.parent,
             context=self.context,
             builder=self,
@@ -414,7 +414,7 @@ class ChainBuilder:
         )
 
     @property
-    def first(self) -> NodeBase:
+    def first(self) -> ZNodeBase:
         """Return the first node that will be in this chain."""
         if self.chain:
             return self.chain.first
@@ -422,7 +422,7 @@ class ChainBuilder:
         name = self._nodes[0].name if self._nodes else ""
 
         # During chain construction - return a forward reference
-        return ChainFirstReference(
+        return ZChainFirstRef(
             _parent=self.context.parent,
             context=self.context,
             builder=self,
@@ -430,12 +430,12 @@ class ChainBuilder:
         )
 
     @overload
-    def __getitem__(self, index: int | str) -> NodeBase: ...
+    def __getitem__(self, index: int | str) -> ZNodeBase: ...
 
     @overload
-    def __getitem__(self, index: slice) -> Chain | ChainReference: ...
+    def __getitem__(self, index: slice) -> ZChain | ZChainRef: ...
 
-    def __getitem__(self, index: int | str | slice) -> NodeBase | Chain:
+    def __getitem__(self, index: int | str | slice) -> ZNodeBase | ZChain:
         """Access nodes in the chain by index."""
         if self._chain:
             return self._chain[index]
@@ -449,20 +449,20 @@ class ChainBuilder:
                         return n
             case slice() as slice_obj:
                 if (
-                    slice_obj.stop is not None
-                    and 0 <= slice_obj.stop <= len(self._nodes)
-                    and 0 <= slice_obj.start <= len(self._nodes)
+                    (slice_obj.stop is not None)
+                    and (0 <= slice_obj.stop <= len(self._nodes))
+                    and (0 <= slice_obj.start <= len(self._nodes))
                 ):
                     subset = self._nodes[slice_obj]
-                    return Chain(
+                    return ZChain(
                         nodes=subset,
                         context=self.context,
                         subset=True
                     )
             case _:
-                raise TypeError(f"Chain indices must be integers, slices, or strings, not {type(index).__name__}")
+                raise TypeError(f"ZChain indices must be integers, slices, or strings, not {type(index).__name__}")
 
-        return ChainReference(
+        return ZChainRef(
             _parent=self.context.parent,
             context=self.context,
             builder=self,

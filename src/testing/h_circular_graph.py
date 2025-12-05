@@ -9,7 +9,7 @@ from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: i
 import hou
 
 from zabob_houdini.utils import ignore, JsonObject
-from zabob_houdini.core import context
+from zabob_houdini.solo_fns import zcontext
 
 ignore(ignore)
 
@@ -19,7 +19,7 @@ def h_test_circular_three_node_cycle() -> JsonObject:
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create nodes with forward reference to create cycle
         ctx.node("null", "node1", _input="node3")  # Forward reference
         ctx.node("null", "node2", _input="node1")
@@ -59,7 +59,7 @@ def h_test_self_referencing_node() -> JsonObject:
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create node that references itself using forward reference
         ctx.node("null", "self_ref", _input="self_ref")
 
@@ -83,7 +83,7 @@ def h_test_two_node_cycle() -> JsonObject:
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create two-node cycle using forward reference
         ctx.node("null", "node_a", _input="node_b")  # Forward reference
         ctx.node("null", "node_b", _input="node_a")
@@ -110,11 +110,11 @@ def h_test_two_node_cycle() -> JsonObject:
 
 
 def h_test_circular_with_context() -> JsonObject:
-    """Test circular graph construction using NodeContext."""
+    """Test circular graph construction using ZContext."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create nodes with forward reference to create cycle
         ctx.node("null", "A", _input="C")  # Forward reference
         ctx.node("null", "B", _input="A")
@@ -151,7 +151,7 @@ def h_test_complex_intersecting_cycles() -> JsonObject:
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create nodes with forward references to create cycles
         # Cycle 1: A -> B -> C -> A
         # Cycle 2: B -> D -> E -> B

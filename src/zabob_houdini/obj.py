@@ -9,17 +9,17 @@ from typing import TypeVar  # noqa: F407 E261 # type: ignore
 import hou
 
 
-from zabob_houdini.op import OpContext, OpInstance
+from zabob_houdini.op import ZOpContext, ZOpNode
 
 
 T_ObjNode = TypeVar('T_ObjNode', bound=hou.ObjNode)
 T_ObjCtx = TypeVar('T_ObjCtx', bound=hou.ObjNode)
 T_ObjParent = TypeVar('T_ObjParent', bound=hou.ObjNode)
 T_ObjChild = TypeVar('T_ObjChild', bound=hou.ObjNode)
-T_ObjInstance = TypeVar('T_ObjInstance', bound='ObjInstance')
+T_ObjInstance = TypeVar('T_ObjInstance', bound='ZObjNode')
 
 
-class ObjInstance(OpInstance[T_ObjParent, T_ObjNode, T_ObjChild]):
+class ZObjNode(ZOpNode[T_ObjParent, T_ObjNode, T_ObjChild]):
     """
     Concrete instance of an Object (OBJ) node.
 
@@ -37,11 +37,11 @@ class ObjInstance(OpInstance[T_ObjParent, T_ObjNode, T_ObjChild]):
 
     Examples:
         # Geometry container
-        geo: ObjInstance[hou.ObjNode, hou.ObjNode, hou.SopNode]
+        geo: ZObjNode[hou.ObjNode, hou.ObjNode, hou.SopNode]
         # Can create SOP children inside
 
         # Camera object
-        cam: ObjInstance[hou.ObjNode, hou.ObjNode, hou.ObjNode]
+        cam: ZObjNode[hou.ObjNode, hou.ObjNode, hou.ObjNode]
         # Is an object, not a container for other node types
 
     See docs/NODE_TYPE_HIERARCHIES.md for more on ObjNode's dual role.
@@ -49,7 +49,7 @@ class ObjInstance(OpInstance[T_ObjParent, T_ObjNode, T_ObjChild]):
     pass
 
 
-class ObjContext(OpContext[T_ObjParent, T_ObjCtx, T_ObjNode]):
+class ZObjContext(ZOpContext[T_ObjParent, T_ObjCtx, T_ObjNode]):
     """
     Context manager for creating Object-level nodes.
 
@@ -62,17 +62,17 @@ class ObjContext(OpContext[T_ObjParent, T_ObjCtx, T_ObjNode]):
         T_ObjNode: Types created (hou.ObjNode)
 
     Example:
-        obj = wrap_node(hou.node('/obj'))
-        with ObjContext(obj) as ctx:
-            geo = ctx.node('geo', 'geo1')
-            cam = ctx.node('cam', 'cam1')
+        obj = zwrap_node(hou.znode('/obj'))
+        with ZObjContext(obj) as ctx:
+            geo = ctx.znode('geo', 'geo1')
+            cam = ctx.znode('cam', 'cam1')
     """
     pass
 
 
-class ObjChain(OpInstance[T_ObjParent, T_ObjNode, T_ObjChild]):
+class ZObjChain(ZOpNode[T_ObjParent, T_ObjNode, T_ObjChild]):
     """
-    Chain of Object-level nodes.
+    ZChain of Object-level nodes.
 
     Note: OBJ chains are less common than SOP chains since object-level
     networks typically represent scene hierarchy rather than data flow.

@@ -13,7 +13,7 @@ class TestParameterValidation:
 
     @pytest.mark.integration
     def test_chain_rejects_input_parameter(self, hython_test):
-        """Test that chain() properly rejects the deprecated _input parameter."""
+        """Test that zchain() properly rejects the deprecated _input parameter."""
         result_data = hython_test("h_test_chain_rejects_input_parameter")
 
         # Check that the error message contains the expected guidance

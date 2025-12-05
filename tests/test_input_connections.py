@@ -32,7 +32,7 @@ class TestInputConnections:
 
     @pytest.mark.integration
     def test_chain_input_delegation(self, hython_test):
-        """Test that Chain.inputs properly delegates to first node."""
+        """Test that ZChain.inputs properly delegates to first node."""
         result_data = hython_test("h_test_chain_input_delegation")
 
         assert result_data["no_input_chain_empty"] is True

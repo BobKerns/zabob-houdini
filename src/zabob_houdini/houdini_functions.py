@@ -158,9 +158,8 @@ def _run_in_hython(script_path: str, *script_args: str,
                 for frame in tb:
                     # Include if it's from the user's script
                     if verbose or (
-                                __file__ not in frame.filename
-                                and '/hou.py' not in frame.filename
-                            ):
+                            __file__ not in frame.filename
+                            and '/hou.py' not in frame.filename):
                         relevant_frames.append(frame)
 
                 # Move to the next exception in the chain

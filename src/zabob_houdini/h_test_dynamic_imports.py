@@ -5,8 +5,8 @@ This module exists solely to test the dynamic import mechanism.
 """
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
-from zabob_houdini.core_node import NodeInstance  # noqa: F401
-from zabob_houdini.core_chain import Chain  # noqa: F401
+from zabob_houdini.core_node import ZNode  # noqa: F401
+from zabob_houdini.core_chain import ZChain  # noqa: F401
 
 
 def test_dynamic_imports_enabled() -> bool:

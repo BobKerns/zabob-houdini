@@ -13,7 +13,7 @@ class TestDependencyTracking:
         assert result['xform_is_dependent'], "Transform should depend on box"
         assert result['box_dependent_count'] == 1, "Box should have exactly one dependent"
 
-        # Chain dependency tracking
+        # ZChain dependency tracking
         assert result['sphere1_has_dependent'], "Sphere1 should have dependents"
         assert result['merge1_depends_on_sphere1'], "Merge1 should depend on sphere1"
         assert result['sphere1_dependent_count'] == 1, "Sphere1 should have exactly one dependent"

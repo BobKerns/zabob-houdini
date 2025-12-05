@@ -4,7 +4,7 @@ from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: i
 
 from typing import Any
 import hou
-from zabob_houdini.core import node, hou_node
+from zabob_houdini.core import znode, zchain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
@@ -14,7 +14,7 @@ def h_test_parameter_setting() -> JsonObject:
     geo_node = _obj.createNode("geo", "test_params")
 
     # Create node with parameters
-    box_node = node(geo_node, "box", "param_box", sizex=2.0, sizey=3.0, sizez=4.0)
+    box_node = znode(geo_node, "box", "param_box", sizex=2.0, sizey=3.0, sizez=4.0)
     created_node = box_node.create(hou.OpNode)
 
     def val(node: hou.OpNode, parm_name: str) -> Any:
@@ -46,7 +46,7 @@ def h_test_geometry_creation(node_type: str) -> JsonObject:
     geo_node = _obj.createNode("geo", f"test_{node_type}")
 
     # Create the specified node type
-    test_node = node(geo_node, node_type, f"test_{node_type}_node")
+    test_node = znode(geo_node, node_type, f"test_{node_type}_node")
     created_node = test_node.create()
 
     return {
@@ -57,29 +57,29 @@ def h_test_geometry_creation(node_type: str) -> JsonObject:
 
 def h_test_diamond_pattern_creation() -> JsonObject:
     """Test diamond pattern node creation without duplication."""
-    from zabob_houdini.core import chain
+    from zabob_houdini.core import zchain
     from zabob_houdini.utils import JsonArray
 
     # Create the container geometry node
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_diamond")
 
-    # Chain A: Create base geometry (should be created once)
-    chain_A = chain(
-        node(geo_node, "box", name="source_box"),
-        node(geo_node, "xform", "center"),
+    # ZChain A: Create base geometry (should be created once)
+    chain_A = zchain(
+        znode(geo_node, "box", name="source_box"),
+        znode(geo_node, "xform", "center"),
     )
 
-    # Chain B2: Should connect to chain_A
-    chain_B2 = chain(
-        node(geo_node, "xform", "scale_up", _input=chain_A),
-        node(geo_node, "xform", "rotate_y"),
+    # ZChain B2: Should connect to chain_A
+    chain_B2 = zchain(
+        znode(geo_node, "xform", "scale_up", _input=chain_A),
+        znode(geo_node, "xform", "rotate_y"),
     )
 
-    # Chain B3: Should also connect to chain_A (not duplicate it)
-    chain_B3 = chain(
-        node(geo_node, "xform", "scale_down", _input=chain_A),
-        node(geo_node, "xform", "rotate_x"),
+    # ZChain B3: Should also connect to chain_A (not duplicate it)
+    chain_B3 = zchain(
+        znode(geo_node, "xform", "scale_down", _input=chain_A),
+        znode(geo_node, "xform", "rotate_x"),
     )
 
     # Create the nodes
@@ -117,19 +117,18 @@ def h_test_diamond_pattern_creation() -> JsonObject:
 
 def h_test_multiple_input_merge() -> JsonObject:
     """Test merge node with multiple inputs."""
-    from zabob_houdini.core import chain
 
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_merge")
 
     # Create two source chains
-    chain1 = chain(node(geo_node, "box", "box1"))
-    chain2 = chain(node(geo_node, "sphere", "sphere1"))
+    chain1 = zchain(znode(geo_node, "box", "box1"))
+    chain2 = zchain(znode(geo_node, "sphere", "sphere1"))
 
     # Create merge chain
-    merge_chain = chain(
-        node(geo_node, "merge", "combine", _input=[chain1, chain2]),
-        node(geo_node, "xform", "final"),
+    merge_chain = zchain(
+        znode(geo_node, "merge", "combine", _input=[chain1, chain2]),
+        znode(geo_node, "xform", "final"),
     )
 
     # Create the nodes
@@ -149,21 +148,20 @@ def h_test_multiple_input_merge() -> JsonObject:
 
 def h_test_chain_input_connections() -> JsonObject:
     """Test that chain input connections work correctly."""
-    from zabob_houdini.core import chain
 
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_connections")
 
     # Create source chain
-    source_chain = chain(
-        node(geo_node, "box", "source"),
-        node(geo_node, "xform", "transform"),
+    source_chain = zchain(
+        znode(geo_node, "box", "source"),
+        znode(geo_node, "xform", "transform"),
     )
 
     # Create chain that connects to source
-    connected_chain = chain(
-        node(geo_node, "xform", "processor", _input=source_chain),
-        node(geo_node, "subdivide", "refine"),
+    connected_chain = zchain(
+        znode(geo_node, "xform", "processor", _input=source_chain),
+        znode(geo_node, "subdivide", "refine"),
     )
 
     # Create the nodes

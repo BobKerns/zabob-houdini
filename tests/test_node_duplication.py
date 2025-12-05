@@ -49,7 +49,7 @@ class TestNodeDuplication:
 
         assert all_created_nodes == expected_total, (
             f"Node duplication detected in chain references! "
-            f"Chain A has {chain_a_nodes} nodes, "
+            f"ZChain A has {chain_a_nodes} nodes, "
             f"Other nodes: {result_data['other_nodes_count']}, "
             f"Total created: {all_created_nodes}, "
             f"Expected: {expected_total}"

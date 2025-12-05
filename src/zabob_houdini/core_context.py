@@ -1,7 +1,7 @@
 """
 Context management classes for Zabob-Houdini.
 
-This module contains the NodeContext class that provides a context manager
+This module contains the ZContext class that provides a context manager
 interface for building node graphs with automatic layout and dependency tracking.
 """
 
@@ -23,11 +23,11 @@ from zabob_houdini.core_types import (
 )
 from zabob_houdini.core_utils import _generate_name
 from zabob_houdini.core_node import (
-    NodeInstance, ForwardReference, NodeBase, _wrap_inputs,
+    ZNode, ZNodeForwardRef, ZNodeBase, _wrap_inputs,
 )
-from zabob_houdini.core_chain import ChainBuilder
+from zabob_houdini.core_chain import ZChainBuilder
 from zabob_houdini.solo_fns import (  # noqa: F401
-    wrap_node, node,
+    wrap_node, znode,
 )
 
 
@@ -35,22 +35,22 @@ D = TypeVar('D')
 
 
 @dataclass
-class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
+class ZContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
     """
     A context manager for creating nodes within a specific parent.
 
     Provides a convenient way to create multiple nodes under the same parent
-    without having to specify the parent for each node() call.
+    without having to specify the parent for each znode() call.
 
     Named nodes can be looked up using dictionary-style access: ctx['name']
     """
-    parent: NodeInstance
-    _nodes: dict[str, NodeBase] = field(init=False)
-    _dependency_registry: weakref.WeakKeyDictionary[NodeBase, list[NodeBase]] = field(init=False)
+    parent: ZNode
+    _nodes: dict[str, ZNodeBase] = field(init=False)
+    _dependency_registry: weakref.WeakKeyDictionary[ZNodeBase, list[ZNodeBase]] = field(init=False)
     _level: int = field(init=False)
-    pending: deque[ForwardReference] = field(init=False)
+    pending: deque[ZNodeForwardRef] = field(init=False)
 
-    def __init__(self, parent: NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node]):
+    def __init__(self, parent: ZNode[T_Cat, T_Parent, T_Ctx, T_Node]):
         self.parent = parent
         self._nodes = {}
         self._dependency_registry = weakref.WeakKeyDictionary()
@@ -87,7 +87,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             all_nodes = set(self._nodes.values())
             connect_queue = deque(sink_nodes)
             connect_queue.extend(all_nodes - sink_nodes)
-            done: set[NodeBase] = set()
+            done: set[ZNodeBase] = set()
             while connect_queue:
                 node = connect_queue.popleft()
                 done.add(node)
@@ -103,15 +103,15 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             # Apply layout to position all nodes
             self.apply_layout()
 
-    def _create_forward_reference_for_name(self, name: str) -> ForwardReference:
-        """Create a ForwardReference for an unknown string name."""
-        return ForwardReference(
+    def _create_forward_reference_for_name(self, name: str) -> ZNodeForwardRef:
+        """Create a ZNodeForwardRef for an unknown string name."""
+        return ZNodeForwardRef(
             _parent=self.parent,
             context=self,
             name=name
         )
 
-    def resolved(self) -> Iterator[NodeInstance]:
+    def resolved(self) -> Iterator[ZNode]:
         """
         Resolve forward references using deque-based algorithm.
 
@@ -165,21 +165,21 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
              _display: bool = False,
              _render: bool = False,
              **attributes: Any
-             ) -> NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node]:
+             ) -> ZNode[T_Cat, T_Parent, T_Ctx, T_Node]:
         """
         Create a node under this context's parent.
 
         Args:
             node_type: Type of node to create (e.g., "box", "xform")
             name: Optional name for the node
-            _input: Optional input node(s) to connect
+            _input: Optional input znode(s) to connect
             _node: Optional existing hou.Node to return from create()
             _display: Set display flag on this node when created
             _render: Set render flag on this node when created
             **attributes: Node parameter values
 
         Returns:
-            NodeInstance that can be created with .create()
+            ZNode that can be created with .create()
         """
         import zabob_houdini.solo_fns as solo
 
@@ -189,8 +189,8 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
         while name in self._nodes:
             name = _generate_name(name, node_type)
 
-        # Create the node using the global node() function
-        node_instance = node(
+        # Create the node using the global znode() function
+        node_instance = znode(
             self.parent,
             node_type,
             name,
@@ -202,9 +202,9 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             **attributes
         )
         self._register_node(node_instance)
-        return cast(NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node], node_instance)
+        return cast(ZNode[T_Cat, T_Parent, T_Ctx, T_Node], node_instance)
 
-    def _register_node(self, node_instance: NodeBase) -> None:
+    def _register_node(self, node_instance: ZNodeBase) -> None:
         name = node_instance.name
         # Ensure node is registered in dependency registry (even if no dependencies)
         if node_instance not in self._dependency_registry:
@@ -212,17 +212,17 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
 
         # Register named nodes for lookup
         if name is not None:
-            # Check if there was a ForwardReference for this name that needs to be replaced
+            # Check if there was a ZNodeForwardRef for this name that needs to be replaced
             old_entry = self._nodes.get(name)
-            if isinstance(node_instance, NodeInstance):
-                if isinstance(old_entry, ForwardReference):
-                    # Remove the ForwardReference from pending list
+            if isinstance(node_instance, ZNode):
+                if isinstance(old_entry, ZNodeForwardRef):
+                    # Remove the ZNodeForwardRef from pending list
                     try:
                         self.pending.remove(old_entry)
                     except ValueError:
                         pass  # It may have already been removed
-                    # Replace the ForwardReference with the actual NodeInstance
-                    # Also update any other references in the context that point to the ForwardReference
+                    # Replace the ZNodeForwardRef with the actual ZNode
+                    # Also update any other references in the context that point to the ZNodeForwardRef
                     self._replace_forward_reference(old_entry, node_instance)
 
             self._nodes[name] = node_instance
@@ -232,12 +232,12 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
         for input_spec, _ in inputs:
             if input_spec is not None:
                 # Determine the input node for dependency tracking
-                input_node: NodeBase | None = None
+                input_node: ZNodeBase | None = None
 
-                # Resolve the input to a NodeInstance or ForwardReference
-                if isinstance(input_spec, NodeInstance):
+                # Resolve the input to a ZNode or ZNodeForwardRef
+                if isinstance(input_spec, ZNode):
                     input_node = input_spec
-                    # Auto-register named external NodeInstance objects in context
+                    # Auto-register named external ZNode objects in context
                     if input_spec.name is not None and input_spec.name not in self._nodes:
                         # Validate that the input node has the same parent as the context
                         if input_spec.parent != self.parent:
@@ -247,39 +247,39 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
                                 f"context parent {self.parent}"
                             )
                         self._nodes[input_spec.name] = input_spec
-                elif hasattr(input_spec, 'last'):  # Chain object
-                    # Import Chain here to avoid circular dependency
-                    from zabob_houdini.core import Chain
-                    if isinstance(input_spec, Chain):
+                elif hasattr(input_spec, 'last'):  # ZChain object
+                    # Import ZChain here to avoid circular dependency
+                    from zabob_houdini.core import ZChain
+                    if isinstance(input_spec, ZChain):
                         input_node = input_spec.last
                     else:
                         continue
-                elif isinstance(input_spec, ForwardReference):
+                elif isinstance(input_spec, ZNodeForwardRef):
                     input_node = input_spec
                 else:
                     continue  # Skip other types (hou.Node, str, tuples)
 
                 # Track the dependency (ForwardReferences are handled in _add_dependency)
-                if input_node is not None and isinstance(node_instance, NodeInstance):
+                if input_node is not None and isinstance(node_instance, ZNode):
                     self._add_dependency(input_node, node_instance)
 
-    def __getitem__(self, name: str) -> NodeBase:
+    def __getitem__(self, name: str) -> ZNodeBase:
         """Look up a named node created in this context."""
         if name not in self._nodes:
             raise KeyError(f"No node named '{name}' found in this context")
         return self._nodes[name]
 
     @overload
-    def get(self, name: str) -> NodeBase | None: ...
+    def get(self, name: str) -> ZNodeBase | None: ...
 
     @overload
-    def get(self, name: str, default: D) -> NodeBase | D: ...
+    def get(self, name: str, default: D) -> ZNodeBase | D: ...
 
-    def get(self, name: str, default: D | None = None) -> D | NodeBase | None:
+    def get(self, name: str, default: D | None = None) -> D | ZNodeBase | None:
         """Get a named node created in this context, or None if it doesn't exist."""
         return self._nodes.get(name, default)
 
-    def context(self, node_or_path: 'NodeInstance | str | hou.Node | None' = None) -> 'NodeContext':
+    def context(self, node_or_path: 'ZNode | str | hou.Node | None' = None) -> 'ZContext':
         """
         Create a new context for layout purposes.
 
@@ -295,31 +295,31 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             node_or_path: Context specification (behavior is implementation-defined)
 
         Returns:
-            A NodeContext for creating and organizing nodes (currently self)
+            A ZContext for creating and organizing nodes (currently self)
 
         Usage:
             with global_ctx.context() as ctx:
                 # Creates nodes with logical grouping
-                ctx.node("topnet", "my_network")
+                ctx.znode("topnet", "my_network")
 
         Example with nested organization:
-            with context("/obj") as obj_ctx:
-                with obj_ctx.context(node("/obj", "topnet", name="demo1")) as top_ctx:
+            with zcontext("/obj") as obj_ctx:
+                with obj_ctx.context(znode("/obj", "topnet", name="demo1")) as top_ctx:
                     # All nodes created here are organized under demo1
-                    top_ctx.node("pythonscript", "task1")
+                    top_ctx.znode("pythonscript", "task1")
         """
         return self
 
-    def chain(self, *, _input: RawInput | Sequence[RawInput] | None = None, **attributes: Any) -> ChainBuilder:
+    def chain(self, *, _input: RawInput | Sequence[RawInput] | None = None, **attributes: Any) -> ZChainBuilder:
         """
-        Create a ChainBuilder context manager for building chains.
+        Create a ZChainBuilder context manager for building chains.
 
         Args:
-            _input: Optional input node(s) to connect to the first node in the chain
+            _input: Optional input znode(s) to connect to the first node in the chain
             **attributes: Additional attributes (currently unused, for future compatibility)
 
         Returns:
-            ChainBuilder context manager for building chains
+            ZChainBuilder context manager for building chains
 
         Usage:
             # Context manager style
@@ -329,17 +329,17 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
 
         Note:
             - After exiting the context, any named nodes in the result will be registered
-            - Use the ChainBuilder.node() method to add nodes to the chain
+            - Use the ZChainBuilder.znode() method to add nodes to the chain
         """
         import zabob_houdini.core_chain as cchain
 
         # Process inputs to handle forward references
         processed_input = _wrap_inputs(_input, self)
-        return cchain.ChainBuilder(self, _input=processed_input)
+        return cchain.ZChainBuilder(self, _input=processed_input)
 
     def merge(self, *inputs: RawInput,
               name: str | None = None,
-              **attributes: Any) -> NodeInstance[T_Cat, T_Parent, T_Ctx, T_Node]:
+              **attributes: Any) -> ZNode[T_Cat, T_Parent, T_Ctx, T_Node]:
         """
         Create a merge node with multiple inputs.
 
@@ -349,7 +349,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             **attributes: Additional merge node parameters
 
         Returns:
-            NodeInstance for the merge node
+            ZNode for the merge node
         """
         if not inputs:
             raise ValueError("merge() requires at least one input")
@@ -357,14 +357,14 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
         return self.node("merge", name, _input=inputs, **attributes)
 
     def _replace_forward_reference(self,
-                                   forward_ref: ForwardReference,
-                                   actual_node: NodeInstance,
+                                   forward_ref: ZNodeForwardRef,
+                                   actual_node: ZNode,
                                    ) -> None:
-        """Replace all occurrences of a ForwardReference with the actual NodeInstance."""
-        # Check all nodes in the registry for inputs that reference the ForwardReference
+        """Replace all occurrences of a ZNodeForwardRef with the actual ZNode."""
+        # Check all nodes in the registry for inputs that reference the ZNodeForwardRef
         for node in self._dependency_registry:
             if hasattr(node, '_inputs'):
-                # Check if any inputs contain the ForwardReference and replace them
+                # Check if any inputs contain the ZNodeForwardRef and replace them
                 updated_inputs = []
                 needs_update = False
                 for inp in node.inputs:
@@ -375,18 +375,18 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
                         updated_inputs.append(inp)
 
                 if needs_update:
-                    # Update the node's inputs - we need to create a new NodeInstance with updated inputs
-                    # This is tricky because NodeInstance is frozen, so we'd need to recreate it
+                    # Update the node's inputs - we need to create a new ZNode with updated inputs
+                    # This is tricky because ZNode is frozen, so we'd need to recreate it
                     # For now, let's just note that this forward reference has been resolved
                     pass
 
-        # Note: The above is complex because NodeInstance is frozen.
+        # Note: The above is complex because ZNode is frozen.
         # The key insight is that ForwardReferences should be resolved during create() time,
         # not stored in the context permanently.
 
-    def _add_dependency(self, input_node: NodeBase, dependent_node: NodeInstance) -> None:
+    def _add_dependency(self, input_node: ZNodeBase, dependent_node: ZNode) -> None:
         """Add a dependency relationship: dependent_node depends on input_node."""
-        if isinstance(input_node, ForwardReference):
+        if isinstance(input_node, ZNodeForwardRef):
             # Skip dependency tracking for ForwardReferences at definition time
             # Dependencies will be resolved and tracked at create time
             return
@@ -396,7 +396,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
         if dependent_node not in self._dependency_registry[input_node]:
             self._dependency_registry[input_node].append(dependent_node)
 
-    def _remove_dependency(self, input_node: NodeInstance, dependent_node: NodeInstance) -> None:
+    def _remove_dependency(self, input_node: ZNode, dependent_node: ZNode) -> None:
         """Remove a dependency relationship."""
         if input_node in self._dependency_registry:
             try:
@@ -407,11 +407,11 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             except ValueError:
                 pass  # Dependency wasn't there
 
-    def get_dependents(self, node: NodeBase) -> list[NodeBase]:
+    def get_dependents(self, node: ZNodeBase) -> list[ZNodeBase]:
         """Get list of nodes that depend on the given node."""
         return [dep.resolved for dep in self._dependency_registry.get(node, [])]
 
-    def get_source_nodes(self) -> list[NodeBase]:
+    def get_source_nodes(self) -> list[ZNodeBase]:
         """Get nodes in this context that have no inputs (source nodes).
 
         Returns:
@@ -425,7 +425,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
                 )
         ]
 
-    def get_sink_nodes(self) -> list[NodeBase]:
+    def get_sink_nodes(self) -> list[ZNodeBase]:
         """Get nodes in this context that have no dependents (sink nodes).
 
         Returns:
@@ -469,7 +469,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
         layer_height: float = 2.0,
         node_width: float = 2.0,
         min_spacing: float = 0.5
-    ) -> dict[NodeBase, tuple[float, float]]:
+    ) -> dict[ZNodeBase, tuple[float, float]]:
         """Compute optimal layout positions for all nodes in the context.
 
         Uses a topological layering approach:
@@ -488,12 +488,12 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             min_spacing: Minimum horizontal spacing between nodes
 
         Returns:
-            Dictionary mapping NodeInstance to (x, y) position tuples
+            Dictionary mapping ZNode to (x, y) position tuples
         """
         all_nodes = [
             k.resolved
             for k in self._dependency_registry.keys()
-            ]
+        ]
         if not all_nodes:
             return {}
 
@@ -513,9 +513,9 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
 
         return positions
 
-    def _compute_layers(self, all_nodes: Sequence[NodeBase]) -> dict[int, list[NodeBase]]:
+    def _compute_layers(self, all_nodes: Sequence[ZNodeBase]) -> dict[int, list[ZNodeBase]]:
         """Compute vertical layers using proper top-down traversal."""
-        node_depths: dict[NodeBase, int] = {}
+        node_depths: dict[ZNodeBase, int] = {}
         resolved_nodes = {
             node.resolved
             for node in all_nodes
@@ -531,7 +531,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
         unassigned = resolved_nodes - source_nodes
 
         # Top-down traversal to assign depths
-        def assign_depth(node: NodeInstance, depth: int) -> None:
+        def assign_depth(node: ZNode, depth: int) -> None:
             unassigned.discard(node)
             # Update depth if this path is deeper
             if node in node_depths:
@@ -571,7 +571,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
         depth_to_layer = {depth: idx for idx, depth in enumerate(unique_depths)}
 
         # Group nodes by contiguous layer indices
-        layers: dict[int, list[NodeBase]] = {}
+        layers: dict[int, list[ZNodeBase]] = {}
         for node, depth in node_depths.items():
             layer_idx = depth_to_layer[depth]
             if layer_idx not in layers:
@@ -582,12 +582,12 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
 
     def _compute_space_requirements(
         self,
-        layers: dict[int, list[NodeBase]],
+        layers: dict[int, list[ZNodeBase]],
         node_width: float,
         min_spacing: float
-    ) -> dict[NodeBase, float]:
+    ) -> dict[ZNodeBase, float]:
         """Compute space requirements for each node based on output fanout."""
-        space_requirements: dict[NodeBase, float] = {}
+        space_requirements: dict[ZNodeBase, float] = {}
         max_layer = max(layers.keys()) if layers else 0
 
         # Start from bottom layer and work upward
@@ -612,13 +612,13 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
 
     def _position_nodes_in_layers(
         self,
-        layers: dict[int, list[NodeBase]],
-        space_requirements: dict[NodeBase, float],
+        layers: dict[int, list[ZNodeBase]],
+        space_requirements: dict[ZNodeBase, float],
         layer_height: float,
         node_width: float,
         min_spacing: float,
         y_offset: float
-    ) -> dict[NodeBase, tuple[float, float]]:
+    ) -> dict[ZNodeBase, tuple[float, float]]:
         """Position nodes using bidirectional layout algorithm.
 
         Args:
@@ -632,7 +632,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
 
         # Step 1: Upward pass - compute required horizontal space for each node
         # based on outputs that need to be positioned below it
-        node_required_width: dict[NodeBase, float] = {}
+        node_required_width: dict[ZNodeBase, float] = {}
 
         # Process layers from bottom (sinks) to top (sources)
         for layer_idx in sorted(layers.keys(), reverse=True):
@@ -652,7 +652,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
                     node_required_width[node] = max(space_requirements[node], total_output_width)
 
         # Step 2: Downward pass - position nodes based on allocated space
-        positions: dict[NodeBase, tuple[float, float]] = {}
+        positions: dict[ZNodeBase, tuple[float, float]] = {}
 
         # Start with top layer (sources)
         min_layer = min(layers.keys())
@@ -675,7 +675,7 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
             y_pos = y_offset + (-layer_idx * layer_height)
 
             # Group nodes by their inputs to distribute within input spans
-            input_groups: dict[tuple[NodeBase, ...], list[NodeBase]] = {}
+            input_groups: dict[tuple[ZNodeBase, ...], list[ZNodeBase]] = {}
 
             for node in layer_nodes:
                 # Resolve ForwardReferences in inputs before grouping
@@ -707,8 +707,8 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
                     ]
 
                     # Find the allocated span
-                    leftmost = min(pos - width/2 for pos, width in zip(input_positions, input_widths))
-                    rightmost = max(pos + width/2 for pos, width in zip(input_positions, input_widths))
+                    leftmost = min(pos - width / 2 for pos, width in zip(input_positions, input_widths))
+                    rightmost = max(pos + width / 2 for pos, width in zip(input_positions, input_widths))
                     available_width = rightmost - leftmost
                     available_center = (leftmost + rightmost) / 2
 
@@ -751,4 +751,4 @@ class NodeContext(Generic[T_Cat, T_Parent, T_Ctx, T_Node]):
                 print(f"Warning: Failed to set position for {node}: {e}")
 
     def __str__(self) -> str:
-        return f"NodeContext({self.parent})"
+        return f"ZContext({self.parent})"

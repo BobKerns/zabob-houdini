@@ -826,7 +826,7 @@ def do_transform(source: str | ast.AST,
 
 _RE_FUTURE_IMPORT = re.compile(
     r'^\s*from\s+__future__\s+import\s[^#]*\b_dynamic_import\b'
-    )
+)
 
 
 def transform_script(source: str, filename: str = '<script>') -> tuple[Any, bool]:

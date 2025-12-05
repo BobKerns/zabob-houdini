@@ -12,15 +12,15 @@ from collections.abc import Sequence
 
 import hou
 
-from zabob_houdini.core_node import NodeBase, NodeInstance
-from zabob_houdini.core_chain import Chain
+from zabob_houdini.core_node import ZNodeBase, ZNode
+from zabob_houdini.core_chain import ZChain
 
 T_Cat = TypeVar('T_Cat', bound=hou.NodeTypeCategory)
 T_Node = TypeVar('T_Node', bound=hou.Node)
 T_Ctx = TypeVar('T_Ctx', bound=hou.Node)
 T_Parent = TypeVar('T_Parent', bound=hou.Node)
 T_Child = TypeVar('T_Child', bound=hou.Node)
-T_Instance = TypeVar('T_Instance', bound=NodeInstance)
+T_Instance = TypeVar('T_Instance', bound='ZNode')
 
 LocalNodeName: TypeAlias = str
 """String name of a node within a context, used for forward references."""
@@ -32,7 +32,7 @@ ExistingNodeName: TypeAlias = str
 #
 # Raw* types represent the various ways users can specify nodes and
 # connections in the API, before they are resolved to an internal
-# form such as actual NodeInstance or hou.Node objects.
+# form such as actual ZNode or hou.Node objects.
 #
 # Unresolved* types represent forms that may contain
 # ForwardReferences that need to be resolved before
@@ -44,10 +44,10 @@ ExistingNodeName: TypeAlias = str
 # Native* types represent the actual hou.Node objects that have been
 # created in Houdini, or other structures in Houdini native form.
 
-RawParent: TypeAlias = 'ExistingNodeName | NodeBase | T_Node'
+RawParent: TypeAlias = 'ExistingNodeName | ZNodeBase | T_Node'
 """
 Raw input: A parent node, either as a path string (e.g., "/obj"),
-NodeInstance, ForwardReference, or hou.Node object."""
+ZNode, ZNodeForwardRef, or hou.Node object."""
 
 NativeNodeType: TypeAlias = str
 """
@@ -64,13 +64,13 @@ NativeParmData: TypeAlias = (
     | hou.Matrix4
 )
 
-RawCreatableNode: TypeAlias = 'NodeInstance | Chain'
+RawCreatableNode: TypeAlias = 'ZNode | ZChain'
 """
 A node or chain that can be created via .create() method.
 """
 
-_NodeSpec: TypeAlias = 'NodeBase | Chain | ExistingNodeName | LocalNodeName | T_Node'
-"""A specification for a node, which can be a NodeBase, Chain, existing node name, local node name, or hou.Node."""
+_NodeSpec: TypeAlias = 'ZNodeBase | ZChain | ExistingNodeName | LocalNodeName | T_Node'
+"""A specification for a node, which can be a ZNodeBase, ZChain, existing node name, local node name, or hou.Node."""
 
 RawChainNode: TypeAlias = '_NodeSpec[T_Node]'
 """
@@ -86,7 +86,7 @@ RawConnection: TypeAlias = '_NodeSpec[T_Node] | _RawConnection[T_Node] | _NoConn
 A specification for a connection, to the a specified output of a specified node.
 
 The connection can be specified as:
-- A node or chain (NodeBase, Chain, hou.Node, or name) to connect to the first output (index 0).
+- A node or chain (ZNodeBase, ZChain, hou.Node, or name) to connect to the first output (index 0).
 - A tuple of (node_spec, index), where:
   - node_spec specifies a node
   - index is the index of the output to connect to [default 0].
@@ -94,19 +94,19 @@ The connection can be specified as:
 - None to represent no connection (i.e., a sparse connection), only in Raw form.
 """
 
-RawInput: TypeAlias = 'RawConnection[T_Node] | Sequence[RawConnection[T_Node]] | NodeInstance | ExistingNodeName | None'
+RawInput: TypeAlias = 'RawConnection[T_Node] | Sequence[RawConnection[T_Node]] | ZNode | ExistingNodeName | None'
 """One or more specifications for a connection, to the output of a specified node."""
 
 RawInputs: TypeAlias = 'Sequence[RawConnection[T_Node]] | RawInput[T_Node] | None'
 """A sequence of specifications for connections, to the outputs of specified nodes."""
 
-RawChainCopyNode: TypeAlias = 'int | str | NodeBase'
-"""A parameter for Chain.copy() reordering: index, name, or NodeInstance to insert."""
+RawChainCopyNode: TypeAlias = 'int | str | ZNodeBase'
+"""A parameter for ZChain.copy() reordering: index, name, or ZNode to insert."""
 
-RawParentNode: TypeAlias = 'ExistingNodeName | NodeBase | T_Node'
+RawParentNode: TypeAlias = 'ExistingNodeName | ZNodeBase | T_Node'
 """A parent node specification for creating a new node or chain."""
 
-_UnresolvedConnection: TypeAlias = tuple['NodeBase', int]
+_UnresolvedConnection: TypeAlias = tuple['ZNodeBase', int]
 
 UnresolvedConnection: TypeAlias = _UnresolvedConnection | _NoConnection
 """A connection that may contain unresolved ForwardReferences: (node, output_index)."""
@@ -114,29 +114,29 @@ UnresolvedConnection: TypeAlias = _UnresolvedConnection | _NoConnection
 UnresolvedConnections: TypeAlias = tuple[UnresolvedConnection, ...]
 """A tuple of unresolved connections for a node's inputs."""
 
-UnresolvedNode: TypeAlias = 'NodeBase'
+UnresolvedNode: TypeAlias = 'ZNodeBase'
 """A node that may be unresolved."""
 
 UnresolvedNodes: TypeAlias = 'tuple[UnresolvedNode, ...]'
 """A tuple of unresolved nodes."""
 
-_Connection: TypeAlias = 'tuple[NodeInstance, int]'
+_Connection: TypeAlias = 'tuple[ZNode, int]'
 """A resolved connection: (node, output_index)."""
 
 ResolvedConnection: TypeAlias = '_Connection | _NoConnection'
 """A resolved connection: (node, output_index).
 
 Note: ResolvedConnection is a subset of UnresolvedConnection, with all forward
-references resolved to concrete NodeInstance objects."""
+references resolved to concrete ZNode objects."""
 
 ResolvedConnections: TypeAlias = tuple[ResolvedConnection, ...]
 """The inputs for a node or chain, as a tuple of ResolvedConnection objects or None for sparse connections."""
 
-ResolvedNode: TypeAlias = 'NodeInstance'
-"""A node that has been resolved to a NodeInstance."""
+ResolvedNode: TypeAlias = 'ZNode'
+"""A node that has been resolved to a ZNode."""
 
 ResolvedNodes: TypeAlias = 'tuple[ResolvedNode, ...]'
 """A tuple of resolved nodes."""
 
-ResolvedParent: TypeAlias = 'NodeInstance'
-"""A parent node that has been resolved to a NodeInstance."""
+ResolvedParent: TypeAlias = 'ZNode'
+"""A parent node that has been resolved to a ZNode."""

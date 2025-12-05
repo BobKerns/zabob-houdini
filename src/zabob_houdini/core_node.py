@@ -1,8 +1,8 @@
 """
-NodeBase and NodeInstance classes for Zabob-Houdini.
+ZNodeBase and ZNode classes for Zabob-Houdini.
 
 This module contains the base class for node representations and the
-NodeInstance class for representing individual Houdini nodes.
+ZNode class for representing individual Houdini nodes.
 """
 
 from __future__ import annotations, _dynamic_import # noqa: F407 E261 # type: ignore
@@ -29,34 +29,34 @@ from zabob_houdini.core_types import (
 )
 from zabob_houdini.utils import HashableMapping
 from zabob_houdini.core_utils import hou_node
-from zabob_houdini.core_chain import Chain, ChainBuilder
-from zabob_houdini.core_context import NodeContext
+from zabob_houdini.core_chain import ZChain, ZChainBuilder
+from zabob_houdini.core_context import ZContext
 
 
 T = TypeVar('T', bound=hou.Node)
-AS = TypeVar('AS', bound='NodeBase | hou.Node')
+AS = TypeVar('AS', bound='ZNodeBase | hou.Node')
 
 
-# Global registry to map hou.Node objects back to their originating NodeInstance
+# Global registry to map hou.Node objects back to their originating ZNode
 # Uses WeakKValueDictionary. It turns out that hou.Node objects do not have
-# stable identity; each hou.node() call returns a new object, so we need
+# stable identity; each hou.znode() call returns a new object, so we need
 # to key by path instead of object identity.
-_node_registry: weakref.WeakValueDictionary[str, 'NodeBase'] = weakref.WeakValueDictionary()
+_node_registry: weakref.WeakValueDictionary[str, 'ZNodeBase'] = weakref.WeakValueDictionary()
 
 
 @dataclass(frozen=True, eq=False)
-class NodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
+class ZNodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
     """
     Base class for Houdini node representations.
 
-    Provides common functionality for NodeInstance and Chain classes.
+    Provides common functionality for ZNode and ZChain classes.
     """
 
-    _parent: NodeInstance = field(repr=False)
+    _parent: ZNode = field(repr=False)
 
     @property
-    def parent(self) -> NodeInstance:
-        """Return the parent NodeInstance for this node/chain."""
+    def parent(self) -> ZNode:
+        """Return the parent ZNode for this node/chain."""
         return self._parent
 
     name: str
@@ -77,26 +77,26 @@ class NodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
         )
 
     @property
-    def first(self) -> NodeBase:
+    def first(self) -> ZNodeBase:
         """Return the first node for this node/chain."""
         return self
 
     @property
-    def last(self) -> NodeBase:
+    def last(self) -> ZNodeBase:
         """Return the last node for this node/chain."""
         return self
 
-    def resolve(self) -> NodeInstance | None:
+    def resolve(self) -> ZNode | None:
         """
-        Resolve this node to a NodeInstance, if possible.
+        Resolve this node to a ZNode, if possible.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         return None
 
     @property
-    def resolved(self) -> NodeInstance:
-        """Return the resolved NodeInstance for this node/chain, if possible.
+    def resolved(self) -> ZNode:
+        """Return the resolved ZNode for this node/chain, if possible.
 
         Raises RuntimeError if the node cannot be resolved.
         """
@@ -106,7 +106,7 @@ class NodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
         return resolved
 
     @property
-    def node(self) -> hou.Node:
+    def znode(self) -> hou.Node:
         """Return the actual Houdini node.
 
         Raises RuntimeError if the node cannot be resolved.
@@ -144,7 +144,7 @@ class NodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
 
     def _copy(self, /,
               name: str | None = None, *,
-              _chain: Chain | None = None,
+              _chain: ZChain | None = None,
               _inputs: RawInputs | None = None,
               _display: bool | None = None,
               _render: bool | None = None,
@@ -163,7 +163,7 @@ class NodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
 
 
 @dataclass(frozen=True, eq=False)
-class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
+class ZNode(ZNodeBase[T_Cat, T_Parent, T_Node, T_Child]):
     """
     Represents a single Houdini node with parameters and inputs.
 
@@ -177,10 +177,10 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
     _node: "hou.Node | None" = field(default=None, hash=False)
     _display: bool = field(default=False, hash=False)
     _render: bool = field(default=False, hash=False)
-    _chain: "Chain | None" = None
+    _chain: "ZChain | None" = None
 
     @property
-    def parent(self) -> 'NodeInstance':
+    def parent(self) -> 'ZNode':
         # Import this here to avoid circular imports
         from zabob_houdini.core import ROOT
 
@@ -315,8 +315,8 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
         for i, (input_node, output_idx) in enumerate(self.resolved_inputs):
             try:
                 match input_node:
-                    case NodeInstance() as node_instance:
-                        # Input is a NodeInstance - create it first
+                    case ZNode() as node_instance:
+                        # Input is a ZNode - create it first
                         # Pass _skip_chain=True to avoid recursion during chain creation
                         input_hou_node = node_instance._create(_skip_chain=True)
                         created_node.setInput(i, input_hou_node, output_idx)
@@ -324,7 +324,7 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
                         pass
                     case _:
                         raise TypeError(
-                            f"Input {i} must be a NodeInstance, Chain, or Houdini node object, "
+                            f"Input {i} must be a ZNode, ZChain, or Houdini node object, "
                             f"got {type(input_node).__name__}"
                         )
             except Exception as e:
@@ -345,7 +345,7 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
             except Exception as e:
                 print(f"Warning: Failed to set render flag: {e}")
 
-        # Register this NodeInstance under the full path.
+        # Register this ZNode under the full path.
         _node_registry[created_node.path()] = self
         return created_node
 
@@ -357,24 +357,24 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
         """
         if isinstance(node, cls):
             return node
-        raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")
+        raise TypeError(f"Cannot convert ZNode to {cls.__name__}")
 
     def as_type(self, cls: type[AS]) -> AS:
         """
         Narrow the type of a node to the specified type if possible.
-        type can be any subtype of hou.Node or NodeInstance.
+        type can be any subtype of hou.Node or ZNode.
 
         Throws a TypeError if the node cannot be cast to the specified type.
         """
-        if issubclass(cls, NodeInstance):
+        if issubclass(cls, ZNode):
             resolved = self.resolve()
             if resolved is None:
-                raise TypeError(f"Cannot resolve NodeInstance to {cls.__name__}")
+                raise TypeError(f"Cannot resolve ZNode to {cls.__name__}")
             if isinstance(resolved, cls):
                 return cast(AS, resolved)
-            raise TypeError(f"Cannot convert NodeInstance to {cls.__name__}")
+            raise TypeError(f"Cannot convert ZNode to {cls.__name__}")
         elif issubclass(cls, hou.Node):
-            if isinstance(self, NodeInstance):
+            if isinstance(self, ZNode):
                 return cast(AS, self._do_create())
             return self._asType(self._do_create(), cls)
         node = self.create()
@@ -388,11 +388,11 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
         else:
             return f'{self.parent.path}/{self.name or self.node_type}'
 
-    def resolve(self) -> NodeInstance:
+    def resolve(self) -> ZNode:
         """
-        Resolve this node to a NodeInstance, if possible.
+        Resolve this node to a ZNode, if possible.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         return self
 
@@ -403,7 +403,7 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
              _display: bool | None = None,
              _render: bool | None = None,
              **attributes: NativeParmData,
-             ) -> 'NodeInstance':
+             ) -> 'ZNode':
         """Return a copy with optional modifications.
 
         Args:
@@ -414,18 +414,18 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
             _render: Override render flag
 
         Returns:
-            New NodeInstance with merged properties
+            New ZNode with merged properties
         """
         _inputs = _inputs or _input
         inputs = _wrap_inputs(_inputs)
         inputs = _merge_inputs(inputs, self.inputs)
         return self._copy(
-                          name=name,
-                          _display=_display,
-                          _render=_render,
-                          _inputs=inputs,
-                          _chain=None,
-                          **attributes
+            name=name,
+            _display=_display,
+            _render=_render,
+            _inputs=inputs,
+            _chain=None,
+            **attributes
         )
 
     def _copy(self, /,
@@ -433,21 +433,21 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
               _inputs: 'RawInputs|None' = None,
               _display: bool | None = None,
               _render: bool | None = None,
-              _chain: 'Chain | None' = None,
+              _chain: 'ZChain | None' = None,
               **attributes: Any,
-              ) -> 'NodeInstance':
+              ) -> 'ZNode':
         """Return a copy with optional modifications.
 
         Args:
             _inputs: New input connections (merged with existing)
-            _chain: Chain this node belongs to
+            _chain: ZChain this node belongs to
             name: New name for the node (if provided)
             attributes: Additional/override attributes (merged with existing)
             _display: Override display flag
             _render: Override render flag
 
         Returns:
-            New NodeInstance with merged properties
+            New ZNode with merged properties
         """
 
         inputs = _wrap_inputs(_inputs)
@@ -462,7 +462,7 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
             # Preserve original attributes object when no modifications
             final_attributes = self.attributes
 
-        return NodeInstance(
+        return ZNode(
             _parent=self._parent,
             node_type=self.node_type,
             name=name if name is not None else self.name,
@@ -488,12 +488,12 @@ class NodeInstance(NodeBase[T_Cat, T_Parent, T_Node, T_Child]):
             input_name(inp)
             for inp in self._inputs
         )
-        return f"NodeInstance(type={self.node_type!r}, name={self.name!r}, inputs=({inputs_str})"
+        return f"ZNode(type={self.node_type!r}, name={self.name!r}, inputs=({inputs_str})"
 
 
-class ImmediateNode(NodeInstance):
+class ZImmediateNode(ZNode):
     """
-    A NodeInstance that wraps an existing hou.Node.
+    A ZNode that wraps an existing hou.Node.
 
     This is used the standalone `node` function is called without a context.
     Inputs are set immediately on creation.
@@ -510,18 +510,18 @@ class ImmediateNode(NodeInstance):
         return self._asType(node, as_type)
 
 
-def _wrap_hou_node(hnode: hou.Node) -> NodeBase:
+def _wrap_hou_node(hnode: hou.Node) -> ZNodeBase:
     """
-    Wrap a hou.Node in a NodeInstance, checking the global registry first.
+    Wrap a hou.Node in a ZNode, checking the global registry first.
 
-    If the hou.Node was originally created by a NodeInstance, returns that original.
-    Otherwise, creates a new NodeInstance wrapper.
+    If the hou.Node was originally created by a ZNode, returns that original.
+    Otherwise, creates a new ZNode wrapper.
 
     Args:
         hnode: The Houdini node to wrap
 
     Returns:
-        NodeInstance object (either original or newly created wrapper)
+        ZNode object (either original or newly created wrapper)
     """
     # Check if we already have this node in our registry
     path = hnode.path()
@@ -531,7 +531,7 @@ def _wrap_hou_node(hnode: hou.Node) -> NodeBase:
     node_name = path.split('/')[-1]
     parent_node = hnode.parent()
 
-    wrapped = NodeInstance(
+    wrapped = ZNode(
         _parent=wrap_node(parent_node),
         node_type=hnode.type().name(),
         name=node_name,
@@ -551,7 +551,7 @@ def _attribute_dict() -> HashableMapping[str, NativeParmData]:
 
 
 @dataclass(frozen=True, eq=False)
-class ForwardReference(NodeBase):
+class ZNodeForwardRef(ZNodeBase):
     """
     A forward reference to a node that may not exist yet.
 
@@ -559,24 +559,24 @@ class ForwardReference(NodeBase):
     and accessing chain properties (.first, .last) before chains are complete.
     Resolution happens at create() time.
     """
-    context: NodeContext
+    context: ZContext
     name: str
 
     def __post_init__(self):
         """Register for resolution on context exit"""
         self.context.pending.append(self)
 
-    def resolve(self) -> NodeInstance | None:
+    def resolve(self) -> ZNode | None:
         """
-        Resolve the forward reference to an actual NodeInstance.
+        Resolve the forward reference to an actual ZNode.
         Returns `None` if the reference cannot be resolved at
         this time.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         # Try to resolve the reference from the context
         current = self.context.get(self.name)
-        if isinstance(current, NodeInstance):
+        if isinstance(current, ZNode):
             return current
         return None
 
@@ -585,11 +585,11 @@ class ForwardReference(NodeBase):
               _inputs: 'RawInputs|None' = None,
               _display: bool | None = None,
               _render: bool | None = None,
-              _chain: 'Chain | None' = None,
-              **kwargs: NativeParmData) -> 'CopyReference':
+              _chain: 'ZChain | None' = None,
+              **kwargs: NativeParmData) -> 'ZCopyRef':
         """Return a copy with optional modifications."""
         inputs = _wrap_inputs(_inputs) if _inputs is not None else ()
-        return CopyReference(
+        return ZCopyRef(
             _parent=self.parent,
             context=self.context,
             name=name if name is not None else self.name,
@@ -606,27 +606,27 @@ class ForwardReference(NodeBase):
 
 
 @dataclass(frozen=True, eq=False)
-class CopyReference(ForwardReference):
+class ZCopyRef(ZNodeForwardRef):
     """
     A forward reference to a node that may not exist yet, with the intention to copy it.
 
-    Used when .copy() is called on a ForwardReference before it resolves. The copy
+    Used when .copy() is called on a ZNodeForwardRef before it resolves. The copy
     operation is deferred until the original reference resolves, then the resolved
     node is copied with any specified modifications.
 
     Resolution happens at create() time.
     """
-    copy_of: ForwardReference
+    copy_of: ZNodeForwardRef
     attributes: HashableMapping[str, NativeParmData] = field(default_factory=_attribute_dict)
     _inputs: UnresolvedConnections = field(default_factory=tuple)
 
-    def resolve(self) -> NodeInstance | None:
+    def resolve(self) -> ZNode | None:
         """
-        Resolve the forward reference to an actual NodeInstance.
+        Resolve the forward reference to an actual ZNode.
         Returns `None` if the reference cannot be resolved at
         this time.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         if self.copy_of is None:
             return super().resolve()
@@ -641,11 +641,11 @@ class CopyReference(ForwardReference):
     def copy(self, /,
              name: str | None = None, *,
              _inputs: 'RawInputs|None' = None,
-             **kwargs: NativeParmData) -> CopyReference:
+             **kwargs: NativeParmData) -> ZCopyRef:
         """Return a copy with optional modifications."""
         our_inputs = _wrap_inputs(_inputs) if _inputs is not None else self._inputs
         inputs = _merge_inputs(our_inputs, self._inputs)
-        return CopyReference(
+        return ZCopyRef(
             _parent=self.parent,
             context=self.context,
             name=name if name is not None else self.name,
@@ -664,9 +664,9 @@ class CopyReference(ForwardReference):
 
 
 @dataclass(frozen=True, eq=False)
-class ContextReference(ForwardReference):
+class ZContextRef(ZNodeForwardRef):
     """
-    A forward reference to a node by index within a NodeContext.
+    A forward reference to a node by index within a ZContext.
 
     Used when accessing nodes via context dictionary-style lookup (ctx['name']) before
     the node has been created. Resolution happens during context exit when all nodes
@@ -675,16 +675,16 @@ class ContextReference(ForwardReference):
 
     index: str
 
-    def resolve(self) -> NodeInstance | None:
+    def resolve(self) -> ZNode | None:
         """
-        Resolve the forward reference to an actual NodeInstance.
+        Resolve the forward reference to an actual ZNode.
         Returns `None` if the reference cannot be resolved at
         this time.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         val = self.context.get(self.index)
-        if isinstance(val, NodeInstance):
+        if isinstance(val, ZNode):
             return val
         return None
 
@@ -693,33 +693,33 @@ class ContextReference(ForwardReference):
 
 
 @dataclass(frozen=True, eq=False)
-class ChainForwardReference(ForwardReference):
+class ZChainForwardRef(ZNodeForwardRef):
     """
     Base class for forward references to chain elements.
 
-    Used when accessing properties or elements of a ChainBuilder before the chain
-    construction is complete (while still inside the 'with chain()' block).
+    Used when accessing properties or elements of a ZChainBuilder before the chain
+    construction is complete (while still inside the 'with zchain()' block).
     """
-    context: NodeContext
-    builder: ChainBuilder
+    context: ZContext
+    builder: ZChainBuilder
 
 
 @dataclass(frozen=True, eq=False)
-class ChainFirstReference(ChainForwardReference):
+class ZChainFirstRef(ZChainForwardRef):
     """
     A forward reference to a chain's .first property.
 
-    Used when accessing .first on a ChainBuilder inside its 'with' block before
+    Used when accessing .first on a ZChainBuilder inside its 'with' block before
     the chain has been finalized. Resolution happens at context exit.
     """
 
-    def resolve(self) -> NodeInstance | None:
+    def resolve(self) -> ZNode | None:
         """
-        Resolve the forward reference to an actual NodeInstance.
+        Resolve the forward reference to an actual ZNode.
         Returns `None` if the reference cannot be resolved at
         this time.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         chain = self.builder.chain
         if chain is None:
@@ -731,21 +731,21 @@ class ChainFirstReference(ChainForwardReference):
 
 
 @dataclass(frozen=True, eq=False)
-class ChainLastReference(ChainForwardReference):
+class ZChainLastRef(ZChainForwardRef):
     """
     A forward reference to a chain's .last property.
 
-    Used when accessing .last on a ChainBuilder inside its 'with' block before
+    Used when accessing .last on a ZChainBuilder inside its 'with' block before
     the chain has been finalized. Resolution happens at context exit.
     """
 
-    def resolve(self) -> NodeInstance | None:
+    def resolve(self) -> ZNode | None:
         """
-        Resolve the forward reference to an actual NodeInstance.
+        Resolve the forward reference to an actual ZNode.
         Returns `None` if the reference cannot be resolved at
         this time.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         chain = self.builder.chain
         if chain is None:
@@ -757,7 +757,7 @@ class ChainLastReference(ChainForwardReference):
 
 
 @dataclass(frozen=True, eq=False)
-class ChainReference(ChainForwardReference):
+class ZChainRef(ZChainForwardRef):
     """
     A forward reference to a chain element by index.
 
@@ -767,13 +767,13 @@ class ChainReference(ChainForwardReference):
 
     index: int | str | slice
 
-    def resolve(self) -> NodeInstance | None:
+    def resolve(self) -> ZNode | None:
         """
-        Resolve the forward reference to an actual NodeInstance.
+        Resolve the forward reference to an actual ZNode.
         Returns `None` if the reference cannot be resolved at
         this time.
 
-        Returns: NodeInstance | None
+        Returns: ZNode | None
         """
         chain = self.builder.chain
         if chain is None:
@@ -785,33 +785,33 @@ class ChainReference(ChainForwardReference):
 
 
 @overload
-def wrap_node(hnode: hou.Node) -> NodeInstance: ...
+def wrap_node(hnode: hou.Node) -> ZNode: ...
 
 
 @overload
-def wrap_node(hnode: str, context: NodeContext) -> NodeBase: ...
+def wrap_node(hnode: str, context: ZContext) -> ZNodeBase: ...
 
 
 @overload
-def wrap_node(hnode: str) -> NodeInstance: ...
+def wrap_node(hnode: str) -> ZNode: ...
 
 
 @overload
-def wrap_node(hnode: NodeInstance) -> NodeInstance: ...
+def wrap_node(hnode: ZNode) -> ZNode: ...
 
 
 @overload
-def wrap_node(hnode: ForwardReference) -> ForwardReference: ...
+def wrap_node(hnode: ZNodeForwardRef) -> ZNodeForwardRef: ...
 
 
 @overload
-def wrap_node(hnode: NodeBase) -> NodeBase: ...
+def wrap_node(hnode: ZNodeBase) -> ZNodeBase: ...
 
 
-def wrap_node(hnode: hou.Node | NodeBase | str, context: NodeContext | None = None) -> NodeBase:
+def wrap_node(hnode: hou.Node | ZNodeBase | str, context: ZContext | None = None) -> ZNodeBase:
 
     """
-    Wrap a hou.Node in a NodeInstance, preferring the original if available.
+    Wrap a hou.Node in a ZNode, preferring the original if available.
 
     This is the public interface to _wrap_hou_node.
 
@@ -819,7 +819,7 @@ def wrap_node(hnode: hou.Node | NodeBase | str, context: NodeContext | None = No
         hnode: The Houdini node to wrap
 
     Returns:
-        NodeInstance object (either original or newly created wrapper)
+        ZNode object (either original or newly created wrapper)
     """
 
     match hnode:
@@ -835,25 +835,25 @@ def wrap_node(hnode: hou.Node | NodeBase | str, context: NodeContext | None = No
                 resolved = _node_registry.get(hnode)
                 if resolved is not None:
                     return resolved
-                ref = ForwardReference(context.parent, hnode,
-                                       context=context,
-                                       )
+                ref = ZNodeForwardRef(context.parent, hnode,
+                                      context=context,
+                                      )
                 _node_registry[hnode] = ref
                 return ref
             existing = _node_registry.get(hnode)
             if existing is not None:
                 return existing
             hnode = hou_node(hnode)
-            n = NodeInstance(wrap_node(hnode.parent()),
-                             name=hnode.name(),
-                             node_type=hnode.type().name(),
-                             _node=hnode,
-                             )
+            n = ZNode(wrap_node(hnode.parent()),
+                      name=hnode.name(),
+                      node_type=hnode.type().name(),
+                      _node=hnode,
+                      )
             _node_registry[hnode.path()] = n
             return n
 
-        case NodeInstance():
-            # If it's already a NodeInstance, just return it
+        case ZNode():
+            # If it's already a ZNode, just return it
             return hnode
         case _:
             pass
@@ -865,7 +865,7 @@ NO_CONNECTION: ResolvedConnection = (None, 0)
 
 
 def _wrap_inputs(inputs: RawInputs | None,
-                 context: NodeContext | None = None,
+                 context: ZContext | None = None,
                  ) -> UnresolvedConnections:
     """
     Wrap input specifications (plural) and extract output indices.
@@ -898,7 +898,7 @@ def _wrap_inputs(inputs: RawInputs | None,
             return (wrapped,)
         case Sequence():
             return tuple(_wrap_input(inp, 0, context) for inp in inputs)
-        case NodeBase() | Chain() | hou.Node() as input:
+        case ZNodeBase() | ZChain() | hou.Node() as input:
             wrapped = _wrap_input(input, 0, context)
             return (wrapped,)
         case _:
@@ -906,14 +906,14 @@ def _wrap_inputs(inputs: RawInputs | None,
 
 
 def _wrap_input(input: RawInput, idx: int,
-                context: NodeContext | None = None,
+                context: ZContext | None = None,
                 ) -> UnresolvedConnection:
     """
     Wrap a single input specification and extract output index.
 
     Processes individual input specs (singular), handling various forms:
-    - Direct node references (NodeInstance, hou.Node)
-    - String names (creates ForwardReference if context provided)
+    - Direct node references (ZNode, hou.Node)
+    - String names (creates ZNodeForwardRef if context provided)
     - Chains (extracts .last node)
     - (node, output_idx) tuples
 
@@ -925,18 +925,18 @@ def _wrap_input(input: RawInput, idx: int,
     """
 
     # Copilot: There are no implicit returns in _wrap_single_input. (DO NOT REMOVE)
-    def _wrap_single_input(input: RawInput) -> NodeBase | None:
+    def _wrap_single_input(input: RawInput) -> ZNodeBase | None:
         """Wrap a single input node specification."""
         match input:
             case None:
                 return None
-            case NodeBase():
+            case ZNodeBase():
                 return input
-            case Chain() if len(input.nodes) == 0:
+            case ZChain() if len(input.nodes) == 0:
                 return None
-            case Chain():
+            case ZChain():
                 return input.last
-            case ChainBuilder():
+            case ZChainBuilder():
                 return input.last
             case hou.Node():
                 return wrap_node(input)
@@ -948,16 +948,16 @@ def _wrap_input(input: RawInput, idx: int,
                     resolved = _node_registry.get(input)
                     if resolved is not None:
                         return resolved
-                    ref = ForwardReference(context.parent, input,
-                                           context=context,
-                                           )
+                    ref = ZNodeForwardRef(context.parent, input,
+                                          context=context,
+                                          )
                     _node_registry[input] = ref
                     return ref
                 return wrap_node(hou_node(input), )
             case _:
                 raise TypeError(
                     f"Invalid input specification: {input}. "
-                    f"Expected NodeInstance, Chain, ChainBuilder, hou.Node, str, or ForwardReference."
+                    f"Expected ZNode, ZChain, ZChainBuilder, hou.Node, str, or ZNodeForwardRef."
                 )
 
     match input:
@@ -972,7 +972,7 @@ def _wrap_input(input: RawInput, idx: int,
             return (wrapped, output_idx)
         case tuple():
             raise ValueError("Input tuple must have exactly 2 elements: (<node>, <output_index>)")
-        case NodeInstance() | Chain() | ChainBuilder() | hou.Node() | str() | ForwardReference():
+        case ZNode() | ZChain() | ZChainBuilder() | hou.Node() | str() | ZNodeForwardRef():
             # Single node specification, default to output 0
             wrapped = _wrap_single_input(input)
             if wrapped is None:
@@ -997,19 +997,19 @@ def _merge_inputs(in1: UnresolvedConnections,
     return tuple(merged)
 
 
-def get_node_instance(hnode: hou.Node) -> NodeBase | None:
+def get_node_instance(hnode: hou.Node) -> ZNodeBase | None:
     """
-    Get the original NodeInstance that created a hou.Node, if any.
+    Get the original ZNode that created a hou.Node, if any.
 
     Args:
         hnode: The Houdini node to look up
 
     Returns:
-        The original NodeInstance that created this node, or None if not found
+        The original ZNode that created this node, or None if not found
     """
 
     if hnode.path() not in _node_registry:
-        raise RuntimeError(f"No NodeInstance found for hou.Node at path: {hnode.path()}")
+        raise RuntimeError(f"No ZNode found for hou.Node at path: {hnode.path()}")
     return _node_registry.get(hnode.path())
 
 
@@ -1018,15 +1018,15 @@ if TYPE_CHECKING:
     '''
     The root node, unwrapped.
     '''
-    ROOT: NodeInstance
+    ROOT: ZNode
     '''
-    The root node, wrapped as a `NodeInstance`.
+    The root node, wrapped as a `ZNode`.
     '''
 else:
     # Runtime initialization - only when hou is available
     _ROOT = hou_node('/')
-    ROOT = NodeInstance(
-        _parent=cast(NodeInstance, None),
+    ROOT = ZNode(
+        _parent=cast(ZNode, None),
         node_type='root',
         name='/',
         attributes=HashableMapping({}),

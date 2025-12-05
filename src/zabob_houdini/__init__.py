@@ -5,8 +5,8 @@ Architecture Layers:
 --------------------
 
 1. **Core API Layer** (core.py):
-   - node() and chain() functions for creating node graphs
-   - NodeInstance and Chain classes for deferred execution
+   - znode() and zchain() functions for creating node graphs
+   - ZNode and ZChain classes for deferred execution
    - Only imported in Houdini context (requires hou module)
 
 2. **Bridge Layer** (houdini_bridge.py):
@@ -20,7 +20,7 @@ Architecture Layers:
    - Delegates all Houdini functionality to bridge layer
 
 4. **Module Interface** (__init__.py):
-   - Provides lazy imports for core API (node, chain, NodeInstance, Chain)
+   - Provides lazy imports for core API (node, chain, ZNode, ZChain)
    - Only loads hou-dependent code when actually needed
    - Safe to import in regular Python environments
 
@@ -31,13 +31,13 @@ Usage Patterns:
 - Bridge routing is transparent to user code
 """
 
-from __future__ import annotations
+from __future__ import annotations  # , _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from importlib.metadata import version, PackageNotFoundError
 
 lazy_imports = (
-    "node", "chain", "merge", "context", "NodeInstance", "Chain", "NodeContext", "NodeType", "NodeParent",
-    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", "ChainBuilder",
+    "node", "chain", "merge", "context", "ZNode", "ZChain", "ZContext", "NodeType", "NodeParent",
+    "ZNodeBase", "CreatableNode", "ChainableNode", "InputNode", "ZChainBuilder",
     "InputNodes", "Inputs", "ChainCopyParam",
     "get_node_instance", "wrap_node", "hou_node", 'ROOT',
 )
@@ -60,7 +60,7 @@ def __getattr__(name: str):
         if "hou" not in sys.modules:
             raise ImportError(
                 f"Cannot import '{name}' in regular Python environment. "
-                f"Core API components (node, chain, NodeInstance, etc.) require Houdini's 'hou' module. "
+                f"Core API components (node, chain, ZNode, etc.) require Houdini's 'hou' module. "
                 f"Use 'hython' instead of 'python', or run integration tests with the hython_test fixture."
             )
         if not _imports_loaded:
@@ -73,18 +73,18 @@ def __getattr__(name: str):
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
-# Note: Core API components (node, chain, NodeInstance, Chain, NodeType, NodeParent, etc) are available
+# Note: Core API components (node, chain, ZNode, ZChain, NodeType, NodeParent, etc) are available
 # via lazy loading through __getattr__ but the linter can't check for us, so be careful to keep
 # __all__ accurate.
 # Although these appear to be undefined to static analysis, they are actually defined at runtime.
 __all__ = [
     '__version__',
-    "node", "chain", "merge", "context", "NodeInstance", "Chain",  # type: ignore
-    "NodeContext", "NodeType", "NodeParent",  # type: ignore
-    "NodeBase", "CreatableNode", "ChainableNode", "InputNode", "ChainBuilder",  # type: ignore
+    "node", "chain", "merge", "context", "ZNode", "ZChain",  # type: ignore
+    "ZContext", "NodeType", "NodeParent",  # type: ignore
+    "ZNodeBase", "CreatableNode", "ChainableNode", "InputNode", "ZChainBuilder",  # type: ignore
     "InputNodes", "Inputs", "ChainCopyParam",  # type: ignore
     "get_node_instance", "wrap_node", "hou_node", "ROOT",  # type: ignore
-    ]
+]
 
 # Validate __all__ consistency at import time
 _expected_all = set(lazy_imports) | {'__version__'}

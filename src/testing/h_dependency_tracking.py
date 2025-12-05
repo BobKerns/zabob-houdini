@@ -3,24 +3,23 @@
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from zabob_houdini.utils import HoudiniResult, JsonObject, error_result
+from zabob_houdini.core import znode, zcontext
 
 
 def h_test_dependency_tracking() -> 'JsonObject | HoudiniResult':
     """Test that node dependencies are tracked correctly."""
     try:
-        from zabob_houdini.solo_fns import node, context
-
         # Create some nodes with dependencies
-        geo = node("/obj", "geo", "test_geo")
-        box = node(geo, "box", "source_box")
-        xform = node(geo, "xform", "transform", _input=box)
+        geo = znode("/obj", "geo", "test_geo")
+        box = znode(geo, "box", "source_box")
+        xform = znode(geo, "xform", "transform", _input=box)
 
         # Create the nodes
         box.create()
         xform.create()
 
         # Create a context to test dependency tracking
-        test_ctx = context(geo)
+        test_ctx = zcontext(geo)
 
         # Re-create nodes through context for dependency tracking
         ctx_box = test_ctx.node("box", "ctx_box")
@@ -47,8 +46,8 @@ def h_test_dependency_tracking() -> 'JsonObject | HoudiniResult':
 
         # Test source/sink analysis using context methods
         # Build a network for analysis
-        network_geo = node("/obj", "geo", "network_geo")
-        ctx = context(network_geo)
+        network_geo = znode("/obj", "geo", "network_geo")
+        ctx = zcontext(network_geo)
 
         source1 = ctx.node("box", "source1")
         source2 = ctx.node("sphere", "source2")

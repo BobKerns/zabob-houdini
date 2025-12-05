@@ -63,7 +63,8 @@
         "editor.defaultFormatter": "vscode.json-language-features"
     },
     "python.analysis.include": [
-        "src/**/*.py"
+        "src/**/*.py",
+        "examples/**/*.py"
     ],
     "explorer.autoRevealExclude": {
         "**/.mypy_cache": true,
@@ -118,6 +119,7 @@
 
     // Enable coverage in test runs
     "python-environment-manager.coverageEnabled": true,
+    "python.analysis.generateWithTypeAnnotation": true,
 
     // === Add your personal settings below ===
     // "editor.fontSize": 14,

@@ -31,7 +31,7 @@ def test_basic_node_creation_in_houdini(hython_test):
 
 @pytest.mark.integration
 def test_zabob_node_creation(hython_test):
-    """Test Zabob NodeInstance creation and execution in Houdini."""
+    """Test Zabob ZNode creation and execution in Houdini."""
     result_data = hython_test("h_test_zabob_node_creation")
     assert "created_path" in result_data
     assert "sizex" in result_data
@@ -41,7 +41,7 @@ def test_zabob_node_creation(hython_test):
 
 @pytest.mark.integration
 def test_zabob_chain_creation(hython_test):
-    """Test Zabob Chain creation and execution in Houdini."""
+    """Test Zabob ZChain creation and execution in Houdini."""
     result_data = hython_test("h_test_zabob_chain_creation")
     assert "chain_length" in result_data
     assert "node_paths" in result_data

@@ -362,18 +362,18 @@ class TestScopeTracking:
         source = """
 from __future__ import _dynamic_import
 
-from zabob_houdini.core import node
+from zabob_houdini.core import znode
 
 # Lambda parameter 'x' should not be transformed
-func = lambda x: node(x, 1)
+func = lambda x: znode(x, 1)
 """
         code = transform_source(source)
 
         # Import should be transformed
-        assert "__dynamic__._def('zabob_houdini.core', 'node', 'node')" in code
+        assert "__dynamic__._def('zabob_houdini.core', 'znode', 'znode')" in code
 
         # 'node' in lambda body should be transformed to load()
-        assert "__dynamic__.load('node', locals())" in code
+        assert "__dynamic__.load('znode', locals())" in code
 
         # Lambda parameter 'x' should NOT be transformed - appears as plain 'x'
         # The lambda should look like: lambda x: __dynamic__.load('node', locals())(x, 1)
@@ -419,19 +419,19 @@ nodes = [node for node in range(5)]
         source = """
 from __future__ import _dynamic_import
 
-from zabob_houdini.core import node
+from zabob_houdini.core import znode
 
 def apply(x, y):
-    # 'node' should be transformed, 'x' and 'y' should not
-    return node(x, y)
+    # 'znode' should be transformed, 'x' and 'y' should not
+    return znode(x, y)
 """
         code = transform_source(source)
 
         # Import should be transformed
-        assert "__dynamic__._def('zabob_houdini.core', 'node', 'node')" in code
+        assert "__dynamic__._def('zabob_houdini.core', 'znode', 'znode')" in code
 
         # 'node' should be transformed to load(), but 'x' and 'y' should not
-        assert "return __dynamic__.load('node', locals())(x, y)" in code
+        assert "return __dynamic__.load('znode', locals())(x, y)" in code
 
         # Function parameters should appear as plain names
         assert "def apply(x, y):" in code
@@ -444,7 +444,7 @@ from __future__ import _dynamic_import
 from zabob_houdini.core import node
 
 # Outer 'x' and inner 'x' are different variables
-result = [[node(x, y) for x in range(3)] for y in range(2)]
+result = [[znode(x, y) for x in range(3)] for y in range(2)]
 """
         tree = ast.parse(source)
         transformer = DynamicImportTransformer("test_module")

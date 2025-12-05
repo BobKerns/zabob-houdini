@@ -3,7 +3,7 @@
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from zabob_houdini.utils import ignore
-from zabob_houdini.core import node, chain, hou_node
+from zabob_houdini.core import znode, zchain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
@@ -13,16 +13,16 @@ def h_test_parameter_validation_comprehensive() -> JsonObject:
     geo_node = _obj.createNode("geo", "test_validation")
 
     # Create a valid chain to use for testing
-    chain_A = chain(
-        node(geo_node, "box", "source_box"),
-        node(geo_node, "xform", "center"),
+    chain_A = zchain(
+        znode(geo_node, "box", "source_box"),
+        znode(geo_node, "xform", "center"),
     )
 
     # Test valid patterns work
     try:
-        chain_B = chain(
-            node(geo_node, "xform", "scale_up", _input=chain_A),
-            node(geo_node, "xform", "rotate_y"),
+        chain_B = zchain(
+            znode(geo_node, "xform", "scale_up", _input=chain_A),
+            znode(geo_node, "xform", "rotate_y"),
                         )
         ignore(chain_B)
         valid_patterns_work = True
@@ -31,10 +31,10 @@ def h_test_parameter_validation_comprehensive() -> JsonObject:
 
     # Test invalid patterns are rejected
     try:
-        # This should fail - _input parameter not supported on chain()
-        bad_chain = chain(
-            node(geo_node, "xform", "bad_node"),
-            node(geo_node, "xform", "rotate_z"),
+        # This should fail - _input parameter not supported on zchain()
+        bad_chain = zchain(
+            znode(geo_node, "xform", "bad_node"),
+            znode(geo_node, "xform", "rotate_z"),
             _input=chain_A,  # This should raise TypeError
         )
         ignore(bad_chain)
@@ -51,21 +51,21 @@ def h_test_parameter_validation_comprehensive() -> JsonObject:
 
 
 def h_test_chain_rejects_input_parameter() -> JsonObject:
-    """Test that chain() properly rejects the deprecated _input parameter."""
+    """Test that zchain() properly rejects the deprecated _input parameter."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_rejection")
 
     # Create test chain
-    chain_A = chain(
-        node(geo_node, "box", "source_box"),
-        node(geo_node, "xform", "center"),
+    chain_A = zchain(
+        znode(geo_node, "box", "source_box"),
+        znode(geo_node, "xform", "center"),
     )
 
     # This should raise a TypeError with a helpful message
     try:
-        chain(
-            node(geo_node, "xform", "scale_up"),
-            node(geo_node, "xform", "rotate_y"),
+        zchain(
+            znode(geo_node, "xform", "scale_up"),
+            znode(geo_node, "xform", "rotate_y"),
             _input=chain_A,  # This should trigger the error
         )
         # Should not reach here
@@ -97,22 +97,22 @@ def h_test_valid_input_patterns() -> JsonObject:
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_valid")
 
-    # Chain A: Create base geometry
-    chain_A = chain(
-        node(geo_node, "box", "source_box"),
-        node(geo_node, "xform", "center"),
+    # ZChain A: Create base geometry
+    chain_A = zchain(
+        znode(geo_node, "box", "source_box"),
+        znode(geo_node, "xform", "center"),
     )
 
     # This should work - first node has input
-    chain_B = chain(
-        node(geo_node, "xform", "scale_up", _input=chain_A),  # Node has input
-        node(geo_node, "xform", "rotate_y"),
+    chain_B = zchain(
+        znode(geo_node, "xform", "scale_up", _input=chain_A),  # Node has input
+        znode(geo_node, "xform", "rotate_y"),
     )
 
     # This should also work - no inputs anywhere
-    chain_C = chain(
-        node(geo_node, "xform", "scale_down"),  # No inputs
-        node(geo_node, "xform", "rotate_x"),
+    chain_C = zchain(
+        znode(geo_node, "xform", "scale_down"),  # No inputs
+        znode(geo_node, "xform", "rotate_x"),
     )
 
     return {
@@ -131,10 +131,10 @@ def h_test_node_input_validation() -> JsonObject:
     geo_node = _obj.createNode("geo", "test_node_inputs")
 
     # Create source
-    source = node(geo_node, "box", "source")
+    source = znode(geo_node, "box", "source")
 
     # Single input - should work
-    node_single = node(geo_node, "xform", "transform", _input=source)
+    node_single = znode(geo_node, "xform", "transform", _input=source)
     single_input_works = (
         len(node_single.inputs) == 1 and
         node_single.inputs[0] is not None and
@@ -142,8 +142,8 @@ def h_test_node_input_validation() -> JsonObject:
     )
 
     # Multiple inputs - should work
-    source2 = node(geo_node, "box", "source2")
-    node_multi = node(geo_node, "merge", "combine", _input=[source, source2])
+    source2 = znode(geo_node, "box", "source2")
+    node_multi = znode(geo_node, "merge", "combine", _input=[source, source2])
     input_nodes = [inp[0] for inp in node_multi.inputs if inp is not None]
     multiple_inputs_work = (
         len(node_multi.inputs) == 2 and
@@ -152,7 +152,7 @@ def h_test_node_input_validation() -> JsonObject:
     )
 
     # No inputs - should work
-    node_none = node(geo_node, "box", "standalone")
+    node_none = znode(geo_node, "box", "standalone")
     no_inputs_work = len(node_none.inputs) == 0
 
     return {
@@ -169,14 +169,14 @@ def h_test_invalid_input_types(input_type: str) -> JsonObject:
 
     if input_type == "none":
         # None should be filtered out and result in no inputs
-        test_node = node(geo_node, "xform", "test", _input=None)
+        test_node = znode(geo_node, "xform", "test", _input=None)
         none_filtered_out = len(test_node.inputs) == 0
         return {'none_filtered_out': none_filtered_out}
 
     elif input_type == "empty_string":
         # Empty string - test what happens (type: ignore for intentional type violation)
         try:
-            _test_node = node(geo_node, "xform", "test", _input="")  # type: ignore
+            _test_node = znode(geo_node, "xform", "test", _input="")  # type: ignore
             handled_appropriately = True
             error_occurred = False
         except Exception:
@@ -190,7 +190,7 @@ def h_test_invalid_input_types(input_type: str) -> JsonObject:
     elif input_type == "number":
         # Number - test what happens (type: ignore for intentional type violation)
         try:
-            _test_node = node(geo_node, "xform", "test", _input=123)  # type: ignore
+            _test_node = znode(geo_node, "xform", "test", _input=123)  # type: ignore
             handled_appropriately = True
             error_occurred = False
             ignore(_test_node)

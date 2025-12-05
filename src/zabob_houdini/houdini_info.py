@@ -451,7 +451,7 @@ def types(category: str):
     # Print table rows
     for node in node_types:
         # Truncate description if too long
-        desc = node.description[:desc_width-3] + "..." if len(node.description) > desc_width else node.description
+        desc = node.description[:desc_width - 3] + "..." if len(node.description) > desc_width else node.description
 
         # Format inputs/outputs
         if node.minNumInputs != node.maxNumInputs:
@@ -464,7 +464,7 @@ def types(category: str):
         if node.childCategory and node.childCategory in child_to_parent_categories:
             categories_str = ", ".join(child_to_parent_categories[node.childCategory])
             if len(categories_str) > categories_width:
-                categories_str = categories_str[:categories_width-3] + "..."
+                categories_str = categories_str[:categories_width - 3] + "..."
         else:
             categories_str = "-"
 

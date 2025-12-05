@@ -2,12 +2,12 @@
 from __future__ import dynamic_import  # type: ignore # noqa: F401,F403,F407
 from typing import Any
 
-from zabob_houdini.core import node, NodeInstance, ROOT  # noqa: F401
+from zabob_houdini.core import node, ZNode, ROOT  # noqa: F401
 
 
 def test_function():
     """Test function with list comprehension."""
-    nodes = [NodeInstance(ROOT, node_type="box", name=f"box{i}") for i in range(3)]
+    nodes = [ZNode(ROOT, node_type="box", name=f"box{i}") for i in range(3)]
 
     # This should NOT transform 'node' to __getattr__('node')
     result = [

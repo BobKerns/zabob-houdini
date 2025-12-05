@@ -1,15 +1,15 @@
 """
-Tests for enhanced Chain.copy() functionality.
+Tests for enhanced ZChain.copy() functionality.
 
-This module tests the positional reordering capabilities of Chain.copy() method.
+This module tests the positional reordering capabilities of ZChain.copy() method.
 """
 
 
 class TestChainCopyPositional:
-    """Test Chain.copy() with positional reordering parameters."""
+    """Test ZChain.copy() with positional reordering parameters."""
 
     def test_positional_reordering(self, hython_test):
-        """Test that Chain.copy() can reorder nodes positionally."""
+        """Test that ZChain.copy() can reorder nodes positionally."""
         data = hython_test('h_test_positional_reordering')
 
         # Verify original order
@@ -37,10 +37,10 @@ class TestChainCopyPositional:
         assert data['inserted_names'] == ['first', 'inserted', 'third']
 
     def test_copy_signature_includes_args(self, hython_test):
-        """Test that Chain.copy() signature supports *args."""
+        """Test that ZChain.copy() signature supports *args."""
         data = hython_test('h_test_copy_signature_includes_args')
 
-        # Chain.copy() should use *args for positional parameters
+        # ZChain.copy() should use *args for positional parameters
         assert data['chain_uses_args']
 
         # Base parameters should still be present

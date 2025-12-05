@@ -4,23 +4,23 @@ from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: i
 
 from zabob_houdini.utils import HoudiniResult, JsonObject, error_result, success_result
 from zabob_houdini.core_node import (
-    NO_CONNECTION, NodeInstance,
+    NO_CONNECTION, ZNode,
     get_node_instance, wrap_node,
 )
 from zabob_houdini.solo_fns import (
-    chain, node
+    zchain, znode
 )
 from zabob_houdini.core_utils import hou_node
 
 
 def h_test_create_caches_result() -> JsonObject:
-    """Test NodeInstance.create() caching behavior."""
+    """Test ZNode.create() caching behavior."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
-    # Create NodeInstance and test caching
-    box_node = node(geo.path(), "box", name="cache_test_box")
+    # Create ZNode and test caching
+    box_node = znode(geo.path(), "box", name="cache_test_box")
 
     # First call should create the node
     created_node1 = box_node.create()
@@ -38,14 +38,14 @@ def h_test_create_caches_result() -> JsonObject:
 
 
 def h_test_create_different_instances_different_nodes() -> JsonObject:
-    """Test different NodeInstance objects create different nodes."""
+    """Test different ZNode objects create different nodes."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
-    # Create two different NodeInstance objects
-    node1 = node(geo.path(), "box", name="box1")
-    node2 = node(geo.path(), "box", name="box2")
+    # Create two different ZNode objects
+    node1 = znode(geo.path(), "box", name="box1")
+    node2 = znode(geo.path(), "box", name="box2")
 
     created1 = node1.create()
     created2 = node2.create()
@@ -62,15 +62,15 @@ def h_test_create_different_instances_different_nodes() -> JsonObject:
 
 
 def h_test_create_returns_tuple_of_node_instances() -> JsonObject:
-    """Test Chain.create() returns tuple of NodeInstance copies."""
+    """Test ZChain.create() returns tuple of ZNode copies."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create a chain
-    node1 = node(geo.path(), "box", name="chain_box")
-    node2 = node(geo.path(), "sphere", name="chain_sphere")
-    test_chain = chain(node1, node2)
+    node1 = znode(geo.path(), "box", name="chain_box")
+    node2 = znode(geo.path(), "sphere", name="chain_sphere")
+    test_chain = zchain(node1, node2)
 
     hou_nodes = test_chain.create()
     nodes = test_chain.nodes
@@ -79,8 +79,8 @@ def h_test_create_returns_tuple_of_node_instances() -> JsonObject:
     is_tuple = isinstance(hou_nodes, tuple)
     tuple_length = len(nodes)
 
-    # Check that items are NodeInstance objects
-    all_node_instances = all(isinstance(item, NodeInstance) for item in nodes)
+    # Check that items are ZNode objects
+    all_node_instances = all(isinstance(item, ZNode) for item in nodes)
 
     all_created = all(node is not None for node in hou_nodes)
 
@@ -94,13 +94,13 @@ def h_test_create_returns_tuple_of_node_instances() -> JsonObject:
 
 
 def h_test_copy_creates_independent_instance() -> JsonObject:
-    """Test NodeInstance.copy() creates independent copies."""
+    """Test ZNode.copy() creates independent copies."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
-    # Create original NodeInstance
-    original = node(geo.path(), "box", name="original", sizex=2.0)
+    # Create original ZNode
+    original = znode(geo.path(), "box", name="original", sizex=2.0)
     copied = original.copy()
 
     # Test that they're different objects
@@ -126,17 +126,17 @@ def h_test_copy_creates_independent_instance() -> JsonObject:
 
 
 def h_test_copy_with_chain_inputs() -> JsonObject:
-    """Test NodeInstance.copy() with various input types."""
+    """Test ZNode.copy() with various input types."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create a chain to use as input
-    inner_node = node(geo, "sphere")
-    inner_chain = chain(inner_node)
+    inner_node = znode(geo, "sphere")
+    inner_chain = zchain(inner_node)
 
     # Create node with chain input
-    original = node(geo, "merge", _input=inner_chain)
+    original = znode(geo, "merge", _input=inner_chain)
     copied = original.copy()
 
     # Test input structure
@@ -146,7 +146,7 @@ def h_test_copy_with_chain_inputs() -> JsonObject:
     # The input chain should be copied (different object)
     input_copied = False
     if copied.inputs and len(copied.inputs) > 0:
-        # Check if it's a different Chain object - inputs now returns (node, output_index) tuples or None
+        # Check if it's a different ZChain object - inputs now returns (node, output_index) tuples or None
         input_copied = copied.inputs[0] != NO_CONNECTION and copied.inputs[0][0] != inner_chain
 
     return {
@@ -157,15 +157,15 @@ def h_test_copy_with_chain_inputs() -> JsonObject:
 
 
 def h_test_copy_creates_independent_chain() -> JsonObject:
-    """Test Chain.copy() creates independent copy."""
+    """Test ZChain.copy() creates independent copy."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create original chain
-    node1 = node(geo, "box")
-    node2 = node(geo, "sphere")
-    original = chain(node1, node2)
+    node1 = znode(geo, "box")
+    node2 = znode(geo, "sphere")
+    original = zchain(node1, node2)
 
     # Copy the chain
     copied = original.copy()
@@ -186,17 +186,17 @@ def h_test_copy_creates_independent_chain() -> JsonObject:
 
 
 def h_test_copy_deep_copies_node_instances() -> JsonObject:
-    """Test Chain.copy() deep copies NodeInstances."""
-    from zabob_houdini.core import NodeInstance
+    """Test ZChain.copy() deep copies NodeInstances."""
+    from zabob_houdini.core import ZNode
 
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create original chain with attributed nodes
-    node1 = node(geo, "box", sizex=1.0)
-    node2 = node(geo, "sphere")
-    original = chain(node1, node2)
+    node1 = znode(geo, "box", sizex=1.0)
+    node2 = znode(geo, "sphere")
+    original = zchain(node1, node2)
 
     # Copy the chain
     copied = original.copy()
@@ -205,9 +205,9 @@ def h_test_copy_deep_copies_node_instances() -> JsonObject:
     nodes_length = len(copied.nodes)
     nodes_different = all(copied.nodes[i] is not original.nodes[i] for i in range(len(copied.nodes)))
 
-    # Test basic structure - just verify we have NodeInstance objects
-    first_is_node_instance = isinstance(copied.nodes[0], NodeInstance)
-    second_is_node_instance = isinstance(copied.nodes[1], NodeInstance)
+    # Test basic structure - just verify we have ZNode objects
+    first_is_node_instance = isinstance(copied.nodes[0], ZNode)
+    second_is_node_instance = isinstance(copied.nodes[1], ZNode)
 
     return {
         'nodes_length': nodes_length,
@@ -218,17 +218,17 @@ def h_test_copy_deep_copies_node_instances() -> JsonObject:
 
 
 def h_test_copy_deep_copies_nested_chains() -> JsonObject:
-    """Test Chain.copy() recursively copies nested chains."""
+    """Test ZChain.copy() recursively copies nested chains."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create nested structure
-    inner_node = node(geo.path(), "box")
-    inner_chain = chain(inner_node)
+    inner_node = znode(geo.path(), "box")
+    inner_chain = zchain(inner_node)
 
-    outer_node = node(geo, "merge")
-    original = chain(inner_chain, outer_node)
+    outer_node = znode(geo, "merge")
+    original = zchain(inner_chain, outer_node)
 
     # Copy the chain
     copied = original.copy()
@@ -237,7 +237,7 @@ def h_test_copy_deep_copies_nested_chains() -> JsonObject:
     nodes_length = len(copied.nodes)
     inner_chain_copied = copied.nodes[0] is not inner_chain
 
-    # Test that first node is a Chain-like object
+    # Test that first node is a ZChain-like object
     first_is_chain = hasattr(copied.nodes[0], 'nodes')
     second_is_node_instance = hasattr(copied.nodes[1], 'node_type')
 
@@ -250,16 +250,16 @@ def h_test_copy_deep_copies_nested_chains() -> JsonObject:
 
 
 def h_test_copy_preserves_non_chain_inputs() -> JsonObject:
-    """Test NodeInstance.copy() preserves non-Chain inputs as-is."""
+    """Test ZNode.copy() preserves non-ZChain inputs as-is."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
-    # Create a NodeInstance to use as input
-    input_node = node(geo.path(), "box", name="input_box")
+    # Create a ZNode to use as input
+    input_node = znode(geo.path(), "box", name="input_box")
 
     # Create node with multiple inputs including None for sparse connections
-    original = node(geo.path(), "merge", _input=[input_node, None])
+    original = znode(geo.path(), "merge", _input=[input_node, None])
     copied = original.copy()
 
     has_inputs = copied.inputs is not None
@@ -281,16 +281,16 @@ def h_test_copy_preserves_non_chain_inputs() -> JsonObject:
 
 
 def h_test_convenience_methods_with_created_nodes() -> JsonObject:
-    """Test Chain convenience methods for accessing created hou.Node instances."""
+    """Test ZChain convenience methods for accessing created hou.Node instances."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create a 3-node chain
-    node1 = node(geo.path(), "box", name="first_box")
-    node2 = node(geo.path(), "sphere", name="middle_sphere")
-    node3 = node(geo.path(), "merge", name="last_merge")
-    test_chain = chain(node1, node2, node3)
+    node1 = znode(geo.path(), "box", name="first_box")
+    node2 = znode(geo.path(), "sphere", name="middle_sphere")
+    node3 = znode(geo.path(), "merge", name="last_merge")
+    test_chain = zchain(node1, node2, node3)
 
     # Test convenience methods
     first = test_chain.first_node()
@@ -313,11 +313,11 @@ def h_test_convenience_methods_with_created_nodes() -> JsonObject:
 
 
 def h_test_convenience_methods_empty_chain() -> HoudiniResult:
-    """Test methods on an empty Chain."""
+    """Test methods on an empty ZChain."""
     try:
         # Fail to create empty chain
-        chain()  # type: ignore
-        return error_result("Chain() with no nodes did not raise an error")
+        zchain()  # type: ignore
+        return error_result("ZChain() with no nodes did not raise an error")
     except Exception as e:
         return success_result(error_creating_chain=str(e),
                               _func=h_test_convenience_methods_empty_chain,
@@ -325,32 +325,32 @@ def h_test_convenience_methods_empty_chain() -> HoudiniResult:
 
 
 def h_test_node_registry_functionality() -> JsonObject:
-    """Test NodeInstance registry functionality."""
+    """Test ZNode registry functionality."""
 
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
-    # Create a NodeInstance and get its hou.Node
-    box_node = node(geo, "box", name="registry_test_box")
+    # Create a ZNode and get its hou.Node
+    box_node = znode(geo, "box", name="registry_test_box")
     created_hou_node = box_node.create()
 
-    # Test 1: get_node_instance should return the original NodeInstance
+    # Test 1: get_node_instance should return the original ZNode
     retrieved_instance = get_node_instance(created_hou_node)
     found_original = retrieved_instance is box_node
 
-    # Test 2: wrap_node should return the original NodeInstance, not create a new one
+    # Test 2: wrap_node should return the original ZNode, not create a new one
     wrapped_instance = wrap_node(created_hou_node)
     wrap_returns_original = wrapped_instance is box_node
 
     # Test 3: Create another node with the hou.Node in a chain - should use original
-    sphere_node = node(geo, "sphere", name="registry_test_sphere")
+    sphere_node = znode(geo, "sphere", name="registry_test_sphere")
     # Create a chain that includes the raw hou.Node
-    test_chain = chain(box_node, sphere_node)
+    test_chain = zchain(box_node, sphere_node)
     created_chain_nodes = test_chain.create()
 
-    # The first node in the chain should not be the original NodeInstance
-    # Chain creates new NodeInstances owned by the chain.
+    # The first node in the chain should not be the original ZNode
+    # ZChain creates new NodeInstances owned by the chain.
     first_chain_node_is_original = created_chain_nodes[0] == created_hou_node
 
     return {
@@ -369,8 +369,8 @@ def h_test_merge_inputs_sparse_handling() -> JsonObject:
     # Create test nodes to use as inputs
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
-    node1 = node(geo.path(), "box", name="box1")
-    node2 = node(geo.path(), "sphere", name="sphere1")
+    node1 = znode(geo.path(), "box", name="box1")
+    node2 = znode(geo.path(), "sphere", name="sphere1")
     c1 = (node1, 0)
     c2 = (node2, 0)
     in1: UnresolvedConnections = (c1, )

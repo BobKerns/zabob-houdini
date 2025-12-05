@@ -3,7 +3,7 @@ Functions to create nodes on a one-off basis, not part of a network.
 
 For more complex cases use:
 
-  with context('/obj', 'geo', 'My Geo Node') as geo:
+  with zcontext('/obj', 'geo', 'My Geo Node') as geo:
       with ctx.chain() as ctx:
           ctx.node('file', 'Input file', file="weird-object.glb")
           ctx.node('xform', scale=3.0)
@@ -23,66 +23,67 @@ from zabob_houdini.core_types import (
     T_Node,
     T_Child,
 )
-from zabob_houdini.core_node import ImmediateNode, _merge_inputs
+from zabob_houdini.core_node import ZImmediateNode, _merge_inputs
 from zabob_houdini.utils import HashableMapping
-from zabob_houdini.core_chain import Chain
+from zabob_houdini.core_chain import ZChain
 from zabob_houdini.core_types import RawChainNode, RawParent
 from zabob_houdini.core_node import (
-    NodeBase, NodeInstance, wrap_node, _wrap_inputs,
+    ZNodeBase, ZNode, wrap_node, _wrap_inputs, ZNodeForwardRef,
+    ROOT,
 )
 from zabob_houdini.core_utils import _generate_name
-from zabob_houdini.core_context import NodeContext
+from zabob_houdini.core_context import ZContext
 
 
 @overload
-def context(parent: T_Parent) -> NodeContext[hou.NodeTypeCategory,
-                                             T_Parent,
-                                             hou.Node,
-                                             hou.Node]: ...
+def zcontext(parent: T_Parent) -> ZContext[hou.NodeTypeCategory,
+                                           T_Parent,
+                                           hou.Node,
+                                           hou.Node]: ...
 
 
 @overload
-def context(parent: T_Parent,
-            ) -> NodeContext[hou.NodeTypeCategory,
-                             T_Parent,
-                             hou.Node,
-                             hou.Node]: ...
+def zcontext(parent: T_Parent,
+             ) -> ZContext[hou.NodeTypeCategory,
+                           T_Parent,
+                           hou.Node,
+                           hou.Node]: ...
 
 
 @overload
-def context(parent: NodeInstance[T_Cat, T_Parent, T_Node, T_Child],
-            ) -> NodeContext[T_Cat,
-                             T_Parent,
-                             T_Node,
-                             T_Child]: ...
+def zcontext(parent: ZNode[T_Cat, T_Parent, T_Node, T_Child],
+             ) -> ZContext[T_Cat,
+                           T_Parent,
+                           T_Node,
+                           T_Child]: ...
 
 
 @overload
-def context(parent: 'RawParent') -> NodeContext: ...
+def zcontext(parent: 'RawParent') -> ZContext: ...
 
 
-def context(parent: 'RawParent') -> NodeContext:
+def zcontext(parent: 'RawParent') -> ZContext:
     """
-    Create a NodeContext for organizing nodes under a specific parent.
+    Create a ZContext for organizing nodes under a specific parent.
 
     Args:
-        parent: Parent node (path string, NodeInstance, or hou.Node)
+        parent: Parent node (path string, ZNode, or hou.Node)
 
     Returns:
-        NodeContext that can be used as a context manager
+        ZContext that can be used as a context manager
 
     Example:
-        with context(geo) as ctx:
+        with zcontext(geo) as ctx:
             # Create nodes under the geo parent
-            box = node(ctx.parent, "box")
-            sphere = node(ctx.parent, "sphere")
+            box = ctx.node("box")
+            sphere = ctx.node("sphere")
     """
-    # Wrap the parent as a NodeInstance for consistent interface
+    # Wrap the parent as a ZNode for consistent interface
     parent_instance = wrap_node(parent)
-    return NodeContext(parent=parent_instance.resolved)
+    return ZContext(parent=parent_instance.resolved)
 
 
-def node(
+def znode(
     parent: 'RawParent',
     node_type: 'Any',  # NodeType
     /,
@@ -93,24 +94,24 @@ def node(
     _node: 'hou.Node | None' = None,
     _display: bool = False,
     _render: bool = False,
-    _context: 'NodeContext | None' = None,
+    _context: 'ZContext | None' = None,
     **attributes: Any
-) -> NodeInstance:
+) -> ZNode:
     """
     Create a node definition.
 
     Args:
-        parent: Parent node (path string or NodeInstance)
+        parent: Parent node (path string or ZNode)
         node_type: Type of node to create (e.g., "box", "xform")
         name: Optional name for the node
-        _input: Optional input node(s) to connect
+        _input: Optional input znode(s) to connect
         _node: Optional existing hou.Node to return from create()
         _display: Set display flag on this node when created
         _render: Set render flag on this node when created
         **attributes: Node parameter values
 
     Returns:
-        NodeInstance that can be created with .create()
+        ZNode that can be created with .create()
     """
 
     inputs = _wrap_inputs(_input, _context)
@@ -123,7 +124,7 @@ def node(
                 parent_path = ''
             case str():
                 parent_path = parent
-            case NodeInstance():
+            case ZNode():
                 parent_path = parent.path
             case hou.Node():
                 parent_path = parent.path()
@@ -138,7 +139,7 @@ def node(
     if resolved_parent is None:
         raise RuntimeError(f"Failed to resolve parent node: {parent}")
 
-    return ImmediateNode(
+    return ZImmediateNode(
         _parent=resolved_parent,
         node_type=node_type,
         name=name,
@@ -151,33 +152,33 @@ def node(
 
 
 @overload
-def chain(node1: 'RawChainNode',
-          **attributes: Any
-          ) -> Chain: ...
+def zchain(node1: 'RawChainNode',
+           **attributes: Any
+           ) -> ZChain: ...
 
 
 @overload
-def chain(node1: 'RawChainNode', *nodes: 'RawChainNode',
-          **attributes: Any
-          ) -> Chain: ...
+def zchain(node1: 'RawChainNode', *nodes: 'RawChainNode',
+           **attributes: Any
+           ) -> ZChain: ...
 
 
-def chain(
+def zchain(
     *nodes: RawChainNode,
     **attributes: Any
-) -> Chain:
+) -> ZChain:
     """
     Create a chain of nodes definition.
 
     Args:
-        *nodes: Sequence of NodeInstance objects, Chain objects, or Houdini nodes to chain together
+        *nodes: Sequence of ZNode objects, ZChain objects, or Houdini nodes to chain together
 
     Returns:
-        Chain that can be created with .create()
+        ZChain that can be created with .create()
 
     Note:
         To connect inputs to the chain, pass them to the first node using the _input parameter:
-        chain(node(parent, "xform", "first", _input=some_input), node(parent, "xform", "second"))
+        zchain(znode(parent, "xform", "first", _input=some_input), znode(parent, "xform", "second"))
     """
     if not nodes:
         raise ValueError("At least one node must be provided to create a chain.")
@@ -185,16 +186,16 @@ def chain(
     # Check for the old _input parameter and provide a helpful error message
     if '_input' in attributes:
         raise TypeError(
-            "The '_input' parameter is no longer supported on chain(). "
+            "The '_input' parameter is no longer supported on zchain(). "
             "Instead, pass the input to the first node: "
-            "chain(node(parent, 'type', 'name', _input=your_input), ...)"
+            "zchain(znode(parent, 'type', 'name', _input=your_input), ...)"
         )
 
-    def _handle_entry(item: 'Any') -> Iterator[NodeBase]:
+    def _handle_entry(item: 'Any') -> Iterator[ZNodeBase]:
         match item:
-            case NodeInstance():
+            case ZNode():
                 yield item
-            case Chain():
+            case ZChain():
                 yield from item.nodes
 
     flattened_nodes = tuple((
@@ -214,10 +215,82 @@ def chain(
 
     copies = tuple(node.copy() for node in flattened_nodes)
 
-    chain = Chain(
-        nodes=copies,  # Only NodeInstance objects now
-        context=NodeContext(first_parent),
+    chain = ZChain(
+        nodes=copies,  # Only ZNode objects now
+        context=ZContext(first_parent),
     )
     for node in chain.nodes:
         node.resolved._connect_inputs()
     return chain
+
+
+def zmerge(*inputs: ZNode | ZChain | ZNodeForwardRef, **attributes: Any) -> ZNode:
+    """
+    Create a merge node with multiple inputs.
+
+    Args:
+        *inputs: ZNode or ZChain objects to merge (must have same parent)
+        **attributes: Additional merge node parameters
+
+    Returns:
+        ZNode for the merge node
+
+    Raises:
+        ValueError: If no inputs provided or inputs have different parents
+
+    Examples:
+        # Merge two geometry nodes
+        box = znode(geo, "box")
+        sphere = znode(geo, "sphere")
+        merged = zmerge(box, sphere)
+
+        # Merge chains
+        chain_a = zchain(znode(geo, "box"), znode(geo, "xform"))
+        chain_b = zchain(znode(geo, "sphere"), znode(geo, "xform"))
+        merged = zmerge(chain_a, chain_b)
+
+        # Merge with parameters
+        merged = zmerge(box, sphere, tol=0.01)
+    """
+    if not inputs:
+        raise ValueError("zmerge() requires at least one input")
+
+    # Convert ZChain or ZChainBuilder objects to their last ZNode
+    node_inputs = []
+    for inp in inputs:
+        if isinstance(inp, ZNodeForwardRef):
+            node_inputs.append(inp)  # Pass ZNodeForwardRef through unchanged
+        elif hasattr(inp, 'last'):  # ZChain or ZChainBuilder object
+            last_item = inp.last
+            node_inputs.append(last_item)  # Could be ZNode or ZNodeForwardRef
+        else:  # ZNode
+            node_inputs.append(inp)
+
+    # Get parent from first resolvable input and verify all have same parent
+    # (ForwardReferences will be validated at create time)
+    first_parent = None
+    for inp in node_inputs:
+        if not isinstance(inp, ZNodeForwardRef):
+            first_parent = inp.parent
+            break
+
+    if first_parent is None:
+        # All inputs are ForwardReferences - we can't validate parent until create time
+        # Use a placeholder (this will be resolved later)
+        first_parent = ROOT
+
+    for i, inp in enumerate(node_inputs):
+        if isinstance(inp, ZNodeForwardRef):
+            continue  # Skip validation for ForwardReferences
+        if inp.parent != first_parent:
+            raise ValueError(
+                f"All merge inputs must have same parent. "
+                f"Input 0 has parent {first_parent}, input {i} has parent {inp.parent}"
+            )
+
+    return znode(
+        first_parent,
+        "merge",
+        _input=node_inputs,
+        **attributes
+    )

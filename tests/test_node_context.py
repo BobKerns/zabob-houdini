@@ -1,5 +1,5 @@
 """
-Integration tests for NodeContext class and context function.
+Integration tests for ZContext class and context function.
 """
 
 from __future__ import annotations
@@ -14,10 +14,10 @@ if TYPE_CHECKING:
 
 @pytest.mark.integration
 class TestNodeContext:
-    """Test NodeContext class behavior."""
+    """Test ZContext class behavior."""
 
     def test_node_context_dataclass(self, hython_test: HythonSessionFn):
-        """Test NodeContext is a proper dataclass with parent attribute."""
+        """Test ZContext is a proper dataclass with parent attribute."""
         result = hython_test("h_test_node_context_dataclass")
 
         assert result['is_context'] is True
@@ -26,14 +26,14 @@ class TestNodeContext:
         assert result['parent_name'] == "test_geo"
 
     def test_node_context_context_manager(self, hython_test: HythonSessionFn):
-        """Test NodeContext works as a context manager."""
+        """Test ZContext works as a context manager."""
         result = hython_test("h_test_node_context_context_manager")
 
         assert result['entered_is_ctx'] is True
         assert result['parent_equal'] is True
 
     def test_node_context_mutable(self, hython_test: HythonSessionFn):
-        """Test NodeContext is mutable (no longer frozen)."""
+        """Test ZContext is mutable (no longer frozen)."""
         result = hython_test("h_test_node_context_mutable")
 
         assert result['can_modify'] is True
@@ -45,7 +45,7 @@ class TestContextFunction:
     """Test context function behavior."""
 
     def test_context_with_node_instance(self, hython_test: HythonSessionFn):
-        """Test context function with NodeInstance parent."""
+        """Test context function with ZNode parent."""
         result = hython_test("h_test_context_with_node_instance")
 
         assert result['is_context'] is True
@@ -69,14 +69,14 @@ class TestContextFunction:
         assert result['sphere_node_type'] == "sphere"
 
     def test_context_preserves_parent_type(self, hython_test: HythonSessionFn):
-        """Test context function preserves NodeInstance type."""
+        """Test context function preserves ZNode type."""
         result = hython_test("h_test_context_preserves_parent_type")
 
         assert result['parent_is_same'] is True
         assert result['parent_type_correct'] is True
 
     def test_node_context_node_method(self, hython_test: HythonSessionFn):
-        """Test NodeContext.node() method creates nodes under the context parent."""
+        """Test ZContext.znode() method creates nodes under the context parent."""
         result = hython_test("h_test_node_context_node_method")
 
         assert result['box_parent_correct'] is True
@@ -85,7 +85,7 @@ class TestContextFunction:
         assert result['sphere_node_type'] == "sphere"
 
     def test_node_context_name_lookup(self, hython_test: HythonSessionFn):
-        """Test NodeContext name registration and lookup."""
+        """Test ZContext name registration and lookup."""
         result = hython_test("h_test_node_context_name_lookup")
 
         assert result['can_lookup_box'] is True
@@ -94,7 +94,7 @@ class TestContextFunction:
         assert result['keyerror_for_missing'] is True
 
     def test_node_context_integration(self, hython_test: HythonSessionFn):
-        """Test full NodeContext workflow with node creation and lookup."""
+        """Test full ZContext workflow with node creation and lookup."""
         result = hython_test("h_test_node_context_integration")
 
         assert result['created_nodes_count'] == 3
@@ -103,7 +103,7 @@ class TestContextFunction:
         assert result['node_types_correct'] is True
 
     def test_node_context_chain_method(self, hython_test: HythonSessionFn):
-        """Test NodeContext.chain() method with string name lookup."""
+        """Test ZContext.zchain() method with string name lookup."""
         result = hython_test("h_test_node_context_chain_method")
 
         assert result['chain_created'] is True
@@ -113,7 +113,7 @@ class TestContextFunction:
         assert result['context_preserved'] is True
 
     def test_node_context_chain_registration(self, hython_test: HythonSessionFn):
-        """Test NodeContext.chain() registers new named nodes in context."""
+        """Test ZContext.zchain() registers new named nodes in context."""
         result = hython_test("h_test_node_context_chain_registration")
 
         assert result['external_nodes_registered'] is True
@@ -121,7 +121,7 @@ class TestContextFunction:
         assert result['existing_nodes_preserved'] is True
 
     def test_node_context_merge_method(self, hython_test: HythonSessionFn):
-        """Test NodeContext.merge() method with string name lookup."""
+        """Test ZContext.zmerge() method with string name lookup."""
         result = hython_test("h_test_node_context_merge_method")
 
         assert result['merge_created'] is True
@@ -130,7 +130,7 @@ class TestContextFunction:
         assert result['merge_parent_correct'] is True
 
     def test_node_context_merge_registration(self, hython_test: HythonSessionFn):
-        """Test NodeContext.merge() registers named merge node in context."""
+        """Test ZContext.zmerge() registers named merge node in context."""
         result = hython_test("h_test_node_context_merge_registration")
 
         assert result['named_merge_registered'] is True
@@ -139,7 +139,7 @@ class TestContextFunction:
         assert result['existing_nodes_preserved'] is True
 
     def test_parent_validation_chain(self, hython_test: HythonSessionFn):
-        """Test chain() validates all nodes have same parent."""
+        """Test zchain() validates all nodes have same parent."""
         result = hython_test("h_test_parent_validation_chain")
 
         assert result['validation_works'] is True
@@ -147,7 +147,7 @@ class TestContextFunction:
         assert result['valid_chain_works'] is True
 
     def test_parent_validation_merge(self, hython_test: HythonSessionFn):
-        """Test merge() validates all nodes have same parent."""
+        """Test zmerge() validates all nodes have same parent."""
         result = hython_test("h_test_parent_validation_merge")
 
         assert result['validation_works'] is True
@@ -156,7 +156,7 @@ class TestContextFunction:
 
     def test_node_context_parent_validation(self, hython_test: HythonSessionFn):
         """
-        Test NodeContext validates nodes have same parent as context.
+        Test ZContext validates nodes have same parent as context.
         @see(`../src/testing/_node_context.py::_test_node_context_parent_validation`)
         """
         result = hython_test("h_test_node_context_parent_validation")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
-from zabob_houdini.core import node, chain, hou_node
+from zabob_houdini.core import znode, zchain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
@@ -11,28 +11,28 @@ def h_test_input_connections_basic() -> JsonObject:
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_connections")
 
-    # Chain A: Create base geometry (should be created once)
-    chain_A = chain(
-        node(geo_node, "box", "source_box"),
-        node(geo_node, "xform", "center"),
+    # ZChain A: Create base geometry (should be created once)
+    chain_A = zchain(
+        znode(geo_node, "box", "source_box"),
+        znode(geo_node, "xform", "center"),
     )
 
-    # Chain B2: Should connect to chain_A
-    chain_B2 = chain(
-        node(geo_node, "xform", "scale_up", _input=chain_A),
-        node(geo_node, "xform", "rotate_y"),
+    # ZChain B2: Should connect to chain_A
+    chain_B2 = zchain(
+        znode(geo_node, "xform", "scale_up", _input=chain_A),
+        znode(geo_node, "xform", "rotate_y"),
     )
 
-    # Chain B3: Should also connect to chain_A (not duplicate it)
-    chain_B3 = chain(
-        node(geo_node, "xform", "scale_down", _input=chain_A),
-        node(geo_node, "xform", "rotate_x"),
+    # ZChain B3: Should also connect to chain_A (not duplicate it)
+    chain_B3 = zchain(
+        znode(geo_node, "xform", "scale_down", _input=chain_A),
+        znode(geo_node, "xform", "rotate_x"),
     )
 
-    # Chain C: Should merge B2 and B3
-    chain_C = chain(
-        node(geo_node, "merge", "combine", _input=[chain_B2, chain_B3]),
-        node(geo_node, "xform", "final"),
+    # ZChain C: Should merge B2 and B3
+    chain_C = zchain(
+        znode(geo_node, "merge", "combine", _input=[chain_B2, chain_B3]),
+        znode(geo_node, "xform", "final"),
     )
 
     # Check that chains do NOT have _inputs field (architecture change)
@@ -63,20 +63,20 @@ def h_test_input_connections_basic() -> JsonObject:
 
 
 def h_test_chain_input_delegation() -> JsonObject:
-    """Test that Chain.inputs properly delegates to first node."""
+    """Test that ZChain.inputs properly delegates to first node."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_delegation")
 
-    # Chain with no inputs
-    chain_no_input = chain(
-        node(geo_node, "box", "source"),
-        node(geo_node, "xform", "transform"),
+    # ZChain with no inputs
+    chain_no_input = zchain(
+        znode(geo_node, "box", "source"),
+        znode(geo_node, "xform", "transform"),
     )
 
-    # Chain with single input
-    chain_single_input = chain(
-        node(geo_node, "xform", "processor", _input=chain_no_input),
-        node(geo_node, "xform", "final"),
+    # ZChain with single input
+    chain_single_input = zchain(
+        znode(geo_node, "xform", "processor", _input=chain_no_input),
+        znode(geo_node, "xform", "final"),
     )
 
     # Test delegation
@@ -99,12 +99,12 @@ def h_test_multiple_inputs_basic() -> JsonObject:
     geo_node = _obj.createNode("geo", "test_multi")
 
     # Create two source chains
-    source_1 = chain(node(geo_node, "box", "source_1"))
-    source_2 = chain(node(geo_node, "sphere", "source_2"))
+    source_1 = zchain(znode(geo_node, "box", "source_1"))
+    source_2 = zchain(znode(geo_node, "sphere", "source_2"))
 
     # Create a merge node that takes both as inputs
-    merge_chain = chain(
-        node(geo_node, "merge", "combiner", _input=[source_1, source_2])
+    merge_chain = zchain(
+        znode(geo_node, "merge", "combiner", _input=[source_1, source_2])
     )
 
     # Test that the merge node has the expected inputs

@@ -1,3 +1,4 @@
+![Zabob Banner](images/zabob-banner.jpg)
 # Understanding Houdini Node Type Hierarchies
 
 This document explains the complex patterns used in Zabob-Houdini to represent Houdini's node type system, particularly focusing on the relationship between **node type inheritance** and **node containment**.
@@ -15,14 +16,14 @@ In type theory terms:
 **Example**:
 ```python
 # Abstract union (exists only in type annotations):
-NodeTypes = Union[NodeInstance, ForwardReference, ContextReference]
+NodeTypes = ZNode | ZNodeForwardRef | ZContextRef
 
 # Reified form (exists as actual Python class):
-class NodeBase:  # Concrete class representing the union
+class ZNodeBase:  # Concrete class representing the union
     pass
 
-class NodeInstance(NodeBase): pass
-class ForwardReference(NodeBase): pass
+class ZNode(ZNodeBase): pass
+class ZNodeForwardRef(ZNodeBase): pass
 ```
 
 **Why reify?** Python can't use abstract unions with `isinstance()` at runtime. By reifying the union as a class, we make it concrete and usable in actual Python code, not just type annotations.
@@ -94,7 +95,7 @@ This hierarchy determines what **child nodes** can be created inside a parent no
 Our core classes use generic type parameters to capture both hierarchies:
 
 ```python
-class NodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
+class ZNodeBase(Generic[T_Cat, T_Parent, T_Node, T_Child]):
     """
     T_Cat:    NodeTypeCategory - The category system (Sop, Object, etc.)
     T_Parent: The actual parent node type (what contains this node)
@@ -121,19 +122,19 @@ Let's trace a specific example: creating a box SOP inside a geo object.
 ```python
 # /obj - The root object level
 obj_root = wrap_node(hou_node('/obj'))
-# Type: NodeInstance[..., hou.OpNode, hou.ObjNode, hou.OpNode]
+# Type: ZNode[..., hou.OpNode, hou.ObjNode, hou.OpNode]
 #                     ^            ^            ^
 #                     Category     ParentType   NodeType = ObjNode
 
 # /obj/geo - A geometry container (still an ObjNode)
 geo = obj_root.node('geo', 'geo1')
-# Type: NodeInstance[..., hou.ObjNode, hou.ObjNode, hou.SopNode]
+# Type: ZNode[..., hou.ObjNode, hou.ObjNode, hou.SopNode]
 #                     ^            ^            ^
 #                     Parent       NodeType     ChildType = can contain SOPs
 
 # /obj/geo/box - A box SOP
 box = geo.node('box', 'box1')
-# Type: NodeInstance[..., hou.ObjNode, hou.SopNode, hou.OpNode]
+# Type: ZNode[..., hou.ObjNode, hou.SopNode, hou.OpNode]
 #                     ^            ^            ^
 #                     Parent       NodeType     ChildType (leaf - generic)
 ```
@@ -171,54 +172,54 @@ An earlier approach tried using string literal types for node types (e.g., `Lite
 Instead, we use **class hierarchies to represent unions implicitly**:
 
 ```python
-# Instead of: Union[SopInstance, SopForwardRef, SopContextRef, ...]
+# Instead of: Union[ZSopNode, SopForwardRef, SopContextRef, ...]
 # We have:
-class SopBase:  # Reifies the union of all SOP-related types
+class ZSopNodeBase:  # Reifies the union of all SOP-related types
     pass
 
-class SopInstance(OpInstance, SopBase):  # Member of the union
+class ZSopNode(ZOpNode, ZSopNodeBase):  # Member of the union
     pass
 
-class SopForwardRef(ForwardReference, SopBase):  # Member of the union
+class SopForwardRef(ZNodeForwardRef, ZSopNodeBase):  # Member of the union
     pass
 ```
 
-**Key insight**: Checking `isinstance(obj, SopBase)` is a simple MRO (Method Resolution Order) lookup, much faster than checking membership in a large union type.
+**Key insight**: Checking `isinstance(obj, ZSopNodeBase)` is a simple MRO (Method Resolution Order) lookup, much faster than checking membership in a large union type.
 
 ### Multiple Inheritance Explained
 
 The multiple inheritance pattern serves a specific purpose: **efficient union membership testing**.
 
 ```python
-class OpBase(NodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
+class ZOpNodeBase(ZNodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
     """Reifies the union of all Op-related types (instances, forward refs, etc.)"""
     pass
 
-class OpInstance(NodeInstance[...], OpBase[...]):
+class ZOpNode(ZNode[...], ZOpNodeBase[...]):
     """
     Concrete operator node instance.
 
     Inherits from:
-    - NodeInstance: Gets creation, caching, and connection logic
-    - OpBase: Declares membership in the Op type union
+    - ZNode: Gets creation, caching, and connection logic
+    - ZOpNodeBase: Declares membership in the Op type union
     """
     pass
 ```
 
-At first glance, the multiple inheritance seems redundant - `OpInstance` doesn't override anything from `OpBase`. But it serves two critical purposes:
+At first glance, the multiple inheritance seems redundant - `ZOpNode` doesn't override anything from `ZOpNodeBase`. But it serves two critical purposes:
 
-1. **Static type checking**: Type checkers can quickly determine `OpInstance` is a subtype of `OpBase`
-2. **Runtime type checking**: `isinstance(obj, OpBase)` works efficiently via MRO lookup
+1. **Static type checking**: Type checkers can quickly determine `ZOpNode` is a subtype of `ZOpNodeBase`
+2. **Runtime type checking**: `isinstance(obj, ZOpNodeBase)` works efficiently via MRO lookup
 
 ### Union Hierarchy
 
 The reification creates an implicit union hierarchy:
 
 ```python
-NodeBase             # Reifies: Union[NodeInstance, ForwardReference, ...]
-├─ OpBase            # Reifies: Union[OpInstance, OpForwardRef, ...]
-│  ├─ SopBase        # Reifies: Union[SopInstance, SopForwardRef, ...]
-│  ├─ ObjBase        # Reifies: Union[ObjInstance, ObjForwardRef, ...]
+ZNodeBase             # Reifies: Union[ZNode, ZNodeForwardRef, ...]
+├─ ZOpNodeBase            # Reifies: Union[ZOpNode, OpForwardRef, ...]
+│  ├─ ZSopNodeBase        # Reifies: Union[ZSopNode, SopForwardRef, ...]
+│  ├─ ObjBase        # Reifies: Union[ZObjNode, ObjForwardRef, ...]
 │  └─ ChopBase       # (future)
 └─ (other bases)
 ```
@@ -237,12 +238,12 @@ Python doesn't treat unions as first-class types at runtime:
 from typing import Union
 
 # This doesn't work:
-NodeType = Union[NodeInstance, ForwardReference]
+NodeType = Union[ZNode, ZNodeForwardRef]
 isinstance(obj, NodeType)  # ❌ TypeError: cannot use Union with isinstance()
 
 # This works:
-class NodeBase: pass
-isinstance(obj, NodeBase)  # ✅ Standard Python runtime check
+class ZNodeBase: pass
+isinstance(obj, ZNodeBase)  # ✅ Standard Python runtime check
 ```
 
 **The problem**: You cannot use `isinstance()` or `issubclass()` with `Union` types. This breaks runtime type checking, which is essential for dynamic node creation.
@@ -271,37 +272,37 @@ This is where reification becomes particularly powerful. By creating a concrete 
 Base classes serve double duty:
 
 ```python
-# Forward view: NodeBase is a UNION
-class NodeBase: pass  # Union of all node-like types
+# Forward view: ZNodeBase is a UNION
+class ZNodeBase: pass  # Union of all node-like types
 
-class NodeInstance(NodeBase): pass
-class ForwardReference(NodeBase): pass
-# NodeBase = Union[NodeInstance, ForwardReference, ...]
+class ZNode(ZNodeBase): pass
+class ZNodeForwardRef(ZNodeBase): pass
+# ZNodeBase = Union[ZNode, ZNodeForwardRef, ...]
 
-# Reverse view: NodeBase is an INTERSECTION
-# NodeBase is the set of properties/methods that ALL members MUST satisfy
-# It's the intersection of what NodeInstance and ForwardReference have in common
+# Reverse view: ZNodeBase is an INTERSECTION
+# ZNodeBase is the set of properties/methods that ALL members MUST satisfy
+# It's the intersection of what ZNode and ZNodeForwardRef have in common
 ```
 
 **The duality**:
-- **Union** (forward): "NodeBase represents any of these types"
-- **Intersection** (reverse): "NodeBase is what all these types share"
+- **Union** (forward): "ZNodeBase represents any of these types"
+- **Intersection** (reverse): "ZNodeBase is what all these types share"
 
 ### Reification Makes Intersection Explicit
 
 In Python, intersection types aren't directly expressible. But by creating a base class, we **reify the intersection**:
 
 ```python
-class NodeBase:
+class ZNodeBase:
     """
     The intersection of all node-like types.
 
     This represents the minimal interface that ALL node types must satisfy:
-    - NodeInstance must be a NodeBase
-    - ForwardReference must be a NodeBase
-    - Any new node-like type must be a NodeBase
+    - ZNode must be a ZNodeBase
+    - ZNodeForwardRef must be a ZNodeBase
+    - Any new node-like type must be a ZNodeBase
 
-    By inheriting from NodeBase, each type explicitly declares:
+    By inheriting from ZNodeBase, each type explicitly declares:
     "I satisfy the intersection of properties that define a node"
     """
     # Common properties/methods that ALL nodes must have
@@ -312,10 +313,10 @@ class NodeBase:
 
 **Why this matters**:
 
-1. **Runtime checking works**: `isinstance(obj, NodeBase)` succeeds
+1. **Runtime checking works**: `isinstance(obj, ZNodeBase)` succeeds
 2. **Type inference works**: Type checkers see the shared interface
 3. **Intersection is explicit**: The base class documents what all union members share
-4. **New types self-document**: Inheriting from `NodeBase` declares "I am a node type"
+4. **New types self-document**: Inheriting from `ZNodeBase` declares "I am a node type"
 
 ### Without Reification
 
@@ -323,7 +324,7 @@ If Python had TypeScript's intersection types, we could write:
 
 ```python
 # Hypothetical Python with intersection (doesn't exist):
-NodeIntersection = NodeInstance & ForwardReference & ...
+NodeIntersection = ZNode & ZNodeForwardRef & ...
 # The minimal type that all of these satisfy
 
 def process_node(node: NodeIntersection):
@@ -335,16 +336,16 @@ But since Python lacks this, we **invert the relationship**:
 
 ```python
 # Actual Python - intersection reified as base class:
-class NodeBase:  # The intersection, made explicit
+class ZNodeBase:  # The intersection, made explicit
     pass
 
-class NodeInstance(NodeBase):  # Inherits the intersection
+class ZNode(ZNodeBase):  # Inherits the intersection
     pass
 
-class ForwardReference(NodeBase):  # Inherits the intersection
+class ZNodeForwardRef(ZNodeBase):  # Inherits the intersection
     pass
 
-def process_node(node: NodeBase):  # Works with the intersection
+def process_node(node: ZNodeBase):  # Works with the intersection
     pass
 ```
 
@@ -353,16 +354,16 @@ def process_node(node: NodeBase):  # Works with the intersection
 By using inheritance to declare "I satisfy this intersection", we get:
 
 1. **Runtime validation**: `isinstance()` checks work
-2. **Type narrowing**: Type checkers can narrow from `NodeBase` to specific types
+2. **Type narrowing**: Type checkers can narrow from `ZNodeBase` to specific types
 3. **Explicit contract**: The base class documents the shared interface
 4. **Performance**: MRO lookup is faster than union enumeration
 
 This is why multiple inheritance isn't redundant - it's declaring membership in **multiple intersection/union hierarchies simultaneously**:
 
 ```python
-class SopInstance(NodeInstance, SopBase):
-    # Declares: "I satisfy the NodeInstance intersection"
-    #       AND "I satisfy the SopBase intersection"
+class ZSopNode(ZNode, ZSopNodeBase):
+    # Declares: "I satisfy the ZNode intersection"
+    #       AND "I satisfy the ZSopNodeBase intersection"
     # Therefore: "I'm in the union of all nodes"
     #       AND "I'm in the union of all SOPs"
     pass
@@ -377,25 +378,25 @@ Building on the reification pattern, we create specialized classes for common sc
 ### OpNode Family (Base for Most Operators)
 
 ```python
-class OpBase(NodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
+class ZOpNodeBase(ZNodeBase[hou.OpNodeTypeCategory, T_OpParent, T_OpNode, T_OpChild]):
     """
     Reifies the union of all Op-related types.
     Base for operator nodes - fixes the category to OpNodeTypeCategory.
     """
     pass
 
-class OpInstance(NodeInstance[T_OpParent, T_OpNode, T_OpChild],
-                 OpBase[T_OpParent, T_OpNode, T_OpChild]):
+class ZOpNode(ZNode[T_OpParent, T_OpNode, T_OpChild],
+                 ZOpNodeBase[T_OpParent, T_OpNode, T_OpChild]):
     """
     Concrete operator node instance.
 
     Multiple inheritance:
-    - NodeInstance: Provides creation and connection logic
-    - OpBase: Declares membership in Op union for efficient type checking
+    - ZNode: Provides creation and connection logic
+    - ZOpNodeBase: Declares membership in Op union for efficient type checking
     """
     pass
 
-class OpContext(NodeContext[hou.OpNodeTypeCategory, T_OpParent, T_OpCtx, T_OpNode]):
+class ZOpContext(ZContext[hou.OpNodeTypeCategory, T_OpParent, T_OpCtx, T_OpNode]):
     """Context manager for creating operator nodes"""
     pass
 ```
@@ -403,29 +404,29 @@ class OpContext(NodeContext[hou.OpNodeTypeCategory, T_OpParent, T_OpCtx, T_OpNod
 ### SOP Specialization
 
 ```python
-class SopBase(OpBase[T_OpCtx, T_SopNode, T_OpChild]):
+class ZSopNodeBase(ZOpNodeBase[T_OpCtx, T_SopNode, T_OpChild]):
     """
     Reifies the union of all SOP-related types.
     Base for SOP nodes - parent context must support SOPs.
     """
     pass
 
-class SopInstance(OpInstance[T_OpParent, T_SopNode, T_OpChild],
-                  SopBase[T_OpParent, T_SopNode, T_OpChild]):
+class ZSopNode(ZOpNode[T_OpParent, T_SopNode, T_OpChild],
+                  ZSopNodeBase[T_OpParent, T_SopNode, T_OpChild]):
     """
     A concrete SOP node.
 
     Multiple inheritance:
-    - OpInstance: Inherits Op functionality
-    - SopBase: Declares membership in SOP union
+    - ZOpNode: Inherits Op functionality
+    - ZSopNodeBase: Declares membership in SOP union
 
     This allows both:
-    - isinstance(sop_node, OpBase)   # True - it's an Op
-    - isinstance(sop_node, SopBase)  # True - it's specifically a SOP
+    - isinstance(sop_node, ZOpNodeBase)   # True - it's an Op
+    - isinstance(sop_node, ZSopNodeBase)  # True - it's specifically a SOP
     """
     pass
 
-class SopContext(OpContext[T_OpParent, T_SopNode, T_OpChild]):
+class ZSopContext(ZOpContext[T_OpParent, T_SopNode, T_OpChild]):
     """Context for creating SOP nodes (inside a geo container)"""
     pass
 ```
@@ -433,11 +434,11 @@ class SopContext(OpContext[T_OpParent, T_SopNode, T_OpChild]):
 ### OBJ Specialization
 
 ```python
-class ObjInstance(OpInstance[T_ObjParent, T_ObjNode, T_ObjChild]):
+class ZObjNode(ZOpNode[T_ObjParent, T_ObjNode, T_ObjChild]):
     """A concrete OBJ node"""
     pass
 
-class ObjContext(OpContext[T_ObjParent, T_ObjCtx, T_ObjNode]):
+class ZObjContext(ZOpContext[T_ObjParent, T_ObjCtx, T_ObjNode]):
     """Context for creating OBJ nodes (at object level)"""
     pass
 ```
@@ -447,29 +448,29 @@ class ObjContext(OpContext[T_ObjParent, T_ObjCtx, T_ObjNode]):
 Here's how the types work together in practice:
 
 ```python
-from zabob_houdini import wrap_node, hou_node
-from zabob_houdini.op import OpInstance, OpContext
-from zabob_houdini.sop import SopInstance, SopContext
+from zabob_houdini import zwrap_node, hou_node
+from zabob_houdini.op import ZOpNode, ZOpContext
+from zabob_houdini.sop import ZSopNode, ZSopContext
 
 # Start at object level
-obj = wrap_node(hou_node('/obj'))
-# Type: OpInstance[hou.OpNode, hou.ObjNode, hou.OpNode]
+obj = zwrap_node(hou_node('/obj'))
+# Type: ZOpNode[hou.OpNode, hou.ObjNode, hou.OpNode]
 
 # Create a geometry container context
-with OpContext(obj) as obj_ctx:
+with ZOpContext(obj) as obj_ctx:
     # This creates an ObjNode that can contain SOPs
     geo = obj_ctx.node('geo', 'geo1')
-    # Type: OpInstance[hou.ObjNode, hou.ObjNode, hou.SopNode]
+    # Type: ZOpNode[hou.ObjNode, hou.ObjNode, hou.SopNode]
     #                  ^parent     ^this node   ^children
 
     # Now create SOPs inside the geo
-    with SopContext(geo) as sop_ctx:
+    with ZSopContext(geo) as sop_ctx:
         box = sop_ctx.node('box', 'box1')
-        # Type: SopInstance[hou.ObjNode, hou.SopNode, hou.OpNode]
+        # Type: ZSopNode[hou.ObjNode, hou.SopNode, hou.OpNode]
         #                   ^parent      ^this node   ^children
 
         xform = sop_ctx.node('xform', 'xform1', _input=box)
-        # Type: SopInstance[hou.ObjNode, hou.SopNode, hou.OpNode]
+        # Type: ZSopNode[hou.ObjNode, hou.SopNode, hou.OpNode]
 
 # The type parameters ensure:
 # - box.create().geometry() works (it's a SopNode)
@@ -483,13 +484,13 @@ The most confusing aspect is that `hou.ObjNode` plays two roles:
 
 1. **Container role**: A "geo" ObjNode contains SopNodes
    ```python
-   geo: OpInstance[hou.ObjNode, hou.ObjNode, hou.SopNode]
+   geo: ZOpNode[hou.ObjNode, hou.ObjNode, hou.SopNode]
    #                              ^this       ^children are SOPs
    ```
 
 2. **Object role**: A "cam" ObjNode is just an object (leaf or contains other ObjNodes)
    ```python
-   cam: OpInstance[hou.ObjNode, hou.ObjNode, hou.ObjNode]
+   cam: ZOpNode[hou.ObjNode, hou.ObjNode, hou.ObjNode]
    #                              ^this       ^children are ObjNodes (or none)
    ```
 
@@ -500,7 +501,7 @@ The most confusing aspect is that `hou.ObjNode` plays two roles:
 class GeoNodeType:
     """Represents the 'geo' node type - creates ObjNode containing SopNodes"""
     child_category = hou.sopNodeTypeCategory()
-    creates = OpInstance[hou.ObjNode, hou.ObjNode, hou.SopNode]
+    creates = ZOpNode[hou.ObjNode, hou.ObjNode, hou.SopNode]
 ```
 
 ## Practical Guidelines
@@ -537,7 +538,7 @@ This pattern is necessary because:
    - Earlier attempts with string literal unions killed type checker performance
 
 3. **Context-aware node creation**
-   - `SopContext` knows it creates SOPs
+   - `ZSopContext` knows it creates SOPs
    - Type checker prevents creating SOPs in wrong contexts
    - Runtime checks are efficient via `isinstance()`
 
@@ -565,7 +566,7 @@ geo.node(BoxSop, 'box1')
 # Where BoxSop knows:
 class BoxSop(SopNodeType):
     name = "box"
-    creates = SopInstance[..., hou.SopNode, hou.OpNode]
+    creates = ZSopNode[..., hou.SopNode, hou.OpNode]
     category = hou.sopNodeTypeCategory()
 ```
 
@@ -597,35 +598,35 @@ def create_sop(node_type: SopNodeType) -> SopNode:
 
 ```python
 # Fast type checking via MRO:
-class SopBase: pass
-class BoxSop(SopInstance, SopBase): pass
+class ZSopNodeBase: pass
+class BoxSop(ZSopNode, ZSopNodeBase): pass
 
-def create_sop(node_base: SopBase) -> SopNode:
-    # Type checker just checks: "Is node_base a subclass of SopBase?"
+def create_sop(node_base: ZSopNodeBase) -> SopNode:
+    # Type checker just checks: "Is node_base a subclass of ZSopNodeBase?"
     # This is an O(MRO depth) operation, not O(union size)
     pass
 ```
 
-**Advantage**: MRO lookup is logarithmic in depth, not linear in union size. Checking `isinstance(obj, SopBase)` walks the MRO (typically <10 classes) rather than checking 100+ union members.
+**Advantage**: MRO lookup is logarithmic in depth, not linear in union size. Checking `isinstance(obj, ZSopNodeBase)` walks the MRO (typically <10 classes) rather than checking 100+ union members.
 
 ### Why Multiple Inheritance Isn't Redundant
 
 The multiple inheritance serves as **union membership declaration**:
 
 ```python
-class SopInstance(OpInstance, SopBase):
+class ZSopNode(ZOpNode, ZSopNodeBase):
     pass
 
 # Now type checkers know:
-# - isinstance(sop, SopInstance) → True (exact type)
-# - isinstance(sop, SopBase)     → True (member of SOP union)
-# - isinstance(sop, OpBase)      → True (member of Op union)
-# - isinstance(sop, NodeBase)    → True (member of all nodes union)
+# - isinstance(sop, ZSopNode) → True (exact type)
+# - isinstance(sop, ZSopNodeBase)     → True (member of SOP union)
+# - isinstance(sop, ZOpNodeBase)      → True (member of Op union)
+# - isinstance(sop, ZNodeBase)    → True (member of all nodes union)
 
 # All checked via fast MRO lookup, not union enumeration!
 ```
 
-Without the multiple inheritance, we'd need explicit `Union[SopInstance, SopForwardRef, ...]` declarations everywhere, killing performance.
+Without the multiple inheritance, we'd need explicit `Union[ZSopNode, SopForwardRef, ...]` declarations everywhere, killing performance.
 
 ## Summary
 
@@ -636,12 +637,12 @@ The generic type parameters model TWO hierarchies:
 
 The `T_Cat` parameter is mostly bookkeeping for Houdini's category system.
 
-**The union reification pattern** (using base classes like `SopBase`, `OpBase`) provides:
+**The union reification pattern** (using base classes like `ZSopNodeBase`, `ZOpNodeBase`) provides:
 - Fast type checking via MRO instead of union enumeration
 - Implicit union membership without explicit `Union[...]` types
 - Multiple inheritance that serves a concrete purpose: efficient union testing
 
-The specialized classes (`OpInstance`, `SopInstance`, etc.) lock down common combinations to make the types more manageable while preserving type checker performance.
+The specialized classes (`ZOpNode`, `ZSopNode`, etc.) lock down common combinations to make the types more manageable while preserving type checker performance.
 
 The complexity is necessary to give type safety to Houdini's dynamic, string-based node creation system without losing flexibility or performance.
 
@@ -661,19 +662,19 @@ SopType = Union[BoxSop, SphereSop, MergeSop, ...]  # 100+ types
 **Do**: Use base classes to reify both union and intersection
 ```python
 # Fast MRO-based checking + runtime support:
-class SopBase:  # The intersection of what all SOPs must satisfy
+class ZSopNodeBase:  # The intersection of what all SOPs must satisfy
     pass
 
-class BoxSop(SopInstance, SopBase):  # Declares satisfaction of intersection
+class BoxSop(ZSopNode, ZSopNodeBase):  # Declares satisfaction of intersection
     pass                              # → member of union
 
 # Now works at runtime:
-isinstance(box, SopBase)  # ✅ True
+isinstance(box, ZSopNodeBase)  # ✅ True
 
 # Type checker sees intersection (shared interface) AND union (membership)
 ```
 
-**The duality**: `SopBase` is simultaneously:
+**The duality**: `ZSopNodeBase` is simultaneously:
 - **Union**: Represents "any SOP type" (forward view)
 - **Intersection**: Defines "what all SOPs share" (reverse view)
 
@@ -682,10 +683,10 @@ isinstance(box, SopBase)  # ✅ True
 **Purpose**: Declare that a type satisfies multiple intersections (belongs to multiple unions)
 
 ```python
-class SopInstance(OpInstance, SopBase):
+class ZSopNode(ZOpNode, ZSopNodeBase):
     #                ^           ^
-    #                |           └─ Satisfies SopBase intersection → member of SOP union
-    #                └─ Satisfies OpInstance intersection → inherits Op functionality
+    #                |           └─ Satisfies ZSopNodeBase intersection → member of SOP union
+    #                └─ Satisfies ZOpNode intersection → inherits Op functionality
     pass
 ```
 
@@ -711,11 +712,11 @@ T_Child = hou.OpNode    # Typically a leaf node
 Instead of manually specifying all 4 type parameters everywhere:
 ```python
 # Verbose:
-NodeInstance[hou.OpNodeTypeCategory, hou.ObjNode, hou.SopNode, hou.OpNode]
+ZNode[hou.OpNodeTypeCategory, hou.ObjNode, hou.SopNode, hou.OpNode]
 
 # Concise:
-SopInstance[hou.ObjNode, hou.SopNode, hou.OpNode]
-# OpNodeTypeCategory is fixed by SopInstance
+ZSopNode[hou.ObjNode, hou.SopNode, hou.OpNode]
+# OpNodeTypeCategory is fixed by ZSopNode
 ```
 
 ## Historical Context
@@ -728,11 +729,11 @@ The current approach uses **class hierarchies to reify unions**, providing the s
 
 When adding new node type families (CHOP, ROP, DOP, etc.):
 
-1. Create a `*Base` class (e.g., `ChopBase(OpBase)`) to reify the union
+1. Create a `*Base` class (e.g., `ChopBase(ZOpNodeBase)`) to reify the union
 2. Create specialized classes using multiple inheritance:
    ```python
-   class ChopInstance(OpInstance, ChopBase): pass
-   class ChopContext(OpContext): pass
+   class ChopInstance(ZOpNode, ChopBase): pass
+   class ChopContext(ZOpContext): pass
    ```
 3. Update generic type parameters to restrict to appropriate types
 4. Add examples showing the type flow through the hierarchy

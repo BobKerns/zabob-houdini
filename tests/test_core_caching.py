@@ -9,11 +9,11 @@ import pytest
 
 
 class TestNodeInstanceCaching:
-    """Test NodeInstance create() caching behavior."""
+    """Test ZNode create() caching behavior."""
 
     @pytest.mark.integration
     def test_create_caches_result(self, hython_test):
-        """NodeInstance.create() should cache and return same hou.Node on repeated calls."""
+        """ZNode.create() should cache and return same hou.Node on repeated calls."""
         result_data = hython_test("h_test_create_caches_result")
 
         assert result_data["same_object"] is True
@@ -21,7 +21,7 @@ class TestNodeInstanceCaching:
 
     @pytest.mark.integration
     def test_create_different_instances_different_nodes(self, hython_test):
-        """Different NodeInstance objects should create different nodes."""
+        """Different ZNode objects should create different nodes."""
         result_data = hython_test("h_test_create_different_instances_different_nodes")
 
         assert result_data["different_objects"] is True
@@ -30,11 +30,11 @@ class TestNodeInstanceCaching:
 
 
 class TestNodeInstanceCopy:
-    """Test NodeInstance copy() functionality."""
+    """Test ZNode copy() functionality."""
 
     @pytest.mark.integration
     def test_copy_creates_independent_instance(self, hython_test):
-        """NodeInstance.copy() should create independent copy."""
+        """ZNode.copy() should create independent copy."""
         result_data = hython_test("h_test_copy_creates_independent_instance")
 
         assert result_data["different_objects"] is True
@@ -46,7 +46,7 @@ class TestNodeInstanceCopy:
 
     @pytest.mark.integration
     def test_copy_with_chain_inputs(self, hython_test):
-        """NodeInstance.copy() should copy Chain inputs to avoid shared state."""
+        """ZNode.copy() should copy ZChain inputs to avoid shared state."""
         result_data = hython_test("h_test_copy_with_chain_inputs")
 
         assert result_data["has_inputs"] is True
@@ -55,7 +55,7 @@ class TestNodeInstanceCopy:
 
     @pytest.mark.integration
     def test_copy_preserves_non_chain_inputs(self, hython_test):
-        """NodeInstance.copy() should preserve non-Chain inputs as-is."""
+        """ZNode.copy() should preserve non-ZChain inputs as-is."""
         result_data = hython_test("h_test_copy_preserves_non_chain_inputs")
 
         assert result_data["has_inputs"] is True
@@ -65,11 +65,11 @@ class TestNodeInstanceCopy:
 
 
 class TestChainCopy:
-    """Test Chain copy() functionality."""
+    """Test ZChain copy() functionality."""
 
     @pytest.mark.integration
     def test_copy_creates_independent_chain(self, hython_test):
-        """Chain.copy() should create independent copy."""
+        """ZChain.copy() should create independent copy."""
         result_data = hython_test("h_test_copy_creates_independent_chain")
 
         assert result_data["different_objects"] is True
@@ -79,7 +79,7 @@ class TestChainCopy:
 
     @pytest.mark.integration
     def test_copy_deep_copies_node_instances(self, hython_test):
-        """Chain.copy() should copy contained NodeInstances."""
+        """ZChain.copy() should copy contained NodeInstances."""
         result_data = hython_test("h_test_copy_deep_copies_node_instances")
 
         assert result_data["nodes_length"] == 2
@@ -89,7 +89,7 @@ class TestChainCopy:
 
     @pytest.mark.integration
     def test_copy_deep_copies_nested_chains(self, hython_test):
-        """Chain.copy() should recursively copy nested chains."""
+        """ZChain.copy() should recursively copy nested chains."""
         result_data = hython_test("h_test_copy_deep_copies_nested_chains")
 
         assert result_data["nodes_length"] == 2
@@ -99,11 +99,11 @@ class TestChainCopy:
 
 
 class TestChainCreateBehavior:
-    """Test Chain.create() new return behavior."""
+    """Test ZChain.create() new return behavior."""
 
     @pytest.mark.integration
     def test_create_returns_tuple_of_node_instances(self, hython_test):
-        """Chain.create() should return tuple of NodeInstance copies."""
+        """ZChain.create() should return tuple of ZNode copies."""
         result_data = hython_test("h_test_create_returns_tuple_of_node_instances")
 
         assert result_data["is_tuple"] is True
@@ -114,11 +114,11 @@ class TestChainCreateBehavior:
 
 
 class TestChainConvenienceMethods:
-    """Test Chain convenience methods for accessing created hou.Node instances."""
+    """Test ZChain convenience methods for accessing created hou.Node instances."""
 
     @pytest.mark.integration
     def test_convenience_methods_with_created_nodes(self, hython_test):
-        """Test all Chain convenience methods work correctly."""
+        """Test all ZChain convenience methods work correctly."""
         result_data = hython_test("h_test_convenience_methods_with_created_nodes")
 
         assert result_data["first_last_different"] is True
@@ -141,14 +141,14 @@ class TestChainConvenienceMethods:
 
     @pytest.mark.integration
     def test_create_caching_consistency(self, hython_test):
-        """Test that Chain.create() returns same instances on repeated calls."""
+        """Test that ZChain.create() returns same instances on repeated calls."""
         # This would require a more complex test function - the current architecture
         # handles caching automatically via @functools.cache
         pass
 
 
 class TestNodeRegistry:
-    """Test NodeInstance registry functionality."""
+    """Test ZNode registry functionality."""
 
     @pytest.mark.integration
     def test_node_registry_functionality(self, hython_test):

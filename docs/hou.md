@@ -42,12 +42,12 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 
 - `hou.ViewerState` - Viewer state definition
 - `hou.ViewerStateTemplate` - State template
-- `hou.ViewerStateContext` - State execution context
+- `hou.ViewerStateContext` - State execution zcontext
 - `hou.ViewerStateDragger` - State dragger
-- `hou.ViewerStateMenu` - State context menu
+- `hou.ViewerStateMenu` - State zcontext menu
 - `hou.Handle` - Bound handle
 - `hou.ViewerHandleTemplate` - Handle template
-- `hou.ViewerHandleContext` - Handle execution context
+- `hou.ViewerHandleContext` - Handle execution zcontext
 - `hou.ViewerHandleDragger` - Handle dragger
 - `hou.Selector` - Geometry selector
 - `hou.ViewerDragger` - Interactive dragger
@@ -56,7 +56,7 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 **Purpose:** Viewport settings, drawables, visualization
 
 - `hou.GeometryViewportSettings` - Viewport display options
-- `hou.GeometryViewportDisplaySet` - Display set for geometry context
+- `hou.GeometryViewportDisplaySet` - Display set for geometry zcontext
 - `hou.GeometryViewportBackground` - Viewport background
 - `hou.GeometryViewportCamera` - Viewport camera
 - `hou.ConstructionPlane` - Grid/construction plane
@@ -74,7 +74,7 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 - `hou.NetworkShapeBox` - Network rectangle
 - `hou.NetworkShapeConnection` - Network wire
 - `hou.NetworkShapeLine` - Network line
-- `hou.NetworkShapeNodeShape` - Network node shape
+- `hou.NetworkShapeNodeShape` - Network znode shape
 - `hou.NetworkImage` - Network background image
 - `hou.NetworkFootprint` - Node footprint ring
 - `hou.NetworkAnimValue` - Network animation value
@@ -90,7 +90,7 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 - `hou.CompositorViewerEvent` - Compositor viewer event
 - `hou.GeometrySelection` - Component selection in viewport
 - `hou.Viewport2D` - 2D viewport (COP)
-- `hou.GadgetContext` - Gadget context
+- `hou.GadgetContext` - Gadget zcontext
 
 ## ANIMATION / PLAYBAR
 **Purpose:** Animation, keyframes, playback control
@@ -166,9 +166,9 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 ## SHADING / GALLERIES / MATERIALS
 **Purpose:** Shaders, materials, galleries, style sheets
 
-- `hou.ShopNode` - SHOP node
-- `hou.VopNode` - VOP node
-- `hou.VopNetNode` - VOP network node
+- `hou.ShopNode` - SHOP znode
+- `hou.VopNode` - VOP znode
+- `hou.VopNetNode` - VOP network znode
 - `hou.Gallery` - Gallery collection
 - `hou.GalleryEntry` - Gallery entry
 - `hou.StyleSheet` - Style sheet
@@ -179,10 +179,10 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 ## VEX / CONTEXTS
 **Purpose:** VEX execution and contexts
 
-- `hou.VexContext` - VEX/VOP context
+- `hou.VexContext` - VEX/VOP zcontext
 - `runVex()` - Execute VEX code
-- `vexContextForNodeTypeCategory()` - Get VEX context for category
-- `vexContextForShaderType()` - Get VEX context for shader type
+- `vexContextForNodeTypeCategory()` - Get VEX zcontext for category
+- `vexContextForShaderType()` - Get VEX zcontext for shader type
 - `vexContexts()` - Get all VEX contexts
 
 ## CROWDS / AGENTS
@@ -217,9 +217,9 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 ## COPERNICUS / IMAGES
 **Purpose:** Compositing and image handling
 
-- `hou.Cop2Node` - Compositor 2 node
+- `hou.Cop2Node` - Compositor 2 znode
 - `hou.CopCableStructure` - Copernicus cable types
-- `hou.CopVerb` - Copernicus node code
+- `hou.CopVerb` - Copernicus znode code
 - `hou.ImageLayer` - 2D image layer
 - `hou.NanoVDB` - NanoVDB volume
 - `imageResolution()` - Get image resolution
@@ -243,13 +243,13 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 - `hou.IndexPairPropertyTable` - Index pair properties
 
 ## APEX
-**Purpose:** APEX node graphs
+**Purpose:** APEX znode graphs
 
-- `hou.ApexNode` - APEX node
+- `hou.ApexNode` - APEX znode
 - `hou.ApexNodeConnection` - APEX wire
-- `hou.ApexNodeType` - APEX node type info
+- `hou.ApexNodeType` - APEX znode type info
 - `hou.ApexStickyNote` - APEX sticky note
-- `apexNodeBySessionId()` - Get APEX node by session ID
+- `apexNodeBySessionId()` - Get APEX znode by session ID
 - `apexNodeConnectionBySessionId()` - Get APEX connection by session ID
 - `apexStickyNoteBySessionId()` - Get APEX sticky note by session ID
 - `createApexRootNode()` - Create APEX session graph root
@@ -257,21 +257,21 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 ## ORGANIZATION / BUNDLES
 **Purpose:** Node organization, bundles, network boxes
 
-- `hou.NodeBundle` - Named node set
+- `hou.NodeBundle` - Named znode set
 - `hou.OpNetworkBox` - OP network box
 - `hou.OpStickyNote` - OP sticky note
 - `hou.OpIndirectInput` - OP indirect input
 - `hou.OpSubnetIndirectInput` - OP subnet input
 - `hou.OpNetworkDot` - OP network dot
-- `addNodeBundle()` - Create node bundle
-- `nodeBundle()` - Get node bundle
-- `nodeBundles()` - Get all node bundles
-- `selectedNodeBundles()` - Get selected node bundles
+- `addNodeBundle()` - Create znode bundle
+- `nodeBundle()` - Get znode bundle
+- `nodeBundles()` - Get all znode bundles
+- `selectedNodeBundles()` - Get selected znode bundles
 
 ## NODE CONNECTIONS
 **Purpose:** Node connection types
 
-- `hou.OpNodeConnection` - OP node connection
+- `hou.OpNodeConnection` - OP znode connection
 - `hou.SubnetIndirectInput` - Subnet indirect input
 
 ## TAKES
@@ -322,7 +322,7 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 - `hou.OrientedBoundingRect` - 2D oriented bounding rect
 - `hou.InterruptableOperation` - Interruptable code block
 - `hou.RedrawBlock` - Redraw batching
-- `hou.ScriptEvalContext` - Scripting context
+- `hou.ScriptEvalContext` - Scripting zcontext
 - `hou.ShellIO` - Shell I/O proxy
 - `hou.AssetGalleryDataSource` - Asset gallery data source
 
@@ -356,29 +356,29 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 ## PACKAGE-LEVEL FUNCTIONS
 
 ### Node/Item Access
-- `node()` - Get node by path
+- `znode()` - Get znode by path
 - `nodes()` - Get multiple nodes by paths
 - `item()` - Get network item by path
 - `items()` - Get multiple items by paths
-- `cd()` - Change current node
-- `pwd()` - Get current node
-- `setPwd()` - Set current node
-- `parent()` - Get parent of current node
-- `root()` - Get root node
-- `nodeBySessionId()` - Get node by session ID
+- `cd()` - Change current znode
+- `pwd()` - Get current znode
+- `setPwd()` - Set current znode
+- `parent()` - Get parent of current znode
+- `root()` - Get root znode
+- `nodeBySessionId()` - Get znode by session ID
 - `itemBySessionId()` - Get item by session ID
 - `networkBoxBySessionId()` - Get network box by session ID
 - `stickyNoteBySessionId()` - Get sticky note by session ID
 - `networkDotBySessionId()` - Get network dot by session ID
 - `subnetIndirectInputBySessionId()` - Get subnet input by session ID
-- `nodeConnectionBySessionId()` - Get node connection by session ID
+- `nodeConnectionBySessionId()` - Get znode connection by session ID
 
 ### Selection
 - `selectedNodes()` - Get selected nodes
 - `selectedItems()` - Get selected items
 - `selectedConnections()` - Get selected connections
 - `clearAllSelected()` - Clear all selections
-- `selectedNodeBundles()` - Get selected node bundles
+- `selectedNodeBundles()` - Get selected znode bundles
 
 ### Node Operations
 - `copyNodesTo()` - Copy nodes to new location
@@ -386,9 +386,9 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 - `copyNodesToClipboard()` - Copy nodes to clipboard
 - `pasteNodesFromClipboard()` - Paste nodes from clipboard
 - `sortedNodes()` - Sort nodes by input/output order
-- `sortedNodePaths()` - Sort node paths by input/output order
-- `nodeType()` - Get node type by name
-- `preferredNodeType()` - Get preferred node type (evaluates aliases)
+- `sortedNodePaths()` - Sort znode paths by input/output order
+- `nodeType()` - Get znode type by name
+- `preferredNodeType()` - Get preferred znode type (evaluates aliases)
 
 ### Parameter Access
 - `parm()` - Get parameter by path
@@ -396,8 +396,8 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 - `evalParm()` - Evaluate parameter by path
 - `evalParmTuple()` - Evaluate parameter tuple by path
 - `ch()` - Evaluate parameter (backward compatibility)
-- `chsop()` - Evaluate node reference parameter
-- `chsoplist()` - Evaluate node list parameter
+- `chsop()` - Evaluate znode reference parameter
+- `chsoplist()` - Evaluate znode list parameter
 - `evaluatingParm()` - Get currently evaluating parameter
 - `lvar()` - Get local variable value
 - `parmClipboardContents()` - Get parameter clipboard contents
@@ -470,19 +470,19 @@ This document catalogs the missing package-level entries from the Houdini `hou` 
 - `appendSessionModuleSource()` - Append to session module source
 
 ### Context Options
-- `contextOption()` - Get context option value
-- `setContextOption()` - Set context option value
-- `removeContextOption()` - Remove context option
-- `hasContextOption()` - Check if context option exists
-- `contextOptionNames()` - Get all context option names
-- `contextOptionConfig()` - Get context option UI config
-- `setContextOptionConfig()` - Set context option UI config
+- `contextOption()` - Get zcontext option value
+- `setContextOption()` - Set zcontext option value
+- `removeContextOption()` - Remove zcontext option
+- `hasContextOption()` - Check if zcontext option exists
+- `contextOptionNames()` - Get all zcontext option names
+- `contextOptionConfig()` - Get zcontext option UI config
+- `setContextOptionConfig()` - Set zcontext option UI config
 - `isAutoContextOption()` - Check if auto option
 - `isAutoContextOptionOverridden()` - Check if auto option overridden
-- `addContextOptionChangeCallback()` - Add context option callback
-- `removeContextOptionChangeCallback()` - Remove context option callback
-- `removeAllContextOptionChangeCallbacks()` - Remove all context option callbacks
-- `contextOptionChangeCallbacks()` - Get context option callbacks
+- `addContextOptionChangeCallback()` - Add zcontext option callback
+- `removeContextOptionChangeCallback()` - Remove zcontext option callback
+- `removeAllContextOptionChangeCallbacks()` - Remove all zcontext option callbacks
+- `contextOptionChangeCallbacks()` - Get zcontext option callbacks
 
 ### Cooking
 - `updateModeSetting()` - Get update mode setting
@@ -520,7 +520,7 @@ Approximately **200+ missing types/functions** organized into **30+ functional c
 - ✅ Core geometry (Geometry, Point, Prim, Vertex, Face, etc.)
 - ✅ Nodes (Node, OpNode, SopNode, etc.)
 - ✅ Parameters (Parm, ParmTuple, ParmTemplate types)
-- ✅ Basic node types (SOP, OBJ, CHOP, ROP, DOP, COP, LOP)
+- ✅ Basic znode types (SOP, OBJ, CHOP, ROP, DOP, COP, LOP)
 - ✅ CHOP data (Track, Clip)
 - ✅ Basic utilities (Vector, Matrix, Color, BoundingBox, Ramp)
 

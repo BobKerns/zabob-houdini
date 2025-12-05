@@ -18,15 +18,15 @@ Example:
     >>> from zabob_houdini.dyn import transform, show_source
     >>> source = '''
     ... from __future__ import _dynamic_import
-    ... from zabob_houdini.core import NodeInstance
-    ... node = NodeInstance("box")
+    ... from zabob_houdini.core import ZNode
+    ... node = ZNode("box")
     ... '''
     >>> tree = transform(source)
     >>> show_source(tree)
     from zabob_houdini.dyn_import import dyn_import as __dynamic__
     __dynamic__ = __dynamic__(globals())
-    __dynamic__._def('zabob_houdini.core', 'NodeInstance', 'NodeInstance')
-    node = __dynamic__.load('NodeInstance', locals())('box')
+    __dynamic__._def('zabob_houdini.core', 'ZNode', 'ZNode')
+    node = __dynamic__.load('ZNode', locals())('box')
 """
 
 from __future__ import annotations

@@ -3,8 +3,8 @@
 from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 import hou
-from zabob_houdini.core_node import NodeBase
-from zabob_houdini.solo_fns import context
+from zabob_houdini.core_node import ZNodeBase
+from zabob_houdini.solo_fns import zcontext
 from zabob_houdini.utils import HoudiniResult, JsonObject, error_result, success_result
 from zabob_houdini.core_utils import hou_node
 
@@ -15,7 +15,7 @@ def h_test_layout_stress_test() -> HoudiniResult:
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "layout_stress_test")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create a complex stress test graph directly here
 
         # Multiple source nodes
@@ -58,7 +58,7 @@ def h_test_layout_stress_test() -> HoudiniResult:
         # Get statistics
         all_nodes = list(ctx._dependency_registry.keys())
         source_nodes = ctx.get_source_nodes()
-        sink_nodes: list[NodeBase[hou.Node]] = ctx.get_sink_nodes()
+        sink_nodes: list[ZNodeBase[hou.OpNodeTypeCategory, hou.Node, hou.Node, hou.Node]] = ctx.get_sink_nodes()
         layers = ctx._compute_layers(all_nodes)
         positions = ctx.layout_nodes()
 
@@ -96,7 +96,7 @@ def h_test_simple_layout_demo() -> HoudiniResult:
         _obj = hou_node("/obj")
         geo = _obj.createNode("geo", "simple_layout_test")
 
-        with context(geo) as ctx:
+        with zcontext(geo) as ctx:
             # Create a simple graph using only basic node types
 
             # Two source nodes

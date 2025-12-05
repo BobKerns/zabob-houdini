@@ -36,7 +36,7 @@ def test_two_node_cycle(hython_test):
 
 @pytest.mark.integration
 def test_circular_with_context(hython_test):
-    """Test circular graph construction using NodeContext."""
+    """Test circular graph construction using ZContext."""
     result = hython_test("h_test_circular_with_context")
     assert result["node_count"] == 3
     assert result["has_cycle"] is True

@@ -10,7 +10,7 @@ Forward references allow nodes to reference other nodes by name before they are 
 ### 1. Registration Strategy
 
 **Current Decision: Register by Name**
-- When NodeInstance objects with names are passed as inputs to context methods, they are registered under their name
+- When ZNode objects with names are passed as inputs to context methods, they are registered under their name
 - Registering by name (vs. path) is simpler and safer for initial implementation
 - Allows easy lookup and prevents shadowing issues
 
@@ -20,6 +20,8 @@ Forward references allow nodes to reference other nodes by name before they are 
   - Early detection of name conflicts
   - Avoids conflicts with generated names
   - Centralizes registration logic
+
+\[This is mostly done]
 
 ### 2. Parent Validation
 
@@ -36,8 +38,8 @@ Forward references allow nodes to reference other nodes by name before they are 
 ### 3. Name Resolution Logic
 
 **Ambiguity Prevention**
-- If a NodeInstance is already registered under a name, use it directly
-- Don't create ForwardReference for names that already resolve
+- If a ZNode is already registered under a name, use it directly
+- Don't create ZNodeForwardRef for names that already resolve
 - Prevents ambiguity between registered nodes and forward references
 
 **Current Behavior**
@@ -51,13 +53,6 @@ Forward references allow nodes to reference other nodes by name before they are 
 
 When resolving forward references during `.create()`:
 
-```python
-from collections import deque
-
-def resolve_forward_references(refs: list[ForwardReference]) -> list[NodeInstance]:
-    """
-    Resolve forward references using deque-based algorithm.
-
     Algorithm:
     1. Add all refs to deque
     2. While deque not empty:
@@ -68,30 +63,7 @@ def resolve_forward_references(refs: list[ForwardReference]) -> list[NodeInstanc
     3. Terminate when:
        - Deque empty (success - all resolved)
        - Counter == deque length (deadlock - tried all, none resolved)
-    """
-    pending = deque(refs)
-    resolved = []
-    attempts_without_progress = 0
 
-    while pending:
-        if attempts_without_progress >= len(pending):
-            # Deadlock: tried all refs but none resolved
-            unresolved_names = [ref.name for ref in pending]
-            raise ValueError(f"Cannot resolve forward references: {unresolved_names}")
-
-        ref = pending.popleft()
-
-        try:
-            node_instance = ref.resolve()  # Attempt resolution
-            resolved.append(node_instance)
-            attempts_without_progress = 0  # Reset counter on success
-        except KeyError:
-            # Not yet available, put back at end
-            pending.append(ref)
-            attempts_without_progress += 1
-
-    return resolved
-```
 
 ### Termination Conditions
 
@@ -108,31 +80,30 @@ def resolve_forward_references(refs: list[ForwardReference]) -> list[NodeInstanc
 ### Benefits
 
 - Handles dependencies in any order
-- Supports circular references (if we choose to)
+- Supports circular references
 - Clear failure mode with diagnostic information
 - O(n²) worst case, O(n) typical case
 
 ## Implementation Notes
 
-### ForwardReference Structure
+### ZNodeForwardRef Structure
 
 ```python
 @dataclass(frozen=True)
-class ForwardReference:
+class ZNodeForwardRef:
     resolution_type: str  # 'context_lookup', 'path', etc.
-    context: NodeContext  # Context to search in
+    context: ZContext  # Context to search in
     name: str             # Name to look up
 
-    def resolve(self) -> NodeInstance:
-        """Attempt to resolve to actual NodeInstance."""
-        if self.resolution_type == 'context_lookup':
-            return self.context[self.name]  # May raise KeyError
+    def resolve(self) -> ZNode:
+        """Attempt to resolve to actual ZNode."""
+        ...
         # ... other resolution types
 ```
 
 ### Context Integration
 
-- NodeContext maintains `_nodes: dict[str, NodeInstance]` registry
+- ZContext maintains `_nodes: dict[str, ZNode]` registry
 - When creating nodes, ForwardReferences are resolved just-in-time
 - Resolution happens during `.create()` call, not during construction
 - This preserves the declarative nature of the API
