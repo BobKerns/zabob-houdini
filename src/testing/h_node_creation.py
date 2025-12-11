@@ -1,18 +1,20 @@
 """Node creation test functions."""
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from typing import Any
 import hou
-from zabob_houdini.core import node, hou_node
+from zabob_houdini.core import znode, zchain, hou_node
 from zabob_houdini.utils import JsonObject
 
 
-def _test_parameter_setting() -> JsonObject:
+def h_test_parameter_setting() -> JsonObject:
     '''Test setting and retrieving node parameters.'''
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_params")
 
     # Create node with parameters
-    box_node = node(geo_node, "box", "param_box", sizex=2.0, sizey=3.0, sizez=4.0)
+    box_node = znode(geo_node, "box", "param_box", sizex=2.0, sizey=3.0, sizez=4.0)
     created_node = box_node.create(hou.OpNode)
 
     def val(node: hou.OpNode, parm_name: str) -> Any:
@@ -38,13 +40,13 @@ def _test_parameter_setting() -> JsonObject:
     }
 
 
-def _test_geometry_creation(node_type: str) -> JsonObject:
+def h_test_geometry_creation(node_type: str) -> JsonObject:
     """Test creation of various geometry node types."""
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", f"test_{node_type}")
 
     # Create the specified node type
-    test_node = node(geo_node, node_type, f"test_{node_type}_node")
+    test_node = znode(geo_node, node_type, f"test_{node_type}_node")
     created_node = test_node.create()
 
     return {
@@ -53,31 +55,31 @@ def _test_geometry_creation(node_type: str) -> JsonObject:
     }
 
 
-def _test_diamond_pattern_creation() -> JsonObject:
+def h_test_diamond_pattern_creation() -> JsonObject:
     """Test diamond pattern node creation without duplication."""
-    from zabob_houdini.core import chain
+    from zabob_houdini.core import zchain
     from zabob_houdini.utils import JsonArray
 
     # Create the container geometry node
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_diamond")
 
-    # Chain A: Create base geometry (should be created once)
-    chain_A = chain(
-        node(geo_node, "box", name="source_box"),
-        node(geo_node, "xform", "center"),
+    # ZChain A: Create base geometry (should be created once)
+    chain_A = zchain(
+        znode(geo_node, "box", name="source_box"),
+        znode(geo_node, "xform", "center"),
     )
 
-    # Chain B2: Should connect to chain_A
-    chain_B2 = chain(
-        node(geo_node, "xform", "scale_up", _input=chain_A),
-        node(geo_node, "xform", "rotate_y"),
+    # ZChain B2: Should connect to chain_A
+    chain_B2 = zchain(
+        znode(geo_node, "xform", "scale_up", _input=chain_A),
+        znode(geo_node, "xform", "rotate_y"),
     )
 
-    # Chain B3: Should also connect to chain_A (not duplicate it)
-    chain_B3 = chain(
-        node(geo_node, "xform", "scale_down", _input=chain_A),
-        node(geo_node, "xform", "rotate_x"),
+    # ZChain B3: Should also connect to chain_A (not duplicate it)
+    chain_B3 = zchain(
+        znode(geo_node, "xform", "scale_down", _input=chain_A),
+        znode(geo_node, "xform", "rotate_x"),
     )
 
     # Create the nodes
@@ -87,16 +89,16 @@ def _test_diamond_pattern_creation() -> JsonObject:
 
     # Get all node paths for validation
     all_nodes = list(chain_A_created) + list(chain_B2_created) + list(chain_B3_created)
-    node_paths: JsonArray = [node.create().path() for node in all_nodes]
+    node_paths: JsonArray = [node.path() for node in all_nodes]
 
     # Check for duplicates (there shouldn't be any in chain_A since B2/B3 reference it)
     unique_paths = list(set(node_paths))
     no_duplicates = len(unique_paths) == len(node_paths)
 
     # Verify connections
-    scale_up_node = chain_B2_created[0].create()
-    scale_down_node = chain_B3_created[0].create()
-    center_node = chain_A_created[-1].create()
+    scale_up_node = chain_B2_created[0]
+    scale_down_node = chain_B3_created[0]
+    center_node = chain_A_created[-1]
 
     scale_up_input = scale_up_node.inputs()[0] if scale_up_node.inputs() else None
     scale_down_input = scale_down_node.inputs()[0] if scale_down_node.inputs() else None
@@ -113,21 +115,20 @@ def _test_diamond_pattern_creation() -> JsonObject:
     }
 
 
-def _test_multiple_input_merge() -> JsonObject:
+def h_test_multiple_input_merge() -> JsonObject:
     """Test merge node with multiple inputs."""
-    from zabob_houdini.core import chain
 
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_merge")
 
     # Create two source chains
-    chain1 = chain(node(geo_node, "box", "box1"))
-    chain2 = chain(node(geo_node, "sphere", "sphere1"))
+    chain1 = zchain(znode(geo_node, "box", "box1"))
+    chain2 = zchain(znode(geo_node, "sphere", "sphere1"))
 
     # Create merge chain
-    merge_chain = chain(
-        node(geo_node, "merge", "combine", _input=[chain1, chain2]),
-        node(geo_node, "xform", "final"),
+    merge_chain = zchain(
+        znode(geo_node, "merge", "combine", _input=[chain1, chain2]),
+        znode(geo_node, "xform", "final"),
     )
 
     # Create the nodes
@@ -136,7 +137,7 @@ def _test_multiple_input_merge() -> JsonObject:
     merge_created = merge_chain.create()
 
     # Check merge node inputs
-    merge_node = merge_created[0].create()
+    merge_node = merge_created[0]
     merge_inputs = len([inp for inp in merge_node.inputs() if inp])  # Count non-None inputs
 
     return {
@@ -145,23 +146,22 @@ def _test_multiple_input_merge() -> JsonObject:
     }
 
 
-def _test_chain_input_connections() -> JsonObject:
+def h_test_chain_input_connections() -> JsonObject:
     """Test that chain input connections work correctly."""
-    from zabob_houdini.core import chain
 
     _obj = hou_node("/obj")
     geo_node = _obj.createNode("geo", "test_connections")
 
     # Create source chain
-    source_chain = chain(
-        node(geo_node, "box", "source"),
-        node(geo_node, "xform", "transform"),
+    source_chain = zchain(
+        znode(geo_node, "box", "source"),
+        znode(geo_node, "xform", "transform"),
     )
 
     # Create chain that connects to source
-    connected_chain = chain(
-        node(geo_node, "xform", "processor", _input=source_chain),
-        node(geo_node, "subdivide", "refine"),
+    connected_chain = zchain(
+        znode(geo_node, "xform", "processor", _input=source_chain),
+        znode(geo_node, "subdivide", "refine"),
     )
 
     # Create the nodes
@@ -169,8 +169,8 @@ def _test_chain_input_connections() -> JsonObject:
     connected_created = connected_chain.create()
 
     # Verify connection
-    processor_node = connected_created[0].create()
-    transform_node = source_created[-1].create()
+    processor_node = connected_created[0]
+    transform_node = source_created[-1]
 
     processor_input = processor_node.inputs()[0] if processor_node.inputs() else None
     connections_valid = processor_input and processor_input.path() == transform_node.path()

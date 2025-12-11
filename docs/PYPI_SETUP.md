@@ -106,7 +106,7 @@ pip install zabob-houdini
 zabob-houdini --version
 
 # Test import
-python -c "from zabob_houdini import node, chain; print('Import successful')"
+python -c "from zabob_houdini import znode, zchain; print('Import successful')"
 ```
 
 ## Troubleshooting

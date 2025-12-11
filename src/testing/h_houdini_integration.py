@@ -1,11 +1,14 @@
 """Houdini integration test functions."""
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 import hou
-from zabob_houdini.core import ROOT, node, chain, hou_node
-from zabob_houdini.utils import JsonObject
+
+from zabob_houdini.utils import JsonObject, JsonValue
+from zabob_houdini.core import ROOT, znode, zchain, hou_node
 
 
-def _test_basic_node_creation_in_houdini() -> JsonObject:
+def h_test_basic_node_creation_in_houdini() -> JsonObject:
     """Test basic node creation in Houdini."""
     # Create a geometry object
     _obj = hou_node("/obj")
@@ -20,22 +23,22 @@ def _test_basic_node_creation_in_houdini() -> JsonObject:
     }
 
 
-def _test_zabob_chain_creation() -> JsonObject:
-    """Test Zabob Chain creation in Houdini."""
+def h_test_zabob_chain_creation() -> JsonObject:
+    """Test Zabob ZChain creation in Houdini."""
     # Create a geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create a chain of nodes
-    _box_node = node(geo.path(), "box", name="chain_box")
-    _xform_node = node(geo.path(), "xform", name="chain_xform")
-    _subdivide_node = node(geo.path(), "subdivide", name="chain_subdivide")
+    _box_node = znode(geo.path(), "box", name="chain_box")
+    _xform_node = znode(geo.path(), "xform", name="chain_xform")
+    _subdivide_node = znode(geo.path(), "subdivide", name="chain_subdivide")
 
-    processing_chain = chain(_box_node, _xform_node, _subdivide_node)
+    processing_chain = zchain(_box_node, _xform_node, _subdivide_node)
     created_nodes = processing_chain.create()
 
-    # Get the paths from the created NodeInstance objects
-    node_paths = [created_node.create().path() for created_node in created_nodes]
+    # Get the paths from the created ZNode objects
+    node_paths: list[JsonValue] = [created_node.path() for created_node in created_nodes]
 
     return {
         'chain_length': len(created_nodes),
@@ -43,14 +46,14 @@ def _test_zabob_chain_creation() -> JsonObject:
     }
 
 
-def _test_zabob_node_creation() -> JsonObject:
-    """Test Zabob NodeInstance creation in Houdini."""
+def h_test_zabob_node_creation() -> JsonObject:
+    """Test Zabob ZNode creation in Houdini."""
     # Create a geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create a Zabob node and execute it
-    box_node = node(geo.path(), "box", name="zabob_box", sizex=2.0, sizey=2.0, sizez=2.0)
+    box_node = znode(geo.path(), "box", name="zabob_box", sizex=2.0, sizey=2.0, sizez=2.0)
     created_node = box_node.create(hou.OpNode)
     sizex_parm = created_node.parm('sizex')
     return {
@@ -59,18 +62,20 @@ def _test_zabob_node_creation() -> JsonObject:
     }
 
 
-def _test_node_input_connections() -> JsonObject:
+def h_test_node_input_connections() -> JsonObject:
     """Test node creation with input connections."""
     # Create a geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
 
     # Create source node
-    box_node = node(geo.path(), "box", name="input_box")
+    box_node = znode(geo.path(), "box", name="input_box")
     box_created = box_node.create()
 
     # Create node with input connection using the hou.Node directly
-    xform_node = node(geo.path(), "xform", name="connected_xform", _input=box_created)
+    xform_node = znode(geo.path(), "xform",
+                       name="connected_xform",
+                       _input=box_created)
     xform_created = xform_node.create()
 
     # Check connection
@@ -85,12 +90,12 @@ def _test_node_input_connections() -> JsonObject:
     }
 
 
-def _test_node_parentage() -> JsonObject:
-    """Test that parentage is correctly handled in NodeInstance."""
+def h_test_node_parentage() -> JsonObject:
+    """Test that parentage is correctly handled in ZNode."""
     # Create geometry object for testing
     _obj = hou_node("/obj")
     geo = _obj.createNode("geo", "test_geo")
-    box = node(geo, 'test_box')
+    box = znode(geo, 'test_box')
 
     return {
         'box_path': box.path,
@@ -101,7 +106,7 @@ def _test_node_parentage() -> JsonObject:
     }
 
 
-def _test_hou_module_available() -> JsonObject:
+def h_test_hou_module_available() -> JsonObject:
     """Simple test to verify hou module is available."""
     version = hou.applicationVersion()
     app_name = hou.applicationName()

@@ -1,17 +1,18 @@
 """
-Example demonstrating NodeContext.chain() method with string lookup.
+Example demonstrating ZContext.zhain() method with string lookup.
 
 This shows how to use ctx.chain() with string names for convenient
 chain creation using already defined nodes.
 """
 
-from zabob_houdini import context, node
+from zabob_houdini import zcontext, znode
+
 
 def demo_context_chain():
-    """Demonstrate NodeContext.chain() with string name lookup."""
+    """Demonstrate ZContext.zchain() with string name lookup."""
 
     # Create a geometry container and use context manager
-    with context(node("/obj", "geo", "modeling")) as ctx:
+    with zcontext(znode("/obj", "geo", "modeling")) as ctx:
 
         print("=== Creating individual nodes ===")
 
@@ -21,18 +22,17 @@ def demo_context_chain():
         transform = ctx.node("xform", "position")
         material = ctx.node("material", "shader")
         output = ctx.node("null", "final_output")
-
         print(f"Created nodes: {[n.name for n in [box, subdivide, transform, material, output]]}")
 
         print("\n=== Creating chains using string lookup ===")
 
-        # Create chain using string names - much cleaner than passing NodeInstance objects
+        # Create chain using string names - much cleaner than passing ZNode objects
         modeling_chain = ctx.chain("base_shape", "add_detail", "position", "shader", "final_output")
 
         print(f"Modeling chain length: {len(modeling_chain)}")
-        print("Chain node sequence:")
+        print("ZChain node sequence:")
         for i, node_instance in enumerate(modeling_chain):
-            print(f"  {i+1}. {node_instance.name} ({node_instance.node_type})")
+            print(f"  {i + 1}. {node_instance.name} ({node_instance.node_type})")
 
         # Create a partial chain for processing steps only
         processing_chain = ctx.chain("base_shape", "add_detail", "position")
@@ -40,20 +40,20 @@ def demo_context_chain():
         print(f"\nProcessing chain length: {len(processing_chain)}")
         print("Processing steps:")
         for i, node_instance in enumerate(processing_chain):
-            print(f"  {i+1}. {node_instance.name} ({node_instance.node_type})")
+            print(f"  {i + 1}. {node_instance.name} ({node_instance.node_type})")
 
         print("\n=== Mixed string and node lookup ===")
 
         # Create external node not in context
-        external_node = node(ctx.parent, "merge", "external_merge")
+        external_node = znode(ctx.parent, "merge", "external_merge")
 
-        # Mix string names and NodeInstance objects
+        # Mix string names and ZNode objects
         mixed_chain = ctx.chain("base_shape", external_node, "final_output")
 
         print(f"Mixed chain length: {len(mixed_chain)}")
         print("Mixed chain nodes:")
         for i, node_instance in enumerate(mixed_chain):
-            print(f"  {i+1}. {node_instance.name} ({node_instance.node_type})")
+            print(f"  {i + 1}. {node_instance.name} ({node_instance.node_type})")
 
         # Check that external node got registered in context
         try:
@@ -67,10 +67,12 @@ def demo_context_chain():
         try:
             # This should fail because the node doesn't exist
             bad_chain = ctx.chain("base_shape", "nonexistent_node", "final_output")
+            print(f"Missing node means we can't create this bad_chain={bad_chain}")
         except KeyError as e:
             print(f"Expected KeyError for missing node: {e}")
 
         return modeling_chain, processing_chain, mixed_chain
+
 
 if __name__ == "__main__":
     chains = demo_context_chain()

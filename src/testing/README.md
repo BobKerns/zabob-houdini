@@ -41,16 +41,16 @@ Houdini integration tests for my feature.
 These tests run in hython and create actual Houdini nodes.
 """
 
-from zabob_houdini.core import node, context, chain
+from zabob_houdini.core import znode, zcontext, zchain
 import hou
 
 
 def test_basic_feature():
     """Test basic feature functionality."""
     # Create geo container first
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         box = ctx.node("box", "my_box")
         sphere = ctx.node("sphere", "my_sphere")
 
@@ -60,12 +60,18 @@ def test_basic_feature():
 
     # Verify and return results
     return {
-        "success": True,
         "box_exists": hou_box is not None,
         "sphere_exists": hou_sphere is not None,
         "node_count": len(geo.children())
     }
 ```
+
+The return values can be any JSON object. This is encapsulate
+as the `"result"` field of the `HoudiniResult` typed dict.
+
+`HoudiniResult` objects may be constructed and returned directly,
+constructed with the `success_result()` and `error_result()`
+functions.
 
 ### Key Rules
 
@@ -75,6 +81,7 @@ def test_basic_feature():
 4. **DO NOT** return `hou.Node` objects or other non-serializable types
 5. **DO** clean up nodes if needed (usually not required for tests)
 6. **DO** create parent containers before creating child nodes
+7. **DO NOT WRITE TO STDOUT!** -- it is reserved for communication
 
 ## Return Value Requirements
 
@@ -83,7 +90,6 @@ Functions must return **JSON-serializable dictionaries**:
 ```python
 # ✅ Good - All JSON-serializable types
 return {
-    "success": True,
     "count": 42,
     "names": ["box", "sphere"],
     "positions": [[0, 0], [1, 0]],
@@ -92,7 +98,7 @@ return {
 
 # ❌ Bad - hou.Node is not JSON-serializable
 return {
-    "node": hou.node("/obj/geo1")
+    "znode": hou.znode("/obj/geo1")
 }
 
 # ❌ Bad - Not a dictionary
@@ -108,9 +114,9 @@ When you need to return information about Houdini nodes, extract primitive data:
 
 ```python
 def test_node_properties():
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         box = ctx.node("box", "my_box", size=2.0)
 
     hou_box = ctx["my_box"].create()
@@ -136,11 +142,11 @@ Always create a geometry container before creating SOP nodes:
 
 ```python
 def test_sops():
-    # Create parent geo node
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    # Create parent geo znode
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
     # Now create SOP nodes under geo
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         ctx.node("box", "my_box")
 ```
 
@@ -148,9 +154,9 @@ def test_sops():
 
 ```python
 def test_connections():
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         box = ctx.node("box", "source")
         xform = ctx.node("xform", "transform", _input="source")
 
@@ -169,13 +175,13 @@ def test_connections():
 
 ```python
 def test_context_features():
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create nodes
         ctx.node("box", "A")
         ctx.node("sphere", "B")
-        ctx.node("merge", "C", _inputs=["A", "B"])
+        ctx.node("zmerge", "C", _inputs=["A", "B"])
 
     # Context automatically calls .create() on exit
     # Access created nodes
@@ -195,10 +201,10 @@ def test_context_features():
 ```python
 def test_forward_references():
     """Test forward reference resolution."""
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
-        # Reference a node before it's defined
+    with zcontext(geo) as ctx:
+        # Reference a znode before it's defined
         ctx.node("xform", "transform", _input="source")
         ctx.node("box", "source")  # Defined after it's referenced
 
@@ -217,10 +223,10 @@ def test_forward_references():
 
 ```python
 def test_circular_reference():
-    """Test circular node graph construction."""
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    """Test circular znode graph construction."""
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create circular reference
         ctx.node("null", "A", _input="B")
         ctx.node("null", "B", _input="A")
@@ -257,7 +263,7 @@ def test_invalid_parent():
     """Test that invalid parent raises appropriate error."""
     try:
         # This should fail - can't create SOP under /obj directly
-        box = node("/obj", "box", "invalid")
+        box = znode("/obj", "box", "invalid")
         hou_box = box.create()
 
         return {"success": False, "error": "Should have raised exception"}
@@ -276,9 +282,9 @@ Note that circular references may create nodes successfully but enter an error s
 ```python
 def test_circular_creates_but_errors():
     """Circular references create but don't evaluate."""
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         ctx.node("null", "A", _input="B")
         ctx.node("null", "B", _input="A")
 
@@ -301,7 +307,7 @@ You can use `print()` for debugging - output will be captured by pytest:
 ```python
 def test_debug_example():
     print("Starting test...")
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
     print(f"Created geo: {geo.path()}")
 
     # ... rest of test
@@ -311,9 +317,9 @@ def test_debug_example():
 
 ```python
 def test_inspect_nodes():
-    geo = hou.node("/obj").createNode("geo", "test_geo")
+    geo = hou.znode("/obj").createNode("geo", "test_geo")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         ctx.node("box", "my_box")
 
     hou_box = ctx["my_box"].create()
@@ -338,12 +344,12 @@ def test_inspect_nodes():
 
 ```python
 # ❌ Wrong
-with context("/obj/geo1") as ctx:
+with zcontext("/obj/geo1") as ctx:
     ctx.node("box", "my_box")
 
 # ✅ Correct
-geo = hou.node("/obj").createNode("geo", "geo1")
-with context(geo) as ctx:
+geo = hou.znode("/obj").createNode("geo", "geo1")
+with zcontext(geo) as ctx:
     ctx.node("box", "my_box")
 ```
 
@@ -355,7 +361,7 @@ with context(geo) as ctx:
 
 ```python
 # ❌ Wrong
-return {"node": hou_node}
+return {"znode": hou_node}
 
 # ✅ Correct
 return {
@@ -366,10 +372,10 @@ return {
 
 ### Context Exit Behavior
 
-After context exit, nodes are automatically created:
+After zcontext exit, nodes are automatically created:
 
 ```python
-with context(geo) as ctx:
+with zcontext(geo) as ctx:
     ctx.node("box", "my_box")
     # DON'T call .create() here
 

@@ -236,32 +236,6 @@ Commands for testing Houdini integration and functionality.
 python -m zabob_houdini diagnostics [COMMAND]
 ```
 
-#### `diagnostics test-node`
-Test creating a simple node (requires Houdini).
-
-```bash
-python -m zabob_houdini diagnostics test-node
-```
-
-**Features:**
-- Tests basic node creation functionality
-- Validates Houdini Python environment integration
-- Uses the hython bridge automatically
-- Reports success/failure with detailed information
-
-#### `diagnostics test-chain`
-Test chain functionality.
-
-```bash
-python -m zabob_houdini diagnostics test-chain
-```
-
-**Features:**
-- Tests zabob-houdini's chain creation capabilities
-- Validates the chain API works correctly
-- Uses the hython bridge automatically
-
----
 
 ## Individual Commands
 

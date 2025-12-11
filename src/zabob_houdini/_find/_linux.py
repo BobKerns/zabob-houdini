@@ -2,6 +2,8 @@
 Find where Houdini is hiding on Linux
 '''
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from collections.abc import Iterable
 from contextlib import suppress
 from pathlib import Path
@@ -30,6 +32,7 @@ def find_installations() -> dict[Version, HoudiniInstall]:
             v: max(installs, key=lambda i: i.houdini_version)
             for v, installs in _group_by_major_minor(installations).items()
         }
+
 
 def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
     hfs_dir = version_dir
@@ -68,9 +71,9 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
             houdini_version=houdini_version,
             python_version=_version(py_version),
             version_dir=version_dir,
-            exec_prefix=exec_prefix, #TODO: Verify this
+            exec_prefix=exec_prefix,  # TODO: Verify this
             hfs_dir=version_dir,
-            hdso_libs= hfs_dir / 'dsolib',
+            hdso_libs=hfs_dir / 'dsolib',
             bin_dir=bin_dir,
             hh_dir=hfs_dir / 'houdini',
             toolkit_dir=hfs_dir / 'toolkit',
@@ -79,24 +82,24 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
             hython=hython_path,
             python_libs=lib_dir,
             app_paths={},
-            lib_paths= tuple((
+            lib_paths=tuple((
                *(p
-                    for glob in (
-                        f'houdini/{libname}',
-                        f'packages/*/{libname}',
-                        )
-                    for p in hfs_dir.glob(glob)
-                    if p.is_dir()
-                ),
+                 for glob in (
+                     f'houdini/{libname}',
+                     f'packages/*/{libname}',
+                     )
+                 for p in hfs_dir.glob(glob)
+                 if p.is_dir()
+                 ),
                *(p
-                    for p in (
-                        lib_dir,
-                        lib_dir / 'site-packages',
-                        lib_dir / 'site-packages-forced',
-                        lib_dir / 'site-packages-ui-forced',
+                 for p in (
+                     lib_dir,
+                     lib_dir / 'site-packages',
+                     lib_dir / 'site-packages-forced',
+                     lib_dir / 'site-packages-ui-forced',
                     )
-                    if p.is_dir()
-               ),
+                 if p.is_dir()
+                 ),
             )),
             env_path=tuple(
                 p

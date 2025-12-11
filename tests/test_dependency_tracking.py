@@ -1,20 +1,19 @@
 """Tests for node dependency tracking functionality."""
 
-import pytest
 
 class TestDependencyTracking:
     """Test dependency tracking between nodes."""
 
     def test_dependency_tracking(self, hython_test):
         """Test that dependencies are correctly tracked for nodes and chains."""
-        result = hython_test("_test_dependency_tracking")
+        result = hython_test("h_test_dependency_tracking")
 
         # Basic dependency tracking
         assert result['box_has_dependent'], "Box should have dependents"
         assert result['xform_is_dependent'], "Transform should depend on box"
         assert result['box_dependent_count'] == 1, "Box should have exactly one dependent"
 
-        # Chain dependency tracking
+        # ZChain dependency tracking
         assert result['sphere1_has_dependent'], "Sphere1 should have dependents"
         assert result['merge1_depends_on_sphere1'], "Merge1 should depend on sphere1"
         assert result['sphere1_dependent_count'] == 1, "Sphere1 should have exactly one dependent"

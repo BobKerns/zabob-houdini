@@ -2,18 +2,21 @@
 Extract useful information about the Houdini environment.
 '''
 
+from __future__ import annotations, _dynamic_import # noqa: F407 E261 # type: ignore
+
 import builtins
 from collections import defaultdict
 from collections.abc import Callable, Hashable, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from re import subn
 from typing import Any, NotRequired, TypeAlias, TypeVar, TypedDict
 from weakref import WeakKeyDictionary
+
 import click
 import hou
 
 from zabob_houdini.utils import JsonValue
+
 
 JsonData: TypeAlias = JsonValue
 '''
@@ -24,12 +27,14 @@ This type is used for any data that can be returned from Houdini functions and s
 # Available Houdini node categories (populated at module load time)
 HOUDINI_CATEGORIES = list(hou.nodeTypeCategories().keys())
 
+
 @dataclass
 class AnalysisDBItem:
     """
     Base class for items to be written to the analysis database.
     """
     pass
+
 
 @dataclass
 class NodeCategoryInfo(AnalysisDBItem):
@@ -48,7 +53,7 @@ class NodeTypeInfo(AnalysisDBItem):
     """
     name: str
     category: str
-    childCategory: str|None
+    childCategory: str | None
     description: str
     helpUrl: str
     minNumInputs: int
@@ -57,9 +62,9 @@ class NodeTypeInfo(AnalysisDBItem):
     isGenerator: bool
     isManager: bool
     isDeprecated: bool
-    deprecation_reason: str|None
-    deprecation_new_type: str|None
-    deprecation_version: str|None
+    deprecation_reason: str | None
+    deprecation_new_type: str | None
+    deprecation_version: str | None
 
 
 @dataclass
@@ -94,6 +99,7 @@ class ParameterSpec(TypedDict):
     is_optional: NotRequired[bool]  # Present only when parameter can be omitted
     default: NotRequired[JsonData]  # Present only when parameter has a default value
 
+
 def analyze_categories():
     """
     Analyze node categories in the current Houdini session.
@@ -113,9 +119,9 @@ def analyze_categories():
         ParamTemplateInfo: Information about parameters of each node type.
     """
     yield from (item
-            for name, category in hou.nodeTypeCategories().items()
-            for item in _category_info(name, category)
-    )
+                for name, category in hou.nodeTypeCategories().items()
+                for item in _category_info(name, category)
+                )
 
 
 def _category_info(name: str, category: hou.NodeTypeCategory):
@@ -146,6 +152,7 @@ def _category_info(name: str, category: hou.NodeTypeCategory):
         for item in _node_type_info(name, node_type)
     )
 
+
 def _node_type_info(name: str, node_type: hou.NodeType):
     """
     Extract information from a Houdini NodeType.
@@ -156,7 +163,8 @@ def _node_type_info(name: str, node_type: hou.NodeType):
         name (str): The name of the node type.
         node_type (hou.NodeType): The Houdini node type to extract information from.
     Yields:
-        NodeTypeInfo: Information about the node type, including its name, category, child category, description, and parameters.
+        NodeTypeInfo: Information about the node type, including its name, category,
+            child category, description, and parameters.
         ParmTemplateInfo: Information about parameters of the node type.
     """
     if name == "bend" and node_type.category().name() == "Cop":
@@ -175,7 +183,7 @@ def _node_type_info(name: str, node_type: hou.NodeType):
         maxNumOutputs=node_type.maxNumOutputs(),
         isGenerator=node_type.isGenerator(),
         isManager=node_type.isManager(),
-        isDeprecated=node_type.deprecated(), # type: ignore
+        isDeprecated=node_type.deprecated(),  # type: ignore
         deprecation_reason=deprecationInfo.get('reason', None),
         deprecation_new_type=none_or(deprecationInfo.get('new_type', None), get_name),
         deprecation_version=deprecationInfo.get('version', None),
@@ -198,12 +206,12 @@ def _parm_template_info(node_type: hou.NodeType, parm: hou.ParmTemplate):
     Yields:
         ParmTemplateInfo: Information about the parameter template, including its type, name, label, and documentation.
     """
-    def default_value(parm: hou.ParmTemplate) -> Any|None:
+    def default_value(parm: hou.ParmTemplate) -> Any | None:
         """
         Get the default value of the parameter.
         Returns None if the parameter has no default value.
         """
-        return parm.defaultValue() if hasattr(parm, 'defaultValue') else None # type: ignore
+        return parm.defaultValue() if hasattr(parm, 'defaultValue') else None  # type: ignore
     yield ParmTemplateInfo(
         node_type_name=node_type.name(),
         node_type_category=node_type.category().name(),
@@ -221,7 +229,9 @@ def _parm_template_info(node_type: hou.NodeType, parm: hou.ParmTemplate):
 
 T = TypeVar('T')
 R = TypeVar('R')
-def none_or(value: T|None, fn: Callable[[T], R]) -> R|None:
+
+
+def none_or(value: T | None, fn: Callable[[T], R]) -> R | None:
     """
     Call a function with the given value if it is not `None`,
     otherwise return `None`.
@@ -240,6 +250,8 @@ def none_or(value: T|None, fn: Callable[[T], R]) -> R|None:
 
 _name_counter: MutableMapping[str, int] = defaultdict[str, int](lambda: 0)
 _names: MutableMapping[Any, str] = WeakKeyDictionary[Any, str]()
+
+
 def get_name(d: Any) -> str:
     '''
     Get the name of the given object. If it does not have a name,
@@ -429,23 +441,30 @@ def types(category: str):
     categories_width = max(12, min(30, max_categories_width))  # Cap categories width
 
     # Print table header
-    header = f"{'NAME':<{name_width}} {'DESCRIPTION':<{desc_width}} {'INPUTS':<8} {'OUTPUTS':<8} {'IN CATEGORIES':<{categories_width}} {'FLAGS'}"
+    header = (
+        f"{'NAME':<{name_width}} {'DESCRIPTION':<{desc_width}} "
+        f"{'INPUTS':<8} {'OUTPUTS':<8} {'IN CATEGORIES':<{categories_width}} {'FLAGS'}"
+    )
     click.echo(header)
     click.echo("-" * len(header))
 
     # Print table rows
     for node in node_types:
         # Truncate description if too long
-        desc = node.description[:desc_width-3] + "..." if len(node.description) > desc_width else node.description
+        desc = node.description[:desc_width - 3] + "..." if len(node.description) > desc_width else node.description
 
         # Format inputs/outputs
-        inputs = f"{node.minNumInputs}-{node.maxNumInputs}" if node.minNumInputs != node.maxNumInputs else str(node.minNumInputs)
+        if node.minNumInputs != node.maxNumInputs:
+            inputs = f"{node.minNumInputs}-{node.maxNumInputs}"
+        else:
+            inputs = str(node.minNumInputs)
         outputs = str(node.maxNumOutputs)
 
         # Format "IN CATEGORIES"
         if node.childCategory and node.childCategory in child_to_parent_categories:
             categories_str = ", ".join(child_to_parent_categories[node.childCategory])
-            categories_str = categories_str[:categories_width-3] + "..." if len(categories_str) > categories_width else categories_str
+            if len(categories_str) > categories_width:
+                categories_str = categories_str[:categories_width - 3] + "..."
         else:
             categories_str = "-"
 
@@ -460,7 +479,7 @@ def types(category: str):
         flags_str = ", ".join(flags)
 
         # Print row
-        click.echo(f"{node.name:<{name_width}} {desc:<{desc_width}} {inputs:<8} {outputs:<8} {categories_str:<{categories_width}} {flags_str}")
+        click.echo(f"{node.name:<{name_width}} {desc:<{desc_width}}"
+                   f" {inputs:<8} {outputs:<8} {categories_str:<{categories_width}} {flags_str}")
 
     click.echo(f"\nTotal: {len(node_types)} node types")
-

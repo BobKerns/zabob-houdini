@@ -1,0 +1,458 @@
+"""Unit tests for dynamic import AST transformation."""
+
+import ast
+import re
+import sys
+from typing import Any
+
+import pytest
+
+from zabob_loader import (
+    DynamicImportTransformer, _SymbolMap, dyn_import,
+)
+from zabob_loader.dyn_util import transform_source
+
+_RE_DEDENT = re.compile(r'^(\n?\s*)\b',
+                        re.MULTILINE)
+
+
+def dedent(source: str) -> str:
+    """Helper to dedent source code for testing."""
+    lines = source.splitlines()
+    # Clean trailing whitespace
+    cleaner = (line.rstrip() for line in lines)
+    cleaned = (line[1:] if line.startswith('\n') else line for line in cleaner)
+    nonblank = [line for line in cleaned if line]
+    indents = [_RE_DEDENT.match(line) for line in nonblank]
+    indented_by = [len(m.group(1)) for m in indents if m]
+
+    # Find minimum indent (ignoring empty lines)
+    min_indent = min(indented_by, default=0)
+
+    if min_indent == 0:
+        return source  # No dedent needed
+
+    dedented_lines = (
+        line[min_indent:] if len(line) >= min_indent else line
+        for line in nonblank
+    )
+    return "\n".join(dedented_lines)
+
+
+def assert_transformed(source: str, expected: str, package: str = 'zabob_houdini') -> None:
+    """Helper to assert that source transforms to expected code."""
+    source = dedent(source)
+    expected = dedent(expected)
+    transformed = transform_source(source, package_name=package)
+    lines = zip(
+        expected.splitlines(),
+        transformed.splitlines(),
+    )
+    for expected_line, transformed_line in lines:
+        assert expected_line.strip() == transformed_line.strip(), (
+            f"Transformed line does not match expected:\n"
+            f"Expected: {expected_line!r}\n"
+            f"Got:      {transformed_line!r}"
+        )
+    assert expected == transformed
+    # Ensure the transformed source compiles
+    compile(transformed, '<test>', 'exec')
+
+
+class TestASTTransformation:
+    """Test the AST transformation logic."""
+
+    def test_marker_detection(self):
+        """Test that the _dynamic_import marker is detected."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            import zabob_houdini.core
+            """,
+            expected="""
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
+            """)
+
+    def test_marker_with_other_futures(self):
+        """Test that other __future__ imports are preserved."""
+        assert_transformed(
+            source="""
+            from __future__ import annotations, _dynamic_import
+
+            import zabob_houdini.core
+            """,
+            expected="""
+            from __future__ import annotations
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
+            """)
+
+    def test_external_import_not_transformed(self):
+        """Test that external imports (not zabob_houdini.*) are NOT transformed."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            import numpy
+            from operator import add
+            """,
+            expected='''
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            import numpy
+            from operator import add
+            ''')
+
+    def test_import_transformation(self):
+        """Test that 'import zabob_houdini.core' is transformed correctly."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            import zabob_houdini.core
+            """,
+            expected='''
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('zabob_houdini.core', 'zabob_houdini.core')
+            ''')
+
+    def test_import_as_transformation(self):
+        """Test that 'import zabob_houdini.core as zcore' is transformed correctly."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            import zabob_houdini.core as zcore
+            """,
+            expected='''
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def_module('zabob_houdini.core', 'zcore')
+            ''')
+
+    def test_from_import_transformation(self):
+        """Test that 'from zabob_houdini.core import node' is transformed correctly."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            from zabob_houdini.core import node
+            """,
+            expected='''
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def('zabob_houdini.core', 'node', 'node')
+            ''')
+
+    def test_from_import_as_transformation(self):
+        """Test that 'from zabob_houdini.core import node as n' is transformed correctly."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            from zabob_houdini.core import node as n
+            """,
+            expected='''
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            __dynamic__._def('zabob_houdini.core', 'node', 'n')
+            ''')
+
+    def test_star_import_transformation(self):
+        """Test that 'from zabob_houdini.core import *' is NOT transformed (star imports unchanged)."""
+        assert_transformed(
+            source="""
+            from __future__ import _dynamic_import
+
+            from zabob_houdini.core import *
+            """,
+            expected='''
+            from zabob_loader.dyn_import import dyn_import as __dynamic__
+            __dynamic__ = __dynamic__(globals())
+            from zabob_houdini.core import *
+            ''')
+
+    def test_setup_code_generation(self):
+        """Test that setup code is generated correctly."""
+        source = """
+from __future__ import _dynamic_import
+
+import zabob_houdini.core
+"""
+        tree = ast.parse(source)
+        transformer = DynamicImportTransformer("test_module")
+        transformed = transformer.visit(tree)
+
+        # First should be import statement
+        import_stmt = transformed.body[0]
+        assert isinstance(import_stmt, ast.ImportFrom)
+        assert import_stmt.module == 'zabob_loader.dyn_import'
+        assert len(import_stmt.names) == 1
+        assert import_stmt.names[0].name == 'dyn_import'
+        assert import_stmt.names[0].asname == '__dynamic__'
+
+        # Second should be assignment: __dynamic__ = __dynamic__(globals())
+        assign_stmt = transformed.body[1]
+        assert isinstance(assign_stmt, ast.Assign)
+        assert len(assign_stmt.targets) == 1
+        assert isinstance(assign_stmt.targets[0], ast.Name)
+        assert assign_stmt.targets[0].id == '__dynamic__'
+
+
+class TestRuntimeBehavior:
+    """Test the runtime behavior of the dynamic import system."""
+
+    def test_symbol_map_creation(self):
+        """Test _SymbolMap can be created and has _Ref attribute."""
+        caller_globals: dict[str, Any] = {}
+        symbol_map = dyn_import(caller_globals)
+
+        assert isinstance(symbol_map, _SymbolMap)
+
+    def test_symbol_map_returned(self):
+        """Test that symbol map is returned by dyn_import."""
+        caller_globals: dict[str, Any] = {}
+        symbol_map = dyn_import(caller_globals)
+        assert isinstance(symbol_map, _SymbolMap)
+        # __dynamic__ is not stored in caller_globals, it's returned
+        # The transformer stores it: __dynamic__ = __dynamic__(globals())
+
+    def test_getattr_hook_installed(self):
+        """Test that __getattr__ hook is installed."""
+        caller_globals: dict[str, Any] = {}
+        symbol_map = dyn_import(caller_globals)
+        assert isinstance(symbol_map, _SymbolMap)
+        assert '__getattr__' in caller_globals
+        assert callable(caller_globals['__getattr__'])
+
+    def test_import_module_ref_handling(self):
+        """Test that _Ref for 'import module' is handled correctly."""
+        caller_globals: dict[str, Any] = {}
+        symbol_map = dyn_import(caller_globals)
+
+        # import sys as system
+        symbol_map._def_module('sys', 'system')
+        symbol_map.load('system', caller_globals)
+        value = caller_globals['system']
+        assert value is sys
+
+        # Should store a getter in symbol_map
+        assert 'system' in symbol_map
+        assert callable(symbol_map['system'])
+
+        # Calling __getattr__ should trigger the import
+        result = caller_globals['__getattr__']('system')
+        assert result is sys
+
+        # Should now be in caller_globals
+        assert 'system' in caller_globals
+        assert caller_globals['system'] is sys
+
+    def test_from_import_ref_handling(self):
+        """Test that _def for 'from module import symbol' is handled correctly."""
+        caller_globals: dict[str, Any] = {}
+        symbol_map = dyn_import(caller_globals)
+
+        # Simulate: from sys import version
+        symbol_map._def('sys', 'version', 'version')
+
+        # Should store a getter in symbol_map
+        assert 'version' in symbol_map
+        assert callable(symbol_map['version'])
+
+        # Calling __getattr__ should trigger the import
+        result = caller_globals['__getattr__']('version')
+        assert result == sys.version
+
+        # Should now be in caller_globals
+        assert 'version' in caller_globals
+        assert caller_globals['version'] == sys.version
+
+    def test_direct_assignment_not_in_symbol_map(self):
+        """Test that direct assignments don't go through symbol map."""
+        caller_globals: dict[str, Any] = {}
+        symbol_map = dyn_import(caller_globals)
+
+        # Set a regular value directly
+        caller_globals['foo'] = 42
+
+        # Should be in caller_globals
+        assert caller_globals['foo'] == 42
+
+        # Should NOT be in symbol_map
+        assert 'foo' not in symbol_map
+
+    def test_getattr_chaining(self):
+        """Test that existing __getattr__ is chained."""
+        def existing_getattr(name: str) -> Any:
+            if name == 'custom':
+                return 'custom_value'
+            raise AttributeError(f"no attribute {name}")
+
+        caller_globals: dict[str, Any] = {'__getattr__': existing_getattr}
+        symbol_map = dyn_import(caller_globals)
+        assert isinstance(symbol_map, _SymbolMap)
+
+        # Should chain to existing __getattr__
+        result = caller_globals['__getattr__']('custom')
+        assert result == 'custom_value'
+
+    def test_getattr_raises_on_missing(self):
+        """Test that __getattr__ raises NameError for missing names."""
+        caller_globals: dict[str, Any] = {}
+        dyn_import(caller_globals)
+
+        with pytest.raises(NameError, match="name 'nonexistent' is not defined"):
+            caller_globals['__getattr__']('nonexistent')
+
+
+class TestEndToEnd:
+    """End-to-end tests of the complete system."""
+
+    def test_complete_transformation_and_execution(self):
+        """
+        Test complete transformation and execution of transformed code.
+
+        With the visit_Name transformation, variable references are wrapped
+        in __getattr__ calls, which triggers the deferred import mechanism.
+        """
+        source = """
+from __future__ import _dynamic_import
+
+from sys import version
+import os as operating_system
+
+def get_info():
+    return version, operating_system
+"""
+        # Parse and transform
+        tree = ast.parse(source)
+        transformer = DynamicImportTransformer("test_module")
+        transformed = transformer.visit(tree)
+        ast.fix_missing_locations(transformed)
+
+        # Compile and execute
+        code = compile(transformed, '<test>', 'exec')
+        test_globals: dict[str, Any] = {}
+        exec(code, test_globals)
+
+        # Call the function - this should trigger imports via __getattr__
+        get_info = test_globals['get_info']
+        version_result, os_result = get_info()
+
+        import os
+        assert version_result == sys.version
+        assert os_result is os
+
+        # Now they should be in globals (cached after first access)
+        assert test_globals['version'] == sys.version
+        assert test_globals['operating_system'] is os
+
+
+class TestScopeTracking:
+    """Test that scope tracking correctly handles local variables."""
+
+    def test_lambda_parameters_not_transformed(self):
+        """Test that lambda parameters are not transformed."""
+        source = """
+from __future__ import _dynamic_import
+
+from zabob_houdini.core import znode
+
+# Lambda parameter 'x' should not be transformed
+func = lambda x: znode(x, 1)
+"""
+        code = transform_source(source)
+
+        # Import should be transformed
+        assert "__dynamic__._def('zabob_houdini.core', 'znode', 'znode')" in code
+
+        # 'node' in lambda body should be transformed to load()
+        assert "__dynamic__.load('znode', locals())" in code
+
+        # Lambda parameter 'x' should NOT be transformed - appears as plain 'x'
+        # The lambda should look like: lambda x: __dynamic__.load('node', locals())(x, 1)
+        assert "lambda x:" in code
+        # Check that x is used directly in the call, not wrapped
+        assert "(x, 1)" in code
+
+    def test_comprehension_iteration_var_not_transformed(self):
+        """Test that comprehension iteration variables are not transformed."""
+        source = """
+from __future__ import _dynamic_import
+
+from zabob_houdini.core import node
+
+# 'node' in the comprehension should not be transformed
+nodes = [node for node in range(5)]
+"""
+        tree = ast.parse(source)
+        transformer = DynamicImportTransformer("test_module")
+        transformed = transformer.visit(tree)
+        ast.fix_missing_locations(transformed)
+
+        # Find the assignment with list comprehension
+        assign_stmt = None
+        for stmt in transformed.body:
+            if isinstance(stmt, ast.Assign) and any(
+                target.id == 'nodes' for target in stmt.targets if isinstance(target, ast.Name)
+            ):
+                assign_stmt = stmt
+                break
+
+        assert assign_stmt is not None
+        comp_node = assign_stmt.value
+        assert isinstance(comp_node, ast.ListComp)
+
+        # The element expression should be a plain Name('node'), not __getattr__('node')
+        elt = comp_node.elt
+        assert isinstance(elt, ast.Name), "Iteration var 'node' should be plain Name"
+        assert elt.id == 'node'
+
+    def test_function_parameter_not_transformed(self):
+        """Test that function parameters are not transformed."""
+        source = """
+from __future__ import _dynamic_import
+
+from zabob_houdini.core import znode
+
+def apply(x, y):
+    # 'znode' should be transformed, 'x' and 'y' should not
+    return znode(x, y)
+"""
+        code = transform_source(source)
+
+        # Import should be transformed
+        assert "__dynamic__._def('zabob_houdini.core', 'znode', 'znode')" in code
+
+        # 'node' should be transformed to load(), but 'x' and 'y' should not
+        assert "return __dynamic__.load('znode', locals())(x, y)" in code
+
+        # Function parameters should appear as plain names
+        assert "def apply(x, y):" in code
+
+    def test_nested_comprehension_scopes(self):
+        """Test that nested comprehensions track separate scopes."""
+        source = """
+from __future__ import _dynamic_import
+
+from zabob_houdini.core import node
+
+# Outer 'x' and inner 'x' are different variables
+result = [[znode(x, y) for x in range(3)] for y in range(2)]
+"""
+        tree = ast.parse(source)
+        transformer = DynamicImportTransformer("test_module")
+        transformed = transformer.visit(tree)
+        ast.fix_missing_locations(transformed)
+
+        # Just verify it transforms without error
+        # Both 'x' and 'y' should not be transformed (they're iteration vars)
+        # 'node' should be transformed
+        code = compile(transformed, '<test>', 'exec')
+        assert code is not None

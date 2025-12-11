@@ -2,14 +2,16 @@
 Code for locating and downloading houdini installers.
 '''
 
-from collections.abc import Mapping, Collection
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
+from collections.abc import Mapping, Collection, Callable
 from functools import reduce, wraps
 import os
 from platform import uname
 import json
 from pathlib import Path
 import re
-from typing import Any, Callable, Final, Literal, TypeAlias, TypedDict, TypeVar, cast, ParamSpec
+from typing import Any, Final, Literal, TypeAlias, TypedDict, TypeVar, cast, ParamSpec
 import sys
 import time
 from datetime import datetime
@@ -44,42 +46,46 @@ HOUDINI_INSTALLERS_DIR: Final[Path] = HOUDINI_DEFAULT_CACHE_DIR / "installers"
 
 
 Architecture: TypeAlias = Literal['arm64', 'x86_64']
-PlatformUI: TypeAlias= Literal['linux', 'windows', 'macos']
-PlatformSFX: TypeAlias= Literal['linux', 'win', 'macosx', 'macosx_arm64']
-Platform: TypeAlias= Literal['linux', 'Windows', 'Darwin']
-BuildType: TypeAlias = Literal['gcc9.3', 'gcc11.2', 'gcc12.2']|str
+PlatformUI: TypeAlias = Literal['linux', 'windows', 'macos']
+PlatformSFX: TypeAlias = Literal['linux', 'win', 'macosx', 'macosx_arm64']
+Platform: TypeAlias = Literal['linux', 'Windows', 'Darwin']
+BuildType: TypeAlias = Literal['gcc9.3', 'gcc11.2', 'gcc12.2'] | str
 
 _OS: Final[Platform] = cast(Platform, uname().system)
 _ARCH: Final[Architecture] = cast(Architecture, uname().machine)
 
 
-def platform_ui(name: PlatformSFX|Platform|PlatformUI=_OS) -> PlatformUI:
+def platform_ui(name: PlatformSFX | Platform | PlatformUI = _OS) -> PlatformUI:
     """Convert platform from SFX or OS to UI format."""
     lower = name.lower()
     match lower:
-        case 'darwin'|'macosx'|'macosx_arm64'|'macos':
+        case 'darwin' | 'macosx' | 'macosx_arm64' | 'macos':
             return 'macos'
-        case 'win'|'windows':
+        case 'win' | 'windows':
             return 'windows'
         case 'linux':
             return 'linux'
         case _:
             raise ValueError(f"Unknown platform: {name}")
 
-def platform_sfx(name: PlatformUI|Platform=_OS, arch: Architecture=_ARCH) -> PlatformSFX:
+
+def platform_sfx(name: PlatformUI | Platform = _OS,
+                 arch: Architecture = _ARCH,
+                 ) -> PlatformSFX:
     """Convert platform from UI or OS to SFX format."""
     lower = name.lower()
     match lower:
-        case 'macos'|'darwin'|'macosx'|'macosx_arm64':
+        case 'macos' | 'darwin' | 'macosx' | 'macosx_arm64':
             if arch == 'arm64':
                 return 'macosx_arm64'
             return 'macosx'
         case 'linux':
             return 'linux'
-        case 'windows'|'win':
+        case 'windows' | 'win':
             return 'win'
         case _:
             raise ValueError(f"Unknown platform: {name}")
+
 
 class VersionedSFX(TypedDict):
     """Side Effects version information."""
@@ -92,9 +98,11 @@ class VersionExtended(TypedDict):
     architecture: Architecture
     build_type: BuildType
 
+
 class Versioned(TypedDict):
     version: Version
     full_version: Version
+
 
 class VersionedJSON(TypedDict):
     version: str
@@ -108,13 +116,14 @@ class BaseSFXBuildInfo(TypedDict):
     release: str
     display_name: str
     package_exists: bool
-    hash: str #Sha256
+    hash: str  # Sha256
     download_url: str
     hash_pdb: bool
     pdb_url: str
     bad_quality: bool
     size: int
     is_launcher: bool
+
 
 class SFXBuildInfo(BaseSFXBuildInfo, VersionedSFX):
     """Build information for SideFX Houdini."""
@@ -124,6 +133,7 @@ class SFXBuildInfo(BaseSFXBuildInfo, VersionedSFX):
 class BuildInfo(BaseSFXBuildInfo, Versioned, VersionExtended):
     """Build information for Houdini."""
     os: PlatformUI
+
 
 class JSONBuildInfo(BaseSFXBuildInfo, VersionedJSON, VersionExtended):
     """Build information for Houdini in JSON format."""
@@ -137,15 +147,18 @@ class VersionJsonEncoder(json.JSONEncoder):
             return str(o)
         return super().default(o)
 
+
 _RE_BUILD_TYPE = re.compile(r"_(arm64|x86_64)(?:_(.+))?\.(?:dmg|tar.gz|exe|zip)$")
 _RE_BUILD_TYPE_WIN = re.compile(r"-(win64)(?:-(.+))?\.exe$")
 
-def enliven_build(info: SFXBuildInfo|JSONBuildInfo) -> BuildInfo:
+
+def enliven_build(info: SFXBuildInfo | JSONBuildInfo) -> BuildInfo:
     """Convert a SFXBuildInfo or JSONBuildInfo to a BuildInfo."""
     # Convert the build to a BuildInfo
-    version = Version.parse(info["version"], optional_minor_and_patch=True)
+    version = Version.parse(info["version"],
+                            optional_minor_and_patch=True)
     build = int(info["build"])
-    full_version=Version(version.major, version.minor, build)
+    full_version = Version(version.major, version.minor, build)
     display_name = info["display_name"]
     platform = platform_ui(info["os"])
     architecture = info.get("architecture", None)
@@ -163,29 +176,32 @@ def enliven_build(info: SFXBuildInfo|JSONBuildInfo) -> BuildInfo:
             build_type = build_type or ''
 
     return BuildInfo(
-                full_version=full_version,
-                version=version,
-                build=build,
-                architecture=cast(Architecture, architecture),
-                build_type=cast(BuildType, build_type),
-                os=platform,
-                **{
-                    key: value
-                    for key, value in info.items()
-                    if key not in ('version', 'full_version', 'build', 'architecture', 'build_type', 'os')
-                }) # type: ignore
+        full_version=full_version,
+        version=version,
+        build=build,
+        architecture=cast(Architecture, architecture),
+        build_type=cast(BuildType, build_type),
+        os=platform,
+        **{
+            key: value
+            for key, value in info.items()
+            if key not in ('version', 'full_version', 'build', 'architecture', 'build_type', 'os')
+        })  # type: ignore
 
 
 def is_build_good(build: SFXBuildInfo) -> bool:
     """Check if the build is good based on its quality."""
-    return bool(
-        # Make sure the package exists
-        build.get("package_exists") and
+    return (
+        bool(
+            # Make sure the package exists
+            build.get("package_exists")
+        )
         # Not marked as bad quality
-        not build.get("bad_quality")
+        and not build.get("bad_quality")
     )
 
-def read_cache_file(cache_file: Path) -> Mapping[Version, Collection[BuildInfo]]|None: # Check cache age
+
+def read_cache_file(cache_file: Path) -> Mapping[Version, Collection[BuildInfo]] | None:  # Check cache age
     if cache_file.exists():
         cache_age_hours = 0
         try:
@@ -228,15 +244,15 @@ def _group_by_major_minor(
         a[release].append(i)
         return a
     return reduce(by_major_minor,
-                builds,
-                defaultdict(list))
+                  builds,
+                  defaultdict(list))
 
 
 def get_version_ranges(
-    min_version: Version|None=HOUDINI_DEFAULT_MIN_VERSION,
-    cache_file: Path=HOUDINI_VERSIONS_CACHE,
-    session: requests.Session|None=None,
-    ) -> Mapping[Version, Collection[BuildInfo]]:
+            min_version: Version | None = HOUDINI_DEFAULT_MIN_VERSION,  # noqa: B008, E126
+            cache_file: Path = HOUDINI_VERSIONS_CACHE,
+            session: requests.Session | None = None,
+        ) -> Mapping[Version, Collection[BuildInfo]]:  # noqa: E123
     """Get oldest and newest builds for each major.minor release using authenticated API."""
 
     def filter_builds(builds: Collection[BuildInfo]) -> Collection[BuildInfo]:
@@ -248,13 +264,13 @@ def get_version_ranges(
 
     def filter_releases(releases: Mapping[Version, Collection[BuildInfo]]) -> Mapping[Version, Collection[BuildInfo]]:
         return {
-                release: filtered_builds
-                for release, filtered_builds in (
-                                (release, filter_builds(builds))
-                                for release, builds in releases.items()
-                            )
-                if filtered_builds
-            }
+            release: filtered_builds
+            for release, filtered_builds in (
+                (release, filter_builds(builds))
+                for release, builds in releases.items()
+            )
+            if filtered_builds
+        }
 
     # Check if we should use cache first (for GitHub Actions)
     if os.environ.get("CACHE_HIT", "true") == "true":
@@ -307,7 +323,7 @@ def get_version_ranges(
                 with open(cache_file, 'w') as f:
                     # Include metadata about when cache was created
                     cache_data = {
-                        "versions": {str(k):v for k,v in version_groups.items()},
+                        "versions": {str(k): v for k, v in version_groups.items()},
                         "cache_date": datetime.now().isoformat(),
                         "min_version": min_version
                     }
@@ -324,7 +340,7 @@ def get_version_ranges(
         raise RuntimeError(f"Error fetching versions: {e}") from e
 
 
-def test_versions(min_version: Version|None=None,):
+def test_versions(min_version: Version | None = None,):
     env_versions = os.environ.get("HOUDINI_TEST_VERSIONS")
     if env_versions:
         versions = env_versions.split(",")
@@ -337,6 +353,7 @@ def test_versions(min_version: Version|None=None,):
             )
             if min_version is None or v >= min_version
         ]
+
     def build_version(build: BuildInfo) -> Version:
         return build["full_version"]
 
@@ -344,8 +361,8 @@ def test_versions(min_version: Version|None=None,):
     # For each major.minor, select oldest and newest
     test_ranges = {
         v: (
-            min(builds,key=build_version),
-            max(builds,key=build_version)
+            min(builds, key=build_version),
+            max(builds, key=build_version)
         )
         for v, builds in version_groups.items()
     }
@@ -354,11 +371,11 @@ def test_versions(min_version: Version|None=None,):
 
 def find_build(
     version: Version,
-    platform: PlatformUI=platform_ui(),
-    arch: Architecture=_ARCH,
-    build_type: BuildType="",
-    session: requests.Session|None=None,
-) -> BuildInfo|None:
+    platform: PlatformUI = platform_ui(),
+    arch: Architecture = _ARCH,
+    build_type: BuildType = "",
+    session: requests.Session | None = None,
+) -> BuildInfo | None:
     """
     Find a specific Houdini build.
 
@@ -374,16 +391,16 @@ def find_build(
 
     release = Version(version.major, version.minor)
     builds_map = get_version_ranges(session=session)
-    builds= builds_map.get(release, [])
+    builds = builds_map.get(release, [])
     if not builds:
         return None
     for build in builds:
         # Check if the build matches the requested platform, arch, and build type
         if (
-            build["os"] == platform and
-            not build_type or build["build_type"] == build_type and
-            build["architecture"] == arch and
-            build["full_version"] == version
+            ()
+            and (not build_type or build["build_type"] == build_type)
+            and (build["architecture"] == arch)
+            and (build["full_version"] == version)
         ):
             return build
 
@@ -393,10 +410,10 @@ def get_houdini_builds():
 
 
 def download_houdini_installer(version: Version,
-                               platform: PlatformUI=platform_ui(),
-                               arch: Architecture=_ARCH,
-                               build_type: BuildType="",
-                               session: requests.Session|None=None,
+                               platform: PlatformUI = platform_ui(),
+                               arch: Architecture = _ARCH,
+                               build_type: BuildType = "",
+                               session: requests.Session | None = None,
                                ) -> Path:
     """
     Download a specific Houdini installer.
@@ -424,7 +441,7 @@ def download_houdini_installer(version: Version,
                        session=session)
     if not build:
         click.echo(f"Build not found for version {version} on {platform} ({arch}, {build_type})",
-                    file=sys.stderr)
+                   file=sys.stderr)
         sys.exit(2)
 
     # Create download URL
@@ -457,7 +474,9 @@ def download_houdini_installer(version: Version,
                 # Show progress
                 if total_size > 0:
                     done = int(50 * downloaded / total_size)
-                    sys.stderr.write(f"\r[{'=' * done}{' ' * (50-done)}] {downloaded/1024/1024:.1f}/{total_size/1024/1024:.1f} MB")
+                    progress = f"\r[{'=' * done}{' ' * (50 - done)}] "
+                    sizes = f"{downloaded / 1024 / 1024:.1f}/{total_size / 1024 / 1024:.1f} MB"
+                    sys.stderr.write(progress + sizes)
                     sys.stderr.flush()
 
         if total_size > 0:
@@ -465,6 +484,7 @@ def download_houdini_installer(version: Version,
 
     print(f"Downloaded to: {output_file}", file=sys.stderr)
     return output_file
+
 
 def handle_credential_errors(func: Callable[Params, T]) -> Callable[Params, T]:
     """Decorator to handle ValueError and AuthenticationError with clean error messages."""
@@ -509,7 +529,11 @@ def login_session(session: requests.Session) -> requests.Session:
 
     # Common browser-like headers
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
         "Referer": "https://www.sidefx.com/login/",
@@ -549,11 +573,13 @@ def login_session(session: requests.Session) -> requests.Session:
     time.sleep(1)  # Add a small delay after login
     return session
 
+
 # Create a click group as the main entry point
 @click.group()
 def cli():
     """SideFX download and version management tools."""
     pass
+
 
 # First subcommand - get versions
 @cli.command('versions')
@@ -562,11 +588,11 @@ def cli():
                                 HOUDINI_DEFAULT_CACHE_DIR),
               help='Directory to cache Houdini versions.')
 @click.option('--min-version',
-            metavar='VERSION',
-            type=SemVerParamType(min_parts=2),
-            default=os.getenv("HOUDINI_MIN_VERSION",
-                            str(HOUDINI_DEFAULT_MIN_VERSION)),
-            help='Minimum Houdini version to consider.')
+              metavar='VERSION',
+              type=SemVerParamType(min_parts=2),
+              default=os.getenv("HOUDINI_MIN_VERSION",
+                                str(HOUDINI_DEFAULT_MIN_VERSION)),
+              help='Minimum Houdini version to consider.')
 @click.option('--platforms', multiple=True,
               type=click.Choice(['linux', 'windows', 'macos'], case_sensitive=False),
               default=os.getenv("HOUDINI_PLATFORMS", platform_ui()).split(','),
@@ -586,13 +612,13 @@ def cli():
               help="Includes development versions.")
 @handle_credential_errors
 def versions_command(
-        cache_dir: Path|str=HOUDINI_VERSIONS_CACHE,
-        min_version: Version|None=None,
-        platforms: Collection[PlatformUI]=(platform_ui(),),
-        products: Collection[str]=('houdini',),
-        architectures: Collection[Architecture]=(_ARCH,),
-        dev: bool=False,
-    ):
+        cache_dir: Path | str = HOUDINI_VERSIONS_CACHE,
+        min_version: Version | None = None,
+        platforms: Collection[PlatformUI] = (platform_ui(),),
+        products: Collection[str] = ('houdini',),
+        architectures: Collection[Architecture] = (_ARCH,),
+        dev: bool = False,
+        ):  # noqa: E123
     """Get Houdini versions for testing."""
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(exist_ok=True, parents=True)
@@ -616,31 +642,32 @@ def versions_command(
                 continue
             print(f"  - {build['full_version']} [{product}] ({os_}/{arch}/{build['build_type']})")
 
+
 @cli.command('download')
 @click.argument('version',
-              type=SemVerParamType(),
-              default=os.getenv("HOUDINI_VERSION",
-                                str(HOUDINI_FALLBACK_VERSION)))
+                type=SemVerParamType(),
+                default=os.getenv("HOUDINI_VERSION",
+                                  str(HOUDINI_FALLBACK_VERSION)))
 @click.option('--arch',
-            type=click.Choice(['arm64', 'x86_64'], case_sensitive=False),
-            default=os.getenv("HOUDINI_ARCH", _ARCH),
-            help='CPU architecture (arm64 or x86_64).')
+              type=click.Choice(['arm64', 'x86_64'], case_sensitive=False),
+              default=os.getenv("HOUDINI_ARCH", _ARCH),
+              help='CPU architecture (arm64 or x86_64).')
 @click.option('--build-type',
-            default=os.getenv("HOUDINI_BUILD_TYPE", ""),
-            help='Build type (gcc9.3, gcc11.2, etc).')
+              default=os.getenv("HOUDINI_BUILD_TYPE", ""),
+              help='Build type (gcc9.3, gcc11.2, etc).')
 @click.option('--output-path',
-            type=click.Path(exists=False, dir_okay=False),
-            help='Path to save the downloaded file (for Docker integration).')
+              type=click.Path(exists=False, dir_okay=False),
+              help='Path to save the downloaded file (for Docker integration).')
 @click.option('--credentials',
-            type=click.Path(exists=True, dir_okay=False),
-            help='Path to .env file with SIDEFX_USERNAME and SIDEFX_PASSWORD')
+              type=click.Path(exists=True, dir_okay=False),
+              help='Path to .env file with SIDEFX_USERNAME and SIDEFX_PASSWORD')
 @handle_credential_errors
-def download_command(version: Version=HOUDINI_FALLBACK_VERSION,
-                   arch: Architecture="arm64",
-                   build_type: BuildType="",
-                   output_path: Path|None=None,
-                   credentials: Path|None=None,
-                ):
+def download_command(version: Version = HOUDINI_FALLBACK_VERSION,
+                     arch: Architecture = "arm64",
+                     build_type: BuildType = "",
+                     output_path: Path | None = None,
+                     credentials: Path | None = None,
+                     ):
     """Download a Houdini installer."""
     # Load credentials file if provided
     if credentials:
@@ -649,7 +676,6 @@ def download_command(version: Version=HOUDINI_FALLBACK_VERSION,
     session = requests.Session()
     login_session(session)
 
-        # Rest of your download code...
     installer_path = download_houdini_installer(
         version=version,
         arch=arch,
@@ -684,18 +710,23 @@ def download_command(version: Version=HOUDINI_FALLBACK_VERSION,
               help='Build type (gcc9.3, gcc11.2, etc).')
 @handle_credential_errors
 def show_command(version: Version,
-                 platform: PlatformUI=platform_ui(),
-                 arch: Architecture=_ARCH,
-                 build_type: BuildType=""):
+                 platform: PlatformUI = platform_ui(),
+                 arch: Architecture = _ARCH,
+                 build_type: BuildType = ""):
     """Show Houdini build information."""
-    build = find_build(version, platform=platform, arch=arch, build_type=build_type)
+    build = find_build(version,
+                       platform=platform,
+                       arch=arch,
+                       build_type=build_type)
     if build:
         name = build['display_name']
         cache_dir = Path(os.getenv("HOUDINI_DOWNLOAD_DIR", HOUDINI_DEFAULT_CACHE_DIR / "installers"))
         cache_dir.mkdir(exist_ok=True, parents=True)
         cache_file = cache_dir / name
+
         def info(label, value):
             print(f' . {label:<15} {value}')
+
         info("Build found", build['full_version'])
         info("Product", build['product'])
         info("Platform", build['os'])
@@ -707,12 +738,13 @@ def show_command(version: Version,
         info("Size", f"{build['size']:,d} bytes")
         info("HASH", build['hash'])
         if cache_file.exists():
-            info("Status",  "Downloaded")
+            info("Status", "Downloaded")
         else:
             info("Status", "Available")
     else:
         print(f"No build found for version {version} on {platform} ({arch}, {build_type})", file=sys.stderr)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     cli()  # Use the cli group instead of main function

@@ -1,15 +1,18 @@
 """Enhanced copy test functions."""
 
-from zabob_houdini.core import node, chain
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
+from zabob_houdini.core import znode, zchain
 from zabob_houdini.utils import JsonArray, JsonObject
 
-def _test_enhanced_copy_integration() -> JsonObject:
+
+def h_test_enhanced_copy_integration() -> JsonObject:
     """Collect data about enhanced copy functionality for test validation."""
     # Create a geometry container
-    geo = node("/obj", "geo", name="test_geo")
+    geo = znode("/obj", "geo", name="test_geo")
 
     # Create a base node
-    box = node(geo, "box", name="original_box", sizex=2, sizey=3, _display=False)
+    box = znode(geo, "box", name="original_box", sizex=2, sizey=3, _display=False)
 
     # Test 1: Copy with new attributes
     box_with_attrs = box.copy(sizex=5, sizey=3)  # sizex should override
@@ -21,7 +24,7 @@ def _test_enhanced_copy_integration() -> JsonObject:
     display_box = box.copy(_display=True, _render=True)
 
     # Test 4: Copy with all parameters
-    sphere = node(geo, "sphere", name="input_sphere")
+    sphere = znode(geo, "sphere", name="input_sphere")
     complex_copy = box.copy(
         _inputs=[sphere],
         name="complex_box",
@@ -73,13 +76,14 @@ def _test_enhanced_copy_integration() -> JsonObject:
         }
     }
 
-def _test_copy_signature_includes_args() -> JsonObject:
+
+def h_test_copy_signature_includes_args() -> JsonObject:
     """Collect copy method signature information for validation."""
     import inspect
 
     # Create a simple node to test the signature
-    geo = node("/obj", "geo")
-    box = node(geo, "box")
+    geo = znode("/obj", "geo")
+    box = znode(geo, "box")
 
     # Check the copy method signature
     sig = inspect.signature(box.copy)
@@ -89,8 +93,8 @@ def _test_copy_signature_includes_args() -> JsonObject:
     param_names: JsonArray = list(params.keys())
     keyword_only: JsonArray = [p.name for p in params.values() if p.kind == p.KEYWORD_ONLY]
 
-    # Also test Chain signature
-    chain_obj = chain(box)
+    # Also test ZChain signature
+    chain_obj = zchain(box)
     chain_sig = inspect.signature(chain_obj.copy)
     chain_params = chain_sig.parameters
     chain_param_names: JsonArray = list(chain_params.keys())
@@ -107,4 +111,3 @@ def _test_copy_signature_includes_args() -> JsonObject:
         "chain_all_parameters": chain_param_names,
         "chain_uses_args": chain_uses_args,
     }
-
