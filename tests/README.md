@@ -106,7 +106,7 @@ def test_my_feature():
     geo = hou.node("/obj").createNode("geo", "test_geo")
 
     # Use zabob-houdini API
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         ctx.node("box", "my_box")
         ctx.node("sphere", "my_sphere")
 
@@ -214,7 +214,7 @@ The `hython_test` fixture captures output from the hython process. If a test fai
 
 **"maximum recursion depth exceeded"**
 - Circular reference not being handled correctly
-- Check ForwardReference resolution logic
+- Check ZNodeForwardRef resolution logic
 
 ## Related Documentation
 

@@ -2,11 +2,19 @@
   "recommendations": [
     "ms-python.python",
     "ms-python.vscode-pylance",
+    "ms-python.debugpy",
     "streetsidesoftware.code-spell-checker",
     "ms-python.black-formatter",
     "ms-python.flake8",
     "charliermarsh.ruff",
-    "rioj7.command-variable"
+    "davidanson.vscode-markdownlint",
+    "donjayamanne.python-environment-manager",
+    "eamodio.gitlens",
+    "github.copilot",
+    "github.copilot-chat",
+    "rioj7.command-variable",
+    "github.vscode-github-actions",
+    "bierner.github-markdown-preview"
   ],
   "unwantedRecommendations": []
 }

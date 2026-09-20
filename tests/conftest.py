@@ -4,8 +4,10 @@ Safe pytest fixtures for Houdini testing.
 This version avoids importing anything that could trigger hou imports.
 """
 
+from __future__ import annotations
+
 from collections.abc import Generator
-from typing import Protocol
+from typing import Protocol, TypeAlias, NotRequired, TypedDict
 from threading import RLock
 import inspect
 import os
@@ -16,7 +18,44 @@ import subprocess
 import json
 import shutil
 
-from zabob_houdini.utils import JsonValue, HoudiniResult, JsonObject
+# ============================================================================
+# Type definitions copied from zabob_houdini.utils to avoid importing
+# zabob_houdini package into pytest environment (which would trigger hou imports)
+# ============================================================================
+# WARNING: Keep these definitions synchronized with src/zabob_houdini/utils.py
+# WARNING: Any changes here must be reflected in utils.py and vice versa
+# ============================================================================
+
+JsonAtomicValue: TypeAlias = str | int | float | bool | None
+'''An atomic JSON value, such as a string, number, boolean, or null.'''
+JsonArray: TypeAlias = 'list[JsonValue]'
+'''A JSON array, which is a list of JSON values.'''
+JsonObject: TypeAlias = 'dict[str, JsonValue]'
+'''A JSON object, which is a dictionary with string keys and JSON values.'''
+JsonValue: TypeAlias = 'JsonAtomicValue | JsonArray | JsonObject'
+'''A JSON value, which can be an atomic value, array, or object.'''
+
+
+class Location(TypedDict):
+    """Location information for errors."""
+    file: str
+    name: str
+    line: int
+
+
+class HoudiniResult(TypedDict):
+    """Result structure from Houdini function calls."""
+    success: bool
+    result: NotRequired[JsonObject]
+    test_location: Location | None
+    error: NotRequired[str]
+    traceback: NotRequired[str]
+    error_location: NotRequired[Location | None]
+    step_location: NotRequired[Location | None]
+
+# ============================================================================
+# End of copied type definitions
+# ============================================================================
 
 
 class HythonSessionFn(Protocol):
@@ -25,8 +64,19 @@ class HythonSessionFn(Protocol):
                  module: str = "") -> JsonObject: ...
 
 
+def fmt_location(name: str, loc: Location | None) -> str:
+    if loc is None:
+        return ""
+    file = str(Path(loc.get("file", "")).relative_to(Path.cwd()))
+
+    line = loc.get("line", 0)
+    fn = loc.get("name", "<unknown>")
+
+    return f'{name} "{file}:{line}", in {fn}'
+
+
 @pytest.fixture
-def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
+def hython_test(hython_session: HythonSession, request) -> HythonSessionFn:
     """
     Fixture that provides a function to run test functions in hython.
 
@@ -47,9 +97,9 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
                     while caller_frame:
                         caller_file = Path(caller_frame.f_code.co_filename)
                         if caller_file.name.startswith('test_') and caller_file.suffix == '.py':
-                            # Convert test_foo.py to testing._foo
+                            # Convert test_foo.py to testing.h_foo
                             pytest_module = caller_file.stem  # e.g., "test_houdini_integration"
-                            hython_module = f"testing._{pytest_module[5:]}"  # "testing._houdini_integration"
+                            hython_module = f"testing.h_{pytest_module[5:]}"  # "testing.h_houdini_integration"
                             module = hython_module
                             break
                         caller_frame = caller_frame.f_back
@@ -57,13 +107,13 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
                 # Fallback - this shouldn't happen with proper test organization
                 if not module:
                     raise ValueError(f"Could not determine module for test function {test_func_name}. "
-                                   "Make sure the test is called from a test_*.py file.")
+                                     "Make sure the test is called from a test_*.py file.")
             finally:
                 del frame
 
         try:
             result = hython_session.call_function(test_func_name, *args,
-                                            module=module)
+                                                  module=module)
         except RuntimeError as e:
             if "Could not start hython" in str(e):
                 pytest.skip("hython not found - Houdini not installed or not in PATH")
@@ -78,14 +128,30 @@ def hython_test(hython_session: 'HythonSession') -> HythonSessionFn:
             error_msg = result.get("error", "Unknown error")
             separator = "------Hython Error Traceback------"
             traceback_info = result.get("traceback", "")
-            msg = "\n".join((
-                heading, error_msg, "",
-                separator, traceback_info))
+            loc_sep = "------ Location (Test, Step, Error) ------"
+            test_loc = fmt_location("Tst>", result.get('test_location'))
+            step_loc = fmt_location("Stp>", result.get('step_location'))
+            error_loc = fmt_location("Err>", result.get('error_location'))
+            error_hdr = error_msg.split('\n', 1)[0]
+            error_hdr = f'Error: {error_hdr}'
+            msg = "\n".join(
+                p for p in (
+                    heading, error_msg, "",
+                    separator, traceback_info,
+                    error_hdr,
+                    loc_sep, test_loc, step_loc, error_loc
+                )
+                if p.strip()
+            )
             pytest.fail(msg)
 
         # At this point we know success=True, so result field must be present
         if "result" not in result:
             pytest.fail("Houdini test did not return a result field")
+        print(fmt_location('Tst>', result['test_location']), file=sys.stderr)
+        step_loc = result.get('step_location')
+        if step_loc:
+            print(fmt_location('Stp>', step_loc), file=sys.stderr)
         return result['result']
 
     return run_houdini_test
@@ -125,26 +191,34 @@ class HythonSession:
                     else:
                         env["PYTHONPATH"] = src_path
 
+                    # Check if running under coverage - wrap hython with coverage if so
+                    if os.getenv('COVERAGE_RUN'):
+                        cmd = ['coverage', 'run', '--parallel-mode', '--source=zabob_houdini,testing',
+                               hython_path, "-m", "zabob_houdini", "_batch_exec"]
+                    else:
+                        cmd = [hython_path, "-m", "zabob_houdini", "_batch_exec"]
+
                     self.process = subprocess.Popen(
-                        [hython_path, "-m", "zabob_houdini", "_batch_exec"],
+                        cmd,
                         stdin=subprocess.PIPE,
                         stdout=subprocess.PIPE,
                         # Pass stderr through for transparency in case of errors
                         stderr=None,
                         text=True,
                         bufsize=1,  # Line buffered
+                        cwd=str(project_root),  # Run from project root for coverage data files
                         env=env
                     )
-                    if (self.process.poll() is None
-                        and self.process.stdout
-                        and self.process.stdin
-                        and not self.process.stdout.closed
-                        and not self.process.stdin.closed
-                        ):
-                            self._started = True
-                            return True
+                    if (
+                            self.process.poll() is None
+                            and self.process.stdout
+                            and self.process.stdin
+                            and not self.process.stdout.closed
+                            and not self.process.stdin.closed):
+                        self._started = True
+                        return True
                 except Exception:
-                    pass # Ignore exceptions and retry
+                    pass  # Ignore exceptions and retry
             return False
 
     def call_function(self, func_name: str, *args, module: str) -> HoudiniResult:

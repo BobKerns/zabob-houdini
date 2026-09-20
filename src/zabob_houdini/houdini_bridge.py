@@ -33,6 +33,8 @@ This approach provides:
 4. **JSON Compatibility**: All data is JSON-serializable for subprocess calls
 """
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 import functools
@@ -42,23 +44,30 @@ import subprocess
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, ParamSpec, cast
+from typing import Any, ParamSpec
 
 import click
 
 from zabob_houdini.utils import (
-    JsonValue, HoudiniResult, error_result, _is_houdini_result
+    JsonValue, JsonObject,
+    HoudiniResult, _is_houdini_result, success_result, error_result,
+    encapsulate_result,
 )
 
 
 P = ParamSpec('P')
 
+
 def minimal_env() -> dict[str, str]:
     """Return a minimal environment for subprocess calls, with only necessary variables."""
+    env_vars = ('PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP',
+                'COVERAGE_FILE', 'COVERAGE_RCFILE', 'COVERAGE_PROCESS_START')
     return {
-        key: os.getenv(key, "") # Be sure they're at least empty strings.
-        for key in ('PATH', 'TERM', 'HOME', 'USER', 'TMPDIR', 'TEMP', 'TMP')
+        key: value
+        for key in env_vars
+        if (value := os.getenv(key)) is not None
     }
+
 
 def _is_in_houdini() -> bool:
     """Check if we're currently running in Houdini Python environment."""
@@ -73,7 +82,6 @@ def _find_hython() -> Path:
     if loc is not None:
         return Path(loc)
     raise RuntimeError("hython executable not found. Please ensure Houdini is installed and hython is on the path")
-
 
 
 def call_houdini_function(func_name: str, *args: Any, module: str = "houdini_functions") -> HoudiniResult:
@@ -110,16 +118,22 @@ def _normalize_result(raw_result: Any) -> HoudiniResult:
 
 def _run_function_via_subprocess(func_name: str, args: tuple,
                                  module: str = "houdini_functions",
-                                 runner: str="_exec") -> Any:
+                                 runner: str = "_exec") -> Any:
     """Execute function using 'hython -m zabob_houdini _exec <module> <function_name> <args...>'."""
     hython_path = _find_hython()
 
     # Convert arguments to strings
     str_args = [str(arg) for arg in args]
 
-    cmd = [str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
+    # Check if running under coverage - wrap hython with coverage if so
+    if os.getenv('COVERAGE_RUN'):
+        cmd = ['coverage', 'run', '--parallel-mode', '--source=zabob_houdini,testing',
+               str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
+    else:
+        cmd = [str(hython_path), "-m", "zabob_houdini", runner, module, func_name, *str_args]
+
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, env=minimal_env())
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
         cmdline_args = ' '.join(str_args)
@@ -136,9 +150,15 @@ def _run_command_via_subprocess(func_name: str, args: tuple) -> Any:
     # Convert arguments to strings
     str_args = [str(arg) for arg in args]
 
-    cmd = [str(hython_path), "-m", "zabob_houdini", *str_args]
+    # Check if running under coverage - wrap hython with coverage if so
+    if os.getenv('COVERAGE_RUN'):
+        cmd = ['coverage', 'run', '--parallel-mode', '--source=zabob_houdini,testing',
+               str(hython_path), "-m", "zabob_houdini", *str_args]
+    else:
+        cmd = [str(hython_path), "-m", "zabob_houdini", *str_args]
+
     try:
-        subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL, env=minimal_env())
+        subprocess.run(cmd, check=True, stderr=subprocess.DEVNULL)
         return
     except subprocess.CalledProcessError as e:
         # Return code 1 might be due to SIGPIPE on some systems
@@ -183,7 +203,10 @@ def houdini_command(fn: Callable[P, None]) -> Callable[P, None]:
 
 
 @contextmanager
-def invoke_houdini_function(module_name: str, function_name: str, args: Sequence[JsonValue]) -> Generator[HoudiniResult, None, None]:
+def invoke_houdini_function(module_name: str,
+                            function_name: str,
+                            args: Sequence[JsonValue],
+                            ) -> Generator[HoudiniResult, None, None]:
     """
     Helper function to invoke a Houdini function and return the result as a dictionary.
 
@@ -218,65 +241,53 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
         - The `TEST_HIP_DIR` debugging feature is documented in the finally block.
         - All data is JSON-serializable for subprocess calls.
     """
+    func: Callable | None = None
     try:
         # Import the specified module and call the requested function
         # Handle testing modules that are not under zabob_houdini package
-        if module_name.startswith("testing."):
-            houdini_module = __import__(module_name, fromlist=[module_name.split('.')[-1]])
-        else:
-            houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
+        try:
+            if module_name.startswith("testing."):
+                houdini_module = __import__(module_name, fromlist=[module_name.split('.')[-1]])
+            else:
+                houdini_module = __import__(f"zabob_houdini.{module_name}", fromlist=[module_name])
+        except Exception as e:
+            # Catch all import errors including those from dynamic imports
+            yield error_result(f"Failed to import module '{module_name}': {e}",
+                               _error=e,
+                               _func=None)
+            return
+
         func = getattr(houdini_module, function_name)
+        if not callable(func):
+            raise AttributeError(f"'{function_name}' is not callable")
+
+        def success(result: JsonObject, _func: Callable) -> HoudiniResult:
+            return success_result(result, _func=_func)
 
         # Call function with arguments and capture result
         result = func(*args)
-        match result:
-            case str():
-                yield {
-                    'success': True,
-                    'result': {
-                        'message': result
-                    }
-                }
-            case int()|float()|bool()|list():
-                yield {
-                    'success': True,
-                    'result': {
-                        'value': result
-                    }
-                }
-            case tuple():
-                yield {
-                    'success': True,
-                    'result': {
-                        'value': list(result)
-                    }
-                }
-            case Path():
-                yield {
-                    'success': True,
-                    'result': {
-                        'path': str(result)
-                    }
-                }
-            case dict() if _is_houdini_result(result):
-                yield cast(HoudiniResult, result)
-            case dict():
-                yield {
-                    'success': True,
-                    'result': result
-                }
-            case _:
-                yield {
-                    'success': False,
-                    'error': f"Unexpected return type from {module_name}.{function_name}: {type(result)}"
-                }
+        if _is_houdini_result(result):
+            yield result
+            return
+        h_result = encapsulate_result(result)
+        if h_result is None:
+            msg = f"Unexpected return type from {module_name}.{function_name}: {type(result)}"
+            yield error_result(msg, _func=func)
+            return
+        yield success(h_result, func)
 
     except ImportError as e:
-        yield error_result(f"Module 'zabob_houdini.{module_name}' not found: {e}")
+        yield error_result(f"Module 'zabob_houdini.{module_name}' not found: {e}",
+                           _error=e,
+                           _func=func)
     except AttributeError as e:
-        yield error_result(f"Function '{function_name}' not found in {module_name}: {e}")
+        yield error_result(f"Function '{function_name}' not found in {module_name}: {e}",
+                           _error=e,
+                           _func=func)
     except Exception as e:
-        yield error_result(f"Error executing {module_name}.{function_name}: {e}")
+        yield error_result(f"Error executing {module_name}.{function_name}: {e}",
+                           _error=e,
+                           _func=func)
     finally:
         test_hip_dir = os.environ.get("TEST_HIP_DIR", "hip")
         if test_hip_dir:
@@ -289,4 +300,3 @@ def invoke_houdini_function(module_name: str, function_name: str, args: Sequence
                     print(f"Saved HIP file: {hipfile}", file=sys.stderr)
                 except Exception as e:
                     print(f"Failed to save HIP file for {function_name}: {e}", file=sys.stderr)
-

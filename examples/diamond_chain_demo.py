@@ -1,51 +1,51 @@
 #!/usr/bin/env python3
 """
-Diamond Chain Connection Demo
+Diamond ZChain Connection Demo
 
 This example demonstrates creating a diamond/fork-and-merge pattern with chains:
-- Chain A feeds into both B2 and B3
-- Both B2 and B3 feed into Chain C
+- ZChain A feeds into both B2 and B3
+- Both B2 and B3 feed into ZChain C
 - Final topology: A → B2 → C
                    A → B3 → C
 
 This is a common pattern in procedural workflows where you want to:
-1. Create base geometry (Chain A)
+1. Create base geometry (ZChain A)
 2. Process it in two different ways (Chains B2 and B3)
-3. Merge the results (Chain C)
+3. Merge the results (ZChain C)
 """
 
-from zabob_houdini import chain, node
+from zabob_houdini import zchain, znode
+
 
 def create_diamond_chains():
     """Create a diamond pattern of connected chains within a single geo node."""
 
     # Create the container geometry node
-    geo = node("/obj", "geo", name="diamond_chain")
+    geo = znode("/obj", "geo", name="diamond_chain")
 
-    # Chain A: Create base geometry
-    chain_A = chain(
-        node(geo, "box", "source_box", sizex=2, sizey=2, sizez=2),
-        node(geo, "xform", "center", tx=0, ty=0, tz=0),
-        name_prefix="base_"
+    # ZChain A: Create base geometry
+    chain_A = zchain(
+        znode(geo, "box", "source_box", sizex=2, sizey=2, sizez=2),
+        znode(geo, "xform", "center", tx=0, ty=0, tz=0),
     )
 
-    # Chain B2: First processing path (e.g., scale and rotate)
-    chain_B2 = chain(
-        node(geo, "xform", "scale_up", sx=1.5, sy=1.5, sz=1.5, _input=chain_A),  # Connect A → B2
-        node(geo, "xform", "rotate_y", ry=45),
+    # ZChain B2: First processing path (e.g., scale and rotate)
+    chain_B2 = zchain(
+        znode(geo, "xform", "scale_up", sx=1.5, sy=1.5, sz=1.5, _input=chain_A),  # Connect A → B2
+        znode(geo, "xform", "rotate_y", ry=45),
         name_prefix="branch2_"
     )
 
-    # Chain B3: Second processing path (e.g., different scale and rotation)
-    chain_B3 = chain(
-        node(geo, "xform", "scale_down", sx=0.8, sy=0.8, sz=0.8, _input=chain_A),  # Connect A → B3
-        node(geo, "xform", "rotate_x", rx=30),
+    # ZChain B3: Second processing path (e.g., different scale and rotation)
+    chain_B3 = zchain(
+        znode(geo, "xform", "scale_down", sx=0.8, sy=0.8, sz=0.8, _input=chain_A),  # Connect A → B3
+        znode(geo, "xform", "rotate_x", rx=30),
     )
 
-    # Chain C: Merge both processing paths
-    chain_C = chain(
-        node(geo, "merge", "combine_branches", _input=[chain_B2, chain_B3]),
-        node(geo, "xform", "final_position", ty=2, _display=True, _render=True),  # Set display and render flags
+    # ZChain C: Merge both processing paths
+    chain_C = zchain(
+        znode(geo, "merge", "combine_branches", _input=[chain_B2, chain_B3]),
+        znode(geo, "xform", "final_position", ty=2, _display=True, _render=True),  # Set display and render flags
     )
 
     return {
@@ -68,101 +68,99 @@ def create_and_demonstrate():
     chains['geo'].create()
 
     # Create all chains in Houdini
-    print("\nCreating Chain A (base geometry)...")
+    print("\nCreating ZChain A (base geometry)...")
     created_A = chains['A'].create()
-    print(f"Chain A created with {len(created_A)} nodes")
+    print(f"ZChain A created with {len(created_A)} nodes")
 
-    print("\nCreating Chain B2 (first processing path)...")
+    print("\nCreating ZChain B2 (first processing path)...")
     created_B2 = chains['B2'].create()
-    print(f"Chain B2 created with {len(created_B2)} nodes")
+    print(f"ZChain B2 created with {len(created_B2)} nodes")
 
-    print("\nCreating Chain B3 (second processing path)...")
+    print("\nCreating ZChain B3 (second processing path)...")
     created_B3 = chains['B3'].create()
-    print(f"Chain B3 created with {len(created_B3)} nodes")
+    print(f"ZChain B3 created with {len(created_B3)} nodes")
 
-    print("\nCreating Chain C (merged result)...")
+    print("\nCreating ZChain C (merged result)...")
     created_C = chains['C'].create()
-    print(f"Chain C created with {len(created_C)} nodes")
+    print(f"ZChain C created with {len(created_C)} nodes")
 
     # Display the connection topology
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("CONNECTION TOPOLOGY:")
-    print("="*50)
-    print("Chain A (base_geometry)")
-    print("├── Chain B2 (process_branch2) → Chain C (merged_result)")
-    print("└── Chain B3 (process_branch3) → Chain C (merged_result)")
+    print("=" * 50)
+    print("ZChain A (base_geometry)")
+    print("├── ZChain B2 (process_branch2) → ZChain C (merged_result)")
+    print("└── ZChain B3 (process_branch3) → ZChain C (merged_result)")
     print("\nFinal result: A → B2 → C")
     print("              A → B3 → C")
 
     # Show node paths for verification
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("CREATED NODE PATHS:")
-    print("="*50)
+    print("=" * 50)
 
-    print("Chain A nodes:")
+    print("ZChain A nodes:")
     for i, node_instance in enumerate(created_A):
-        print(f"  {i+1}. {node_instance.path}")
+        print(f"  {i + 1}. {node_instance.path}")
 
     print("\nChain B2 nodes:")
     for i, node_instance in enumerate(created_B2):
-        print(f"  {i+1}. {node_instance.path}")
-
+        print(f"  {i + 1}. {node_instance.path}")
     print("\nChain B3 nodes:")
     for i, node_instance in enumerate(created_B3):
-        print(f"  {i+1}. {node_instance.path}")
+        print(f"  {i + 1}. {node_instance.path}")
 
     print("\nChain C nodes:")
     for i, node_instance in enumerate(created_C):
-        print(f"  {i+1}. {node_instance.path}")
-
+        print(f"  {i + 1}. {node_instance.path}")
     return chains
 
 
 def advanced_diamond_example():
     """More complex diamond pattern with multiple merge points within a single geo node."""
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ADVANCED DIAMOND PATTERN")
-    print("="*60)
+    print("=" * 60)
 
     # Create the container geometry node
-    adv_geo = node("/obj", "geo", name="advanced_diamond")
+    adv_geo = znode("/obj", "geo", name="advanced_diamond")
 
     # Base chain
-    base = chain(
-        node(adv_geo, "sphere", "source_sphere", radx=1),
+    base = zchain(
+        znode(adv_geo, "sphere", "source_sphere", radx=1),
         name_prefix="adv_base_"
     )
 
     # Multiple processing branches
-    branch_A = chain(
-        node(adv_geo, "xform", "noise_a", sx=1.2, sy=1.2, sz=1.2, _input=base),
-        node(adv_geo, "xform", "move_a", tx=-2),
+    branch_A = zchain(
+        znode(adv_geo, "xform", "noise_a", sx=1.2, sy=1.2, sz=1.2, _input=base),
+        znode(adv_geo, "xform", "move_a", tx=-2),
         name_prefix="branch_a_"
     )
 
-    branch_B = chain(
-        node(adv_geo, "xform", "twist_b", ry=90, _input=base),
-        node(adv_geo, "xform", "move_b", tx=2),
+    branch_B = zchain(
+        znode(adv_geo, "xform", "twist_b", ry=90, _input=base),
+        znode(adv_geo, "xform", "move_b", tx=2),
         name_prefix="branch_b_"
     )
 
-    branch_C = chain(
-        node(adv_geo, "xform", "bend_c", rz=45, _input=base),
-        node(adv_geo, "xform", "move_c", tz=2),
+    branch_C = zchain(
+        znode(adv_geo, "xform", "bend_c", rz=45, _input=base),
+        znode(adv_geo, "xform", "move_c", tz=2),
         name_prefix="branch_c_"
     )
 
     # First merge point: combine A and B
-    merge_AB = chain(
-        node(adv_geo, "merge", "combine_ab", _input=[branch_A, branch_B]),
+    merge_AB = zchain(
+        znode(adv_geo, "merge", "combine_ab", _input=[branch_A, branch_B]),
         name_prefix="merge_ab_"
     )
 
     # Final merge: combine AB with C
-    final_result = chain(
-        node(adv_geo, "merge", "final_merge", _input=[merge_AB, branch_C]),
-        node(adv_geo, "xform", "final_scale", sx=0.8, sy=0.8, sz=0.8),
+    final_result = zchain(
+        znode(adv_geo, "merge", "final_merge", _input=[merge_AB, branch_C]),
+        znode(adv_geo, "xform", "final_scale", sx=0.8, sy=0.8, sz=0.8),
         name_prefix="final_adv_"
     )
 
@@ -195,9 +193,9 @@ if __name__ == "__main__":
     scene_path = "/tmp/diamond_chain_demo.hip"
     hou.hipFile.save(scene_path)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO COMPLETE!")
-    print("="*60)
+    print("=" * 60)
     print("Check your Houdini scene for the created node networks.")
     print("You should see the diamond connection patterns in the Network Editor.")
     print(f"Scene saved to: {scene_path}")

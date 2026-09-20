@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "zabob-houdini",
+            "name": "zabob-houdini (run function in houdini_functions, with args)",
             "type": "debugpy",
             "request": "launch",
             "python": "hython",
@@ -23,8 +23,8 @@
             "request": "launch",
             "module": "zabob_houdini",
             "args": [
-                "_exec",
-                "houdini_test_functions",
+                "houdini",
+                "run-test",
                 "${input:Test Function Name}"
             ],
             "python": "hython",
@@ -40,11 +40,17 @@
             "name": "Debug Houdini Example",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/${input:Example File Name}.py",
+            "module": "zabob_houdini",
+            "args": [
+                "_examples",
+                "_run-example",
+                "${input:Example File Name}"
+            ],
             "python": "hython",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
+            "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
             "justMyCode": true,
             "preLaunchTask": "Generate Example List"
@@ -66,13 +72,8 @@
             "args": {
                 "key": "testFunction",
                 "description": "Select test function to run",
-                "default": "__exit__",
-                "fileName": "${workspaceFolder}/.vscode/tmp/test-functions.txt",
-                "pattern": {
-                    "regexp": "^(.+)$",
-                    "label": "$1",
-                    "value": "$1"
-                }
+                "default": "__escape__",
+                "fileName": "${workspaceFolder}/.vscode/tmp/test-functions.txt"
             }
         },
         {
@@ -82,13 +83,8 @@
             "args": {
                 "key": "exampleFile",
                 "description": "Select example file to run",
-                "default": "._exit",
-                "fileName": "${workspaceFolder}/.vscode/tmp/example-files.txt",
-                "pattern": {
-                    "regexp": "^(.+)$",
-                    "label": "$1",
-                    "value": "$1"
-                }
+                "default": "__escape__",
+                "fileName": "${workspaceFolder}/.vscode/tmp/example-files.txt"
             }
         },
         {

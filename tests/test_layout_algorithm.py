@@ -10,7 +10,7 @@ import pytest
 @pytest.mark.integration
 def test_layout_stress_test(hython_test):
     """Test the layout algorithm with complex graph structures."""
-    result = hython_test("_test_layout_stress_test")
+    result = hython_test("h_test_layout_stress_test")
     assert 'total_nodes' in result
     assert 'source_nodes' in result
     assert 'sink_nodes' in result
@@ -30,7 +30,7 @@ def test_layout_stress_test(hython_test):
         assert layout_stats['total_width'] > 0, "Layout should have positive width"
         assert layout_stats['total_height'] > 0, "Layout should have positive height"
 
-    print(f"\nLayout Stress Test Results:")
+    print("\nLayout Stress Test Results:")
     print(f"  Total nodes: {result['total_nodes']}")
     print(f"  Source nodes: {result['source_nodes']}")
     print(f"  Sink nodes: {result['sink_nodes']}")
@@ -45,7 +45,7 @@ def test_layout_stress_test(hython_test):
 @pytest.mark.integration
 def test_simple_layout_demo(hython_test):
     """Test a simpler layout demo to verify basic functionality."""
-    test_result = hython_test("_test_simple_layout_demo")
+    test_result = hython_test("h_test_simple_layout_demo")
     assert 'positions' in test_result
     assert len(test_result['positions']) > 0
 
@@ -54,7 +54,7 @@ def test_simple_layout_demo(hython_test):
     x_coords = [pos['x'] for pos in positions.values()]
     y_coords = [pos['y'] for pos in positions.values()]
 
-    print(f"\nSimple Layout Test Results:")
+    print("\nSimple Layout Test Results:")
     print(f"  Nodes positioned: {len(positions)}")
     print(f"  X range: {min(x_coords):.2f} to {max(x_coords):.2f}")
     print(f"  Y range: {min(y_coords):.2f} to {max(y_coords):.2f}")

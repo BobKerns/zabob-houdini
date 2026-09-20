@@ -3,7 +3,8 @@ Modern typing example for Zabob-Houdini.
 Demonstrates the use of modern Python 3.9+ built-in types instead of typing module equivalents.
 """
 from typing import Any
-from zabob_houdini import node
+from zabob_houdini import znode
+
 
 def demonstrate_modern_types():
     """Show modern type annotations in action."""
@@ -18,8 +19,8 @@ def demonstrate_modern_types():
         return ("box", "sphere", "merge")
 
     # Example: list with optional items
-    def get_inputs() -> list[Any]:  # NodeInstance | None in practice
-        box = node("/obj/geo1", "box")
+    def get_inputs() -> list[Any]:  # ZNode | None in practice
+        box = znode("/obj/geo1", "box")
         return [box, None, box]  # Sparse inputs
 
     # Example: dict parameter mapping
@@ -29,6 +30,7 @@ def demonstrate_modern_types():
     print("Modern type annotations working correctly!")
     print(f"Node types: {get_nodes()}")
     print(f"Parameter example: {get_params()}")
+
 
 if __name__ == "__main__":
     demonstrate_modern_types()

@@ -17,7 +17,7 @@ An MCP (Model Context Protocol) server that provides comprehensive analysis of:
 
 ### 2. Executable Representation (zabob-houdini)
 **This repository** provides the Python API for programmatically creating and connecting Houdini nodes:
-- Clean, declarative syntax using `node()` and `chain()` functions
+- Clean, declarative syntax using `znode()` and `zchain()` functions
 - Immutable node definitions with lazy evaluation via `.create()` methods
 - Type-safe interfaces with comprehensive Houdini integration
 
@@ -48,11 +48,11 @@ Even without the full MCP server infrastructure, **zabob-houdini provides immedi
 ### Programmatic Graph Creation
 ```python
 # Clean, readable workflow definitions
-geo = node("/obj", "geo", name="terrain_geo")
-terrain = chain(
-    node(geo, "heightfield"),
-    node(geo, "heightfield_erode", iterations=10),
-    node(geo, "heightfield_scatter", density=1000)
+geo = znode("/obj", "geo", name="terrain_geo")
+terrain = zchain(
+    znode(geo, "heightfield"),
+    znode(geo, "heightfield_erode", iterations=10),
+    znode(geo, "heightfield_scatter", density=1000)
 )
 
 # Execute when ready

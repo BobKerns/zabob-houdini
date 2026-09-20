@@ -119,7 +119,7 @@ Entries are grouped by the same categories as the missing entries documentation.
 - `hou.cd()`
 - `hou.clearAllSelected()`
 - `hou.isUIAvailable()`
-- `hou.node()`
+- `hou.znode()`
 - `hou.nodeType()`
 - `hou.pwd()`
 - `hou.root()`

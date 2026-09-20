@@ -6,8 +6,10 @@
     "spell-check": "cspell \"**/*.{py,md,txt,json}\" --no-progress",
     "spell-check-files": "cspell \"**/*.{py,md,txt,json}\" --show-context",
     "spell-check-verbose": "cspell \"**/*.{py,md,txt,json}\" --verbose",
-    "list-hython-tests": "hython -c \"import zabob_houdini.houdini_test_functions as htf; fns=(sym for sym in dir(htf) if sym.startswith('test_')); print('\\n'.join(fns))\"",
-    "list-examples": "find examples -name '*.py' -not -path 'examples/__pycache__/*' -not -name '._*' | sed 's|^examples/||' | sed 's|\\.py$||' | sort"
+    "list-hython-tests": "hython -m zabob_houdini generate tests --show",
+    "list-examples": "python -m zabob_houdini generate examples --show",
+    "update-hython-tests": "hython -m zabob_houdini generate tests",
+    "update-examples": "python -m zabob_houdini generate examples"
   },
   "devDependencies": {
     "cspell": "^9.3.0"

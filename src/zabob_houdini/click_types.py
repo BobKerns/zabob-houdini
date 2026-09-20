@@ -2,13 +2,13 @@
 Parameter types for the click cli library.
 '''
 
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 from click import Context, ParamType, Parameter
 from semver import Version
 
 
-
-def _version(version: Version|str) -> Version:
+def _version(version: Version | str) -> Version:
     """
     Convert a version to a semver.Version object.
 
@@ -22,6 +22,7 @@ def _version(version: Version|str) -> Version:
         return version
     return Version.parse(version, optional_minor_and_patch=True)
 
+
 class SemVerParamType(ParamType):
     """Provide a custom click type for semantic versions.
 
@@ -31,15 +32,15 @@ class SemVerParamType(ParamType):
     _min_parts: int = 3
     _max_parts: int = 3
 
-    _min_version: Version|None = None
-    _max_version: Version|None = None
+    _min_version: Version | None = None
+    _max_version: Version | None = None
 
     def __init__(self,
                  min_parts: int = 3,
                  max_parts: int = 3,
-                 min_version: Version|None = None,
-                 max_version: Version|None = None,
-    ) -> None:
+                 min_version: Version | None = None,
+                 max_version: Version | None = None,
+                 ) -> None:
         """
         Initialize the SemVerParamType.
 
@@ -58,8 +59,11 @@ class SemVerParamType(ParamType):
         self._min_version = min_version
         self._max_version = max_version
 
-
-    def convert(self, value: str, param: Parameter|None, ctx: Context|None) -> Version:
+    def convert(self,
+                value: str,
+                param: Parameter | None,
+                ctx: Context | None,
+                ) -> Version:
         """Converts the value from string into semver type.
 
         This method takes a string and check if this string belongs to semantic version definition.
@@ -118,7 +122,11 @@ class OrType(ParamType):
         super().__init__()
         self._types = types
 
-    def convert(self, value: str, param: Parameter|None, ctx: Context|None):
+    def convert(self,
+                value: str,
+                param: Parameter | None,
+                ctx: Context | None,
+                ):
         """Convert the value to one of the accepted types."""
         for t in self._types:
             try:
@@ -129,11 +137,16 @@ class OrType(ParamType):
                   param,
                   ctx)
 
+
 class NoneType(ParamType):
     """A custom click type that accepts None."""
     name = 'none_type'
 
-    def convert(self, value: str|None, param: Parameter|None, ctx: Context|None):
+    def convert(self,
+                value: str | None,
+                param: Parameter | None,
+                ctx: Context | None
+                ):
         """Convert the value to None."""
         if value is None:
             return None
@@ -145,8 +158,9 @@ class NoneType(ParamType):
 class OptionalType(ParamType):
     """A custom click type that accepts a value or None."""
     name: str
-    _type: ParamType|type
-    def __init__(self, type: ParamType|type) -> None:
+    _type: ParamType | type
+
+    def __init__(self, type: ParamType | type) -> None:
         """
         Initialize the OptionalType with a specific type.
 
@@ -159,7 +173,11 @@ class OptionalType(ParamType):
                                str(type)))
         self.name = f'Optional[{name}]'
 
-    def convert(self, value:str|None, param: Parameter|None, ctx: Context|None):
+    def convert(self,
+                value: str | None,
+                param: Parameter | None,
+                ctx: Context | None,
+                ):
         """Convert the value to None if it is 'None' or empty."""
         if value is None:
             return None

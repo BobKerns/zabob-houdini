@@ -11,7 +11,7 @@ def test_diamond_pattern_creation(hython_test):
     """Test that diamond pattern creates nodes correctly without duplication."""
 
     # This test will be run in hython via the test bridge
-    validation_data = hython_test("_test_diamond_pattern_creation")
+    validation_data = hython_test("h_test_diamond_pattern_creation")
 
     # Check that the expected nodes were created
     assert 'node_paths' in validation_data
@@ -25,7 +25,7 @@ def test_diamond_pattern_creation(hython_test):
 def test_chain_input_connections(hython_test):
     """Test that chain input connections work correctly in actual Houdini."""
 
-    validation_data = hython_test("_test_chain_input_connections")
+    validation_data = hython_test("h_test_chain_input_connections")
 
     # Verify connection data
     assert 'connections_valid' in validation_data
@@ -35,7 +35,7 @@ def test_chain_input_connections(hython_test):
 def test_multiple_input_merge(hython_test):
     """Test that merge nodes with multiple inputs work correctly."""
 
-    validation_data = hython_test("_test_multiple_input_merge")
+    validation_data = hython_test("h_test_multiple_input_merge")
 
     # Verify merge behavior
     assert 'merge_inputs' in validation_data
@@ -46,7 +46,7 @@ def test_multiple_input_merge(hython_test):
 def test_geometry_creation(hython_test, node_type):
     """Test creation of various geometry types."""
 
-    validation_data = hython_test("_test_geometry_creation", node_type)
+    validation_data = hython_test("h_test_geometry_creation", node_type)
 
     # Verify the node was created with correct type
     assert validation_data.get('node_type') == node_type
@@ -55,7 +55,7 @@ def test_geometry_creation(hython_test, node_type):
 def test_parameter_setting(hython_test):
     """Test that node parameters are set correctly."""
 
-    validation_data = hython_test("_test_parameter_setting")
+    validation_data = hython_test("h_test_parameter_setting")
 
     # Verify parameters were applied
     assert 'parameters_set' in validation_data

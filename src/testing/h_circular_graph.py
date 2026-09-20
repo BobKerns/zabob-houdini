@@ -4,16 +4,22 @@ Houdini integration tests for circular graph construction.
 These tests run in hython and create actual circular node graphs.
 """
 
-from zabob_houdini.core import node, context
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 import hou
 
+from zabob_houdini.utils import ignore, JsonObject
+from zabob_houdini.solo_fns import zcontext
 
-def test_circular_three_node_cycle():
+ignore(ignore)
+
+
+def h_test_circular_three_node_cycle() -> JsonObject:
     """Test creating a 3-node circular graph."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create nodes with forward reference to create cycle
         ctx.node("null", "node1", _input="node3")  # Forward reference
         ctx.node("null", "node2", _input="node1")
@@ -21,9 +27,9 @@ def test_circular_three_node_cycle():
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_node1 = ctx["node1"].create()
-    hou_node2 = ctx["node2"].create()
-    hou_node3 = ctx["node3"].create()
+    hou_node1 = ctx["node1"].resolved.create()
+    hou_node2 = ctx["node2"].resolved.create()
+    hou_node3 = ctx["node3"].resolved.create()
 
     # Verify nodes exist
     assert hou_node1 is not None
@@ -48,18 +54,18 @@ def test_circular_three_node_cycle():
     }
 
 
-def test_self_referencing_node():
+def h_test_self_referencing_node() -> JsonObject:
     """Test a node that references itself."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create node that references itself using forward reference
         ctx.node("null", "self_ref", _input="self_ref")
 
     # Node is created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_node = ctx["self_ref"].create()
+    hou_node = ctx["self_ref"].resolved.create()
 
     # Check if it has an input connection
     inputs = hou_node.inputs()
@@ -72,20 +78,20 @@ def test_self_referencing_node():
     }
 
 
-def test_two_node_cycle():
+def h_test_two_node_cycle() -> JsonObject:
     """Test a simple 2-node cycle: A -> B -> A."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create two-node cycle using forward reference
         ctx.node("null", "node_a", _input="node_b")  # Forward reference
         ctx.node("null", "node_b", _input="node_a")
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_a = ctx["node_a"].create()
-    hou_b = ctx["node_b"].create()
+    hou_a = ctx["node_a"].resolved.create()
+    hou_b = ctx["node_b"].resolved.create()
 
     # Verify both nodes exist and have inputs
     a_inputs = hou_a.inputs()
@@ -103,12 +109,12 @@ def test_two_node_cycle():
     }
 
 
-def test_circular_with_context():
-    """Test circular graph construction using NodeContext."""
+def h_test_circular_with_context() -> JsonObject:
+    """Test circular graph construction using ZContext."""
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create nodes with forward reference to create cycle
         ctx.node("null", "A", _input="C")  # Forward reference
         ctx.node("null", "B", _input="A")
@@ -116,9 +122,9 @@ def test_circular_with_context():
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_a = ctx["A"].create()
-    hou_b = ctx["B"].create()
-    hou_c = ctx["C"].create()
+    hou_a = ctx["A"].resolved.create()
+    hou_b = ctx["B"].resolved.create()
+    hou_c = ctx["C"].resolved.create()
 
     # Check for cycle
     a_inputs = hou_a.inputs()
@@ -137,15 +143,15 @@ def test_circular_with_context():
     }
 
 
-def test_complex_intersecting_cycles():
-    """Test a graph with multiple intersecting cycles."""
+def h_test_complex_intersecting_cycles() -> JsonObject:
+    """Test multiple intersecting cycles."""
     # Cycle 1: A -> B -> C -> A
     # Cycle 2: B -> D -> E -> B
 
     # Create geo container first
     geo = hou.node("/obj").createNode("geo", "geo1")
 
-    with context(geo) as ctx:
+    with zcontext(geo) as ctx:
         # Create nodes with forward references to create cycles
         # Cycle 1: A -> B -> C -> A
         # Cycle 2: B -> D -> E -> B
@@ -157,11 +163,12 @@ def test_complex_intersecting_cycles():
 
     # Nodes are created automatically on context exit
     # Call .create() to get the cached hou.Node
-    hou_a = ctx["A"].create()
-    hou_b = ctx["B"].create()
-    hou_c = ctx["C"].create()
-    hou_d = ctx["D"].create()
-    hou_e = ctx["E"].create()
+    hou_a = ctx["A"].resolved.create()
+    hou_b = ctx["B"].resolved.create()
+    hou_c = ctx["C"].resolved.create()
+    hou_d = ctx["D"].resolved.create()
+    hou_e = ctx["E"].resolved.create()
+    ignore(hou_d)
 
     # Count cycles by checking input connections
     cycle_count = 0
@@ -177,7 +184,7 @@ def test_complex_intersecting_cycles():
             cycle_count += 1
 
     return {
-        "success": True,
+
         "node_count": 5,
         "cycle_count": cycle_count
     }

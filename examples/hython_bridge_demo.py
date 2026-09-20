@@ -14,6 +14,6 @@ if __name__ == "__main__":
 
     try:
         result2 = call_houdini_function("chain_creation_test")
-        print(f"✓ Chain test: {result2}")
+        print(f"✓ ZChain test: {result2}")
     except Exception as e:
-        print(f"✗ Chain test failed: {e}")
+        print(f"✗ ZChain test failed: {e}")

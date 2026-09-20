@@ -17,8 +17,10 @@ Run with: python examples/layout_stress_test_demo.py
 Or via hython for direct Houdini execution.
 """
 
-from zabob_houdini import context
 import hou
+
+from zabob_houdini import zcontext
+
 
 def create_layout_stress_test():
     """Create comprehensive layout stress test scenarios."""
@@ -32,13 +34,14 @@ def create_layout_stress_test():
 
     print("Creating layout stress test scenarios...")
 
-    with context(geo_container) as ctx:
-        print("\n=== Test 1: Simple Chain ===")
+    with zcontext(geo_container) as ctx:
+        print("\n=== Test 1: Simple ZChain ===")
         # Simple linear chain
-        box1 = ctx.node("box", "chain_box", sizex=1.0, sizey=1.0, sizez=1.0)
+        box1 = ctx.znode("box", "chain_box", sizex=1.0, sizey=1.0, sizez=1.0)
         transform1 = ctx.node("xform", "chain_xform1", _input=box1, tx=1.0)
         # subdivide1 is available for use later.
         subdivide1 = ctx.node("subdivide", "chain_subdivide", _input=transform1, iterations=2)
+        print(f"simple chain subdivide: {subdivide1.path()}")
 
         print("\n=== Test 2: Diamond Pattern ===")
         # Diamond: single source, split to multiple, then merge back
@@ -53,6 +56,7 @@ def create_layout_stress_test():
         diamond_merge = ctx.merge(path_a, path_b, path_c, name="diamond_merge")
         # diamond_final is available for use later.
         diamond_final = ctx.node("smooth", "diamond_final", _input=diamond_merge)
+        print(f"diamond final merge: {diamond_final.path()}")
 
         print("\n=== Test 3: Multiple Merge Operations ===")
         # Create multiple independent sources
@@ -67,11 +71,11 @@ def create_layout_stress_test():
         spheres_merge = ctx.merge(sphere_a, sphere_b, name="spheres_merge")
         # all_geo_merge is available for use later.
         all_geo_merge = ctx.merge(cubes_merge, spheres_merge, name="all_geo_merge")
+        print(f"all geo merge: {all_geo_merge.path()}")
 
         print("\n=== Test 4: Deep Hierarchy with Branches ===")
         # Deep tree with multiple branches at different levels
         root_torus = ctx.node("torus", "tree_root", radx=1.0, rady=0.3)
-
         # Level 1 branches
         branch_1a = ctx.node("mountain", "tree_1a", _input=root_torus)
         branch_1b = ctx.node("twist", "tree_1b", _input=root_torus, strength=45)
@@ -79,7 +83,6 @@ def create_layout_stress_test():
         # Level 2 branches from 1a
         branch_2a = ctx.node("subdivide", "tree_2a", _input=branch_1a, iterations=1)
         branch_2b = ctx.node("smooth", "tree_2b", _input=branch_1a, strength=0.5)
-
         # Level 2 branches from 1b
         branch_2c = ctx.node("xform", "tree_2c", _input=branch_1b, s=(1.1, 1.1, 1.1))
         branch_2d = ctx.node("normal", "tree_2d", _input=branch_1b)
@@ -87,36 +90,36 @@ def create_layout_stress_test():
         # Level 3 - merge some branches
         level3_merge_a = ctx.merge(branch_2a, branch_2b, name="tree_merge_3a")
         level3_merge_b = ctx.merge(branch_2c, branch_2d, name="tree_merge_3b")
-
         # Final merge
         # tree_final is available for use later.
         tree_final = ctx.merge(level3_merge_a, level3_merge_b, name="tree_final")
+        print(f"tree final merge: {tree_final.path()}")
 
         print("\n=== Test 5: Wide Fan-out with Multiple Levels ===")
         # Single source with very wide fan-out
         fan_source = ctx.node("grid", "fan_source", sizex=2.0, sizey=2.0)
-
         # First level - wide fan-out (6 branches)
         fan_branches = []
         for i in range(6):
             branch = ctx.node("mountain", f"fan_branch_{i}",
-                            _input=fan_source)
+                              _input=fan_source)
             fan_branches.append(branch)
 
         # Second level - pair up branches
         fan_pairs = []
         for i in range(0, len(fan_branches), 2):
             if i + 1 < len(fan_branches):
-                pair_merge = ctx.merge(fan_branches[i], fan_branches[i+1],
-                                     name=f"fan_pair_{i//2}")
-                pair_transform = ctx.node("xform", f"fan_transform_{i//2}",
-                                        _input=pair_merge, ty=i * 0.2)
+                pair_merge = ctx.merge(fan_branches[i], fan_branches[i + 1],
+                                       name=f"fan_pair_{i // 2}")
+                pair_transform = ctx.node("xform", f"fan_transform_{i // 2}",
+                                          _input=pair_merge, ty=i * 0.2)
                 fan_pairs.append(pair_transform)
 
         # Third level - final merge
         if len(fan_pairs) > 1:
             # fan_final is available for use later.
             fan_final = ctx.merge(*fan_pairs, name="fan_final")
+            print(f"fan final merge: {fan_final.path()}")
 
         print("\n=== Test 6: Complex Mixed Pattern ===")
         # Combination of multiple patterns
@@ -155,6 +158,7 @@ def create_layout_stress_test():
         if len(all_mixed) > 1:
             # mixed_final is available for use later.
             mixed_final = ctx.merge(*all_mixed, name="mixed_final")
+            print(f"mixed final merge: {mixed_final.path()}")
 
         print("\n=== Test 7: Stress Test - Very Complex Graph ===")
         # Create an extremely complex graph to really test the algorithm
@@ -163,26 +167,26 @@ def create_layout_stress_test():
         stress_sources = []
         source_types = ["sphere", "box", "torus", "circle", "grid"]
         for i, stype in enumerate(source_types):
-            source = ctx.node(stype, f"stress_source_{stype}_{i}")
+            source = ctx.znode(stype, f"stress_source_{stype}_{i}")
             stress_sources.append(source)
 
         # Create multiple processing layers with cross-connections
         layer1_nodes = []
         for i, source in enumerate(stress_sources):
             # Each source gets processed by 2 different operations
-            proc1 = ctx.node("mountain", f"stress_l1_mountain_{i}", _input=source)
-            proc2 = ctx.node("subdivide", f"stress_l1_subdivide_{i}", _input=source, iterations=1)
+            proc1 = ctx.znode("mountain", f"stress_l1_mountain_{i}", _input=source)
+            proc2 = ctx.znode("subdivide", f"stress_l1_subdivide_{i}", _input=source, iterations=1)
             layer1_nodes.extend([proc1, proc2])
 
         # Layer 2: Cross-connect some nodes (creates complex dependencies)
         layer2_nodes = []
         for i in range(0, len(layer1_nodes), 3):
             # Take groups of 3 nodes and merge them
-            group = layer1_nodes[i:i+3]
+            group = layer1_nodes[i:i + 3]
             if len(group) >= 2:
-                merge_node = ctx.merge(*group, name=f"stress_l2_merge_{i//3}")
+                merge_node = ctx.merge(*group, name=f"stress_l2_merge_{i // 3}")
                 # Add processing after merge
-                processed = ctx.node("smooth", f"stress_l2_smooth_{i//3}", _input=merge_node, strength=0.4)
+                processed = ctx.node("smooth", f"stress_l2_smooth_{i // 3}", _input=merge_node, strength=0.4)
                 layer2_nodes.append(processed)
 
         # Layer 3: Final convergence
@@ -207,6 +211,7 @@ def create_layout_stress_test():
             if final1 is not None and final2 is not None:
                 # ultimate_final is available for use later.
                 ultimate_final = ctx.merge(final1, final2, name="stress_ultimate_final")
+                print(f"ultimate final merge: {ultimate_final.path()}")
 
         print(f"\n=== Applying Layout Algorithm ===")
         print(f"Total nodes in context: {len(list(ctx._dependency_registry.keys()))}")
@@ -239,6 +244,7 @@ def create_layout_stress_test():
         print(f"  Nodes per layer: {[len(nodes) for nodes in layers.values()]}")
 
         return ctx
+
 
 def main():
     """Main function for running the stress test."""
@@ -274,6 +280,7 @@ def main():
         import traceback
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = main()

@@ -1,37 +1,38 @@
 """
-Enhanced NodeContext example showing node() method and name lookup.
+Enhanced ZContext example showing znode() method and name lookup.
 
-This demonstrates the convenient ctx.node() method and dictionary-style
+This demonstrates the convenient ctx.znode() method and dictionary-style
 name lookup functionality.
 """
 
-from zabob_houdini import context, node
+from zabob_houdini import zcontext, znode
+
 
 def demo_enhanced_context():
-    """Show the enhanced NodeContext with node() method and name lookup."""
+    """Show the enhanced ZContext with znode() method and name lookup."""
 
     # Create a geometry container and use context manager
-    with context(node("/obj", "geo", "processing")) as ctx:
+    with zcontext(znode("/obj", "geo", "processing")) as ctx:
 
-        # Use ctx.node() instead of node(ctx.parent, ...)
+        # Use ctx.znode() instead of znode(ctx.parent, ...)
         # This is more concise and readable
 
         # Create input geometry
-        input_box = ctx.node("box", "input_geometry",
-                            size=[2, 2, 2])
+        input_box = ctx.znode("box", "input_geometry",
+                              sizex=2, sizey=2, sizez=2)
 
         # Transform operations
-        scale_transform = ctx.node("xform", "scale_up",
-                                  sx=1.5, sy=1.5, sz=1.5)
+        scale_transform = ctx.znode("xform", "scale_up",
+                                    sx=1.5, sy=1.5, sz=1.5)
 
-        rotate_transform = ctx.node("xform", "rotate",
-                                   ry=45)
+        rotate_transform = ctx.znode("xform", "rotate",
+                                     ry=45)
 
         # Processing nodes
-        subdivide = ctx.node("subdivide", "smooth")
+        subdivide = ctx.znode("subdivide", "smooth")
 
         # Output
-        output = ctx.node("null", "OUTPUT")
+        output = ctx.znode("null", "OUTPUT")
 
         print("Created nodes:")
         print(f"- Input: {input_box.name} ({input_box.node_type})")
@@ -48,14 +49,14 @@ def demo_enhanced_context():
         print(f"Retrieved input same as original: {retrieved_input is input_box}")
         print(f"Retrieved output same as original: {retrieved_output is output}")
 
-        # NEW: Demonstrate ctx.chain() method with string lookup
+        # NEW: Demonstrate ctx.zchain() method with string lookup
         print("\nChain creation with string lookup:")
 
         # Create a processing chain using node names
-        processing_chain = ctx.chain("input_geometry", "scale_up", "rotate", "smooth", "OUTPUT")
+        processing_chain = ctx.zchain("input_geometry", "scale_up", "rotate", "smooth", "OUTPUT")
 
         print(f"Created chain with {len(processing_chain)} nodes")
-        print("Chain nodes:")
+        print("ZChain nodes:")
         for i, node_instance in enumerate(processing_chain):
             print(f"  {i}: {node_instance.name} ({node_instance.node_type})")
 
@@ -68,6 +69,7 @@ def demo_enhanced_context():
         # Show error handling for missing names
         try:
             missing = ctx["nonexistent_node"]
+            print(f"We can't get here because this is missing: {missing.name}")
         except KeyError as e:
             print(f"KeyError for missing node: {e}")
 
@@ -77,6 +79,7 @@ def demo_enhanced_context():
         print(f"\nAll original nodes have correct parent: {parents_match}")
 
         return all_nodes, processing_chain
+
 
 if __name__ == "__main__":
     nodes, chain = demo_enhanced_context()

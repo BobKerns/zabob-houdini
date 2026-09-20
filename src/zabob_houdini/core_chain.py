@@ -1,104 +1,117 @@
 """
-Chain and ChainBuilder classes for Zabob-Houdini.
+ZChain and ZChainBuilder classes for Zabob-Houdini.
 
-This module contains the Chain class for representing sequences of connected nodes,
-and the ChainBuilder class for building chains within a context manager interface.
+This module contains the ZChain class for representing sequences of connected nodes,
+and the ZChainBuilder class for building chains within a context manager interface.
 """
 
-from __future__ import annotations
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
 
 import functools
-from typing import Any, overload, TYPE_CHECKING
-from collections.abc import Iterator, Sequence
+from typing import Any, Generic, cast, overload
+from collections.abc import Iterator, Sequence, Mapping
 
 import hou
 
 from zabob_houdini.core_types import (
-    NodeType,
-    InputNode,
-    Inputs,
-    ChainableNode,
-    ChainCopyParam,
-    InputNodes,
+    NativeNodeType,
+    NativeParmData,
+    RawInputs,
+    RawChainCopyNode,
+    ResolvedConnections,
+    TypeVar,
+    UnresolvedConnections,
 )
 
 # Import actual dependencies
+from zabob_houdini.core_utils import _generate_name
 from zabob_houdini.utils import HashableMapping
-import zabob_houdini.core_node as cnode
-if TYPE_CHECKING:
-    from zabob_houdini.core_node import (
-        NodeInstance,
-        ForwardReference, DeferredChainPropertyReference,
-    )
-    from zabob_houdini.core_context import NodeContext
+from zabob_houdini.core_node import (
+    ZNodeBase, ZNode, _merge_inputs,
+    ZNodeForwardRef, ZChainFirstRef, ZChainLastRef, ZChainRef,
+)
+from zabob_houdini.core_context import ZContext
 
-class Chain(cnode.NodeBase):
+
+T_Child = TypeVar('T_Child', bound=ZNodeBase)
+
+
+class ZChain(Generic[T_Child]):
     """
     Represents a chain of Houdini nodes that can be created.
 
     Nodes in the chain are automatically connected in sequence.
     """
-    nodes: tuple[NodeInstance, ...]
+    nodes: tuple[ZNodeBase, ...]
+    by_name: dict[str, ZNodeBase]
+    context: 'ZContext'
+    subset: bool
+    '''
+    True if this chain is a subset of another chain,
+    meaning it may not be complete and should not be added to
+    the context on its own.
+    '''
 
-    def __init__(self, nodes: Sequence[NodeInstance]):
+    def __init__(self, nodes: Sequence[ZNodeBase], *,
+                 context: ZContext,
+                 subset: bool = False,
+                 ):
         '''
-        We use an __init__ method rather than the dataclass-generated one,
-        so we can store a private copy. This ensures we never hold a shared
-        node.
+        Initialize a ZChain with the given nodes. We don't copy here,
+        but rather where we can receive non-context nodes.
+
+        There's no need to copy ZChainBuilder's nodes.
         '''
-        copied_nodes = []
-        for i, node in enumerate(nodes):
-            if i == 0:
-                # First node keeps its original inputs
-                copied_nodes.append(node._copy(_chain=self))
-            else:
-                # Subsequent nodes connect to the previous node
-                prev_node = copied_nodes[i-1]
-                copied_nodes.append(node._copy(_chain=self, _inputs=(prev_node,)))
+        self.context = context
+        self.nodes = tuple(nodes)
+        self.by_name = {
+            n.name: n
+            for n in self.nodes
+            if n.name is not None
+        }
+        self.subset = subset
 
-        object.__setattr__(self, 'nodes', tuple(copied_nodes))
-
-    @functools.cached_property
-    def parent(self) -> NodeInstance:
+    @property
+    def parent(self) -> ZNode:
         match self.nodes:
             case ():
-                return cnode.ROOT
-            case cnode.NodeInstance() as n, *_:
+                return self.context.parent
+            case ZNodeBase() as n, *_:
                 return n.parent
             case _:
                 raise RuntimeError(f"Invalid parent: {self.nodes[0]}")
 
-    @functools.cached_property
-    def first(self) -> NodeInstance:
+    @property
+    def first(self) -> ZNodeBase:
         """Return the first node in this chain."""
         if not self.nodes:
-            raise RuntimeError("Chain is empty.")
+            raise RuntimeError("ZChain is empty.")
         return self.nodes[0]
 
-    @functools.cached_property
-    def last(self) -> NodeInstance:
+    @property
+    def last(self) -> ZNodeBase:
         """Return the last node in this chain."""
         if not self.nodes:
-            raise RuntimeError("Chain is empty.")
+            raise RuntimeError("ZChain is empty.")
         return self.nodes[-1]
 
     @functools.cached_property
-    def inputs(self) -> 'Inputs':
+    def inputs(self) -> ResolvedConnections:
         """Return the input nodes for this chain, which are the inputs of the first node."""
         if not self.nodes:
             return tuple()
-        return self.first.inputs
+        return self.first.resolved_inputs
 
     @overload
-    def __getitem__(self, key: int) -> NodeInstance: ...
+    def __getitem__(self, key: int) -> ZNode: ...
 
     @overload
-    def __getitem__(self, key: slice) -> 'Chain': ...
+    def __getitem__(self, key: slice) -> ZChain: ...
 
     @overload
-    def __getitem__(self, key: str) -> NodeInstance: ...
+    def __getitem__(self, key: str) -> ZNodeBase: ...
 
-    def __getitem__(self, key: int | slice | str) -> 'ChainableNode':
+    def __getitem__(self, key: int | slice | str) -> ZNodeBase | ZChain:
         """
         Access nodes in the chain by index, slice, or name.
 
@@ -106,7 +119,7 @@ class Chain(cnode.NodeBase):
             key: Integer index, slice, or node name string
 
         Returns:
-            NodeInstance for int/str keys, Chain for slice keys
+            ZNode for int/str keys, ZChain for slice keys
         """
         nodes = self.nodes
 
@@ -114,29 +127,28 @@ class Chain(cnode.NodeBase):
             case int() as index:
                 return nodes[index]
             case slice() as slice_obj:
-                # Return a new Chain with the subset of nodes
+                # Return a new ZChain with the subset of nodes
                 subset = nodes[slice_obj]
-                return Chain(
+                return ZChain(
                     nodes=subset,
+                    context=self.context,
+                    subset=True
                 )
             case str() as name:
                 # Find node by name
-                for node_instance in nodes:
-                    if node_instance.name == name:
-                        return node_instance
-                raise KeyError(f"No node found with name '{name}'")
+                return self.by_name[name]
             case _:
-                raise TypeError(f"Chain indices must be integers, slices, or strings, not {type(key).__name__}")
+                raise TypeError(f"ZChain indices must be integers, slices, or strings, not {type(key).__name__}")
 
     def __len__(self) -> int:
         """Return the number of nodes in the chain."""
         return len(self.nodes)
 
-    def __iter__(self) -> "Iterator[NodeInstance]":
+    def __iter__(self) -> Iterator[ZNodeBase]:
         """Return an iterator over the flattened nodes in the chain."""
         return iter(self.nodes)
 
-    def first_node(self) -> 'hou.Node':
+    def first_node(self) -> hou.Node:
         """
         Get the created hou.Node for the first node in the chain.
 
@@ -152,8 +164,7 @@ class Chain(cnode.NodeBase):
         if not created_instances:
             raise ValueError("Cannot get first node of empty chain")
 
-        first_instance = created_instances[0]
-        return first_instance.create()
+        return created_instances[0]
 
     def last_node(self) -> 'hou.Node':
         """
@@ -171,10 +182,9 @@ class Chain(cnode.NodeBase):
         if not created_instances:
             raise ValueError("Cannot get last node of empty chain")
 
-        last_instance = created_instances[-1]
-        return last_instance.create()
+        return created_instances[-1]
 
-    def nodes_iter(self) -> "Iterator[hou.Node]":
+    def nodes_iter(self) -> Iterator[hou.Node]:
         """
         Return an iterator over the created hou.Node instances in the chain.
 
@@ -185,9 +195,10 @@ class Chain(cnode.NodeBase):
         """
         created_instances = self.create()
         for instance in created_instances:
-            yield instance.create()
+            yield instance
 
-    def hou_nodes(self) -> tuple['hou.Node', ...]:
+    @property
+    def hou_nodes(self) -> tuple[hou.Node, ...]:
         """
         Get all created hou.Node instances in the chain as a tuple.
 
@@ -198,46 +209,68 @@ class Chain(cnode.NodeBase):
         """
         return tuple(self.nodes_iter())
 
+    @overload
+    def resolve(self, key: int | str | slice) -> ZNode: ...
+
+    @overload
+    def resolve(self) -> tuple[ZNode, ...]: ...
+
+    def resolve(self, key: int | str | slice | None = None) -> tuple[ZNode, ...] | ZNode | None:
+        """
+        Resolve the chain to its constituent ZNode objects.
+
+        Args:
+            key: Optional index or name to resolve a specific node. If None, resolves all nodes
+
+        Returns: tuple[ZNode, ...] | None
+            ZNode objects for each node in the chain.
+        """
+        match key:
+            case int() as index:
+                return self.nodes[index].resolved
+            case str() as name:
+                return self.by_name[name].resolved
+            case None:
+                if all(n.resolve() for n in self.nodes):
+                    return cast(tuple[ZNode, ...], tuple(n.resolve() for n in self.nodes))
+                return tuple(node.resolved for node in self.nodes)
+
     @functools.cache
-    def create(self) -> tuple[NodeInstance, ...]:
+    def create(self) -> tuple[hou.Node, ...]:
         """
         Create the actual chain of Houdini nodes.
 
-        Chain connections are now handled through each node's _inputs,
+        ZChain connections are now handled through each node's _inputs,
         so we just need to create each node.
 
         Returns:
-            Tuple of NodeInstance objects for created nodes. Same instances
+            Tuple of ZNode objects for created nodes. Same instances
             returned on subsequent calls (cached via @functools.cache).
         """
-        nodes = self.nodes
-        if not nodes:
-            return tuple()
+        return tuple(
+            node.resolved.create()
+            for node in self.nodes
+        )
 
-        # Create each node - connections are handled automatically via _inputs
-        # Use _skip_chain=True to avoid recursion since we're already creating the chain
-        created_node_instances = []
-        for node_instance in nodes:
-            # Create the node in Houdini (NodeInstance.create handles connections via _inputs)
-            node_instance._create(_skip_chain=True)
-            created_node_instances.append(node_instance)
-
-        return tuple(created_node_instances)
-
-    def copy(self, *copy_params: 'ChainCopyParam', _inputs: 'InputNodes'=()) -> 'Chain':  # type: ignore[override]
+    def copy(self, *nodes: RawChainCopyNode,
+             _inputs: RawInputs | None = None,
+             _display: bool | None = None,
+             _render: bool | None = None,
+             **copy_params: 'Mapping[str, NativeParmData]',
+             ) -> 'ZChain':
         """
-        Return a copy of this Chain with nodes reordered, dropped, or inserted.
+        Return a copy of this ZChain with nodes reordered, dropped, or inserted.
 
         Args:
             *copy_params: Parameters specifying nodes to copy:
                 - int: Index of existing node to copy (can reorder/duplicate)
                 - str: Name of existing node to copy
-                - NodeInstance: New node to insert at this position
+                - ZNode: New node to insert at this position
                 If no arguments given, copies all nodes in original order
             _inputs: Input nodes for the first node in the new chain
 
         Returns:
-            New Chain with specified nodes in specified order
+            New ZChain with specified nodes in specified order
 
         Examples:
             chain.copy(3, 2, 1, 0)      # Reverse 4-element chain
@@ -245,225 +278,203 @@ class Chain(cnode.NodeBase):
             chain.copy("box", "sphere") # Copy by name
             chain.copy(0, new_node, 1)  # Insert new_node between positions 0 and 1
         """
-        # Build new node list using self[param] for uniform access
-        new_nodes: Sequence[NodeInstance] = (
-            self.nodes if not copy_params
-            else [
-                param if isinstance(param, cnode.NodeInstance) else self[param]
-                for param in copy_params
-                ]
-        )
+        empty: dict[str, NativeParmData] = {}
+        if not nodes:
+            nodes = tuple(self.nodes)
+        # Build new node list
 
-        if not new_nodes:
-            raise ValueError("Chain copy must result in at least one node")
+        def resolve(node_spec: RawChainCopyNode, *, _inputs: RawInputs = None) -> ZNodeBase:
+            match node_spec:
+                case int() as index:
+                    return self.nodes[index]
+                case str() as name:
+                    return self.by_name[name]
+                case ZNodeBase() as node:
+                    return node
+                case _:
+                    raise TypeError(f"Invalid node specification: {node_spec}")
+        with self.context.chain() as ctx:
+            inputs = _inputs or ()
 
-        # Handle inputs for first node
-        inputs = cnode._wrap_inputs(_inputs)
-        self_inputs: 'Inputs' = ()
-        if self.nodes and new_nodes:
-            if copy_params:
-                # Get inputs from the original first node being copied
-                first_param = copy_params[0]
-                if not isinstance(first_param, cnode.NodeInstance):
-                    # It's an int or str - get the original node's inputs
-                    original_first = self[first_param]
-                    self_inputs = original_first.inputs
-            else:
-                # Default copy: preserve first node's inputs
-                self_inputs = self.nodes[0].inputs
-
-        merged_inputs = cnode._merge_inputs(inputs, self_inputs)
-
-        # Copy first node with merged inputs
-        first_node = new_nodes[0].copy(_inputs=merged_inputs)
-
-        # Copy remaining nodes
-        remaining_nodes = [n.copy() for n in new_nodes[1:]]
-
-        # Create new chain - __init__ will copy and set _chain references
-        new_chain = Chain(
-            nodes=(first_node, *remaining_nodes),
-        )
-        return new_chain
+            def dup(node: RawChainCopyNode) -> ZNodeBase:
+                nonlocal inputs
+                n = resolve(node)
+                params = copy_params.get(n.name, empty)
+                result = n.copy(n.name, _inputs=inputs,
+                                _display=_display,
+                                _render=_render,
+                                **params)
+                inputs = ()
+                return result
+            ctx._nodes = [
+                dup(n)
+                for n in nodes
+            ]
+        return ctx.chain
 
 
-class ChainBuilder:
+class ZChainBuilder:
     """Context manager for building chains without registering intermediate nodes."""
 
-    def __init__(self, context: 'NodeContext', _input: 'InputNode | Sequence[InputNode] | None' = None):
-        self.context = context
-        self._input = _input
-        self._nodes: list[NodeInstance] = []
+    _inputs: UnresolvedConnections
+    _context: ZContext
+    _nodes: list[ZNodeBase]
+    _chain: ZChain | None = None
 
-    def __enter__(self) -> 'ChainBuilder':
+    def __init__(self, context: ZContext, *,
+                 _input: UnresolvedConnections | None = None,
+                 ):
+        self._context = context
+        self._inputs = _input or ()
+        self._nodes = []
+
+    @property
+    def chain(self) -> ZChain:
+        """
+        Return the ZChain we built.
+        If the chain is not yet complete, raise an error.
+        """
+        if self._chain is None:
+            raise RuntimeError("ZChain is not yet complete.")
+        return self._chain
+
+    @property
+    def context(self) -> ZContext:
+        """Return the ZContext associated with this ZChainBuilder."""
+        return self._context
+
+    def __enter__(self) -> ZChainBuilder:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         if exc_type is not None:
             # Exception occurred: discard any partially built chain, clean up temporary state
-            self._created_chain = None
             self._nodes.clear()
             return
-        if exc_type is None and self._nodes:
-            # First, create the chain without inputs to mark it as complete
-            self._created_chain = Chain(self._nodes)
-
-            # Now process inputs - DeferredChainPropertyReferences can now resolve
-            if self._input is not None:
-                # Apply input to the first node (ForwardReferences should resolve now)
-                first_node = self._nodes[0]._copy(_inputs=cnode._wrap_inputs(self._input))
-                nodes_with_input = [first_node] + self._nodes[1:]
-                # Recreate the chain with the connected input
-                self._created_chain = Chain(nodes_with_input)
-
-            # Register all chain nodes in the context
-            for node_instance in self._created_chain.nodes:
-                if node_instance not in self.context._dependency_registry:
-                    self.context._dependency_registry[node_instance] = []
-
-                # Register named nodes
-                if (node_instance.name is not None and
-                    node_instance.name not in self.context._nodes):
-                    self.context._nodes[node_instance.name] = node_instance
-
-            # Track chain dependencies (each node depends on the previous one)
-            for i in range(1, len(self._created_chain.nodes)):
-                prev_node = self._created_chain.nodes[i-1]
-                current_node = self._created_chain.nodes[i]
-                self.context._add_dependency(prev_node, current_node)
-
-            # Track dependencies from all inputs to the first chain node
-            # Use the constructed chain's first node inputs which have the correct merged list
-            first_chain_node = self._created_chain.first
-            for inp in first_chain_node.inputs:
-                if inp is not None:
-                    input_node, _ = inp
-                    self.context._add_dependency(input_node, first_chain_node)
+        if not self._nodes:
+            raise RuntimeError("Cannot create an empty chain.")
+        inputs: UnresolvedConnections = self.inputs or ()
+        for node in self._nodes:
+            for inp, _ in inputs:
+                if inp:
+                    self._context._add_dependency(inp, node.resolved)
+        # First, create the chain without inputs to mark it as complete
+        self._chain = ZChain(self._nodes, context=self._context)
 
     @property
-    def parent(self) -> NodeInstance:
-        """Return the parent NodeInstance for this chain."""
+    def parent(self) -> ZNode:
+        """Return the parent ZNode for this chain."""
         return self.context.parent
 
-    def node(self, node_type: 'NodeType', /, name: str | None = None, **attributes: Any) -> NodeInstance:
+    def copy(self, node: ZNodeBase, /,
+             **copy_params: 'NativeParmData'
+             ) -> 'ZNodeBase':
+        """Add a copy of the given node to this chain."""
+        if self._chain is not None:
+            raise RuntimeError("Cannot modify a completed chain.")
+        copied_node = node._copy(
+            _chain=None,
+            name=None,
+            _inputs=None,
+            _display=None,
+            _render=None,
+            **copy_params
+        )
+        self._nodes.append(copied_node)
+        return copied_node
+
+    def node(self, node_type: NativeNodeType, /,
+             name: str | None = None,
+             **attributes: Any
+             ) -> ZNode:
         """Add a node to this chain (not registered with context until chain completes)."""
+        if self._chain is not None:
+            raise RuntimeError("Cannot modify a completed chain.")
         # Create node without registering it with the context
-        node_instance = cnode.NodeInstance(
+        node_instance = ZNode(
             _parent=self.context.parent,  # Use the context's parent
             node_type=node_type,
-            name=name,
+
+            name=name or _generate_name(self._context.parent.resolved.path,
+                                        node_type),
             attributes=HashableMapping(attributes) if attributes else HashableMapping(),
         )
         self._nodes.append(node_instance)
+        self.context._register_node(node_instance)
         return node_instance
 
     @property
-    def last(self) -> 'NodeInstance | ForwardReference':
+    def last(self) -> ZNodeForwardRef:
         """Return the last node that will be in this chain."""
-        if hasattr(self, '_created_chain') and self._created_chain:
-            return self._created_chain.last
-        elif self._nodes:
-            # During chain construction - return a deferred forward reference
-            return DeferredChainPropertyReference(
-                resolution_type='deferred_chain_property',
-                chain_builder=self,
-                property_name='last'
-            )
-        else:
-            raise RuntimeError("Chain is empty")
-
-    @property
-    def first(self) -> 'NodeInstance | ForwardReference':
-        """Return the first node that will be in this chain."""
-        if hasattr(self, '_created_chain') and self._created_chain:
-            return self._created_chain.first
-        elif self._nodes:
-            # During chain construction - return a deferred forward reference
-            return DeferredChainPropertyReference(
-                resolution_type='deferred_chain_property',
-                chain_builder=self,
-                property_name='first'
-            )
-        else:
-            raise RuntimeError("Chain is empty")
-
-    def __getitem__(self, index: int) -> NodeInstance:
-        """Access nodes in the chain by index."""
-        if hasattr(self, '_created_chain') and self._created_chain:
-            return self._created_chain[index]
-        elif self._nodes:
-            return self._nodes[index]
-        else:
-            raise IndexError("Chain is empty")
-
-    def __len__(self) -> int:
-        """Return the number of nodes in the chain."""
-        if hasattr(self, '_created_chain') and self._created_chain:
-            return len(self._created_chain)
-        else:
-            return len(self._nodes)
-
-    @property
-    def inputs(self) -> 'Inputs':
-        """Return the inputs of the first node in the chain."""
-        if hasattr(self, '_created_chain') and self._created_chain:
-            return self._created_chain.inputs
-        elif self._nodes:
-            return self._nodes[0].inputs
-        else:
-            raise RuntimeError("Chain is empty")
-
-
-def chain(
-    *nodes: 'Any',  # ChainableNode
-    **attributes: Any
-) -> Chain:
-    """
-    Create a chain of nodes definition.
-
-    Args:
-        *nodes: Sequence of NodeInstance objects, Chain objects, or Houdini nodes to chain together
-
-    Returns:
-        Chain that can be created with .create()
-
-    Note:
-        To connect inputs to the chain, pass them to the first node using the _input parameter:
-        chain(node(parent, "xform", "first", _input=some_input), node(parent, "xform", "second"))
-    """
-    from collections.abc import Iterator
-
-    # Check for the old _input parameter and provide a helpful error message
-    if '_input' in attributes:
-        raise TypeError(
-            "The '_input' parameter is no longer supported on chain(). "
-            "Instead, pass the input to the first node: "
-            "chain(node(parent, 'type', 'name', _input=your_input), ...)"
+        return ZChainLastRef(
+            _parent=self.context.parent,
+            context=self.context,
+            builder=self,
+            name=""
         )
 
-    def _handle_entry(item: 'Any') -> Iterator[NodeInstance]:
-        match item:
-            case cnode.NodeInstance():
-                yield item
-            case Chain():
-                yield from item.nodes
+    @property
+    def first(self) -> ZNodeBase:
+        """Return the first node that will be in this chain."""
+        if self.chain:
+            return self.chain.first
 
-    flattened_nodes = tuple((
-        node
-        for item in nodes
-        for node in _handle_entry(item)
-    ))
+        name = self._nodes[0].name if self._nodes else ""
 
-    # Validate that all nodes have the same parent
-    if flattened_nodes:
-        first_parent = flattened_nodes[0].parent
-        for i, node in enumerate(flattened_nodes[1:], 1):
-            if node.parent != first_parent:
-                raise ValueError(
-                    f"All nodes in a context must have same parent. \n"
-                    f"Node 0 has parent {first_parent}, node {i} has parent {node.parent}"
-                )
+        # During chain construction - return a forward reference
+        return ZChainFirstRef(
+            _parent=self.context.parent,
+            context=self.context,
+            builder=self,
+            name=name
+        )
 
-    return Chain(
-        nodes=flattened_nodes,  # Only NodeInstance objects now
-    )
+    @overload
+    def __getitem__(self, index: int | str) -> ZNodeBase: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> ZChain | ZChainRef: ...
+
+    def __getitem__(self, index: int | str | slice) -> ZNodeBase | ZChain:
+        """Access nodes in the chain by index."""
+        if self._chain:
+            return self._chain[index]
+        match index:
+            case int() as idx:
+                if idx < len(self._nodes):
+                    return self._nodes[idx]
+            case str() as name:
+                for n in self._nodes:
+                    if n.name == name:
+                        return n
+            case slice() as slice_obj:
+                if (
+                    (slice_obj.stop is not None)
+                    and (0 <= slice_obj.stop <= len(self._nodes))
+                    and (0 <= slice_obj.start <= len(self._nodes))
+                ):
+                    subset = self._nodes[slice_obj]
+                    return ZChain(
+                        nodes=subset,
+                        context=self.context,
+                        subset=True
+                    )
+            case _:
+                raise TypeError(f"ZChain indices must be integers, slices, or strings, not {type(index).__name__}")
+
+        return ZChainRef(
+            _parent=self.context.parent,
+            context=self.context,
+            builder=self,
+            index=index,
+            name=str(index)
+        )
+
+    @functools.cached_property
+    def inputs(self) -> UnresolvedConnections:
+        """Return the inputs of the first node in the chain."""
+        if self._chain:
+            return self.chain.first.inputs
+        if self._nodes:
+            return _merge_inputs(self._inputs, self._nodes[0].inputs or ())
+        raise RuntimeError("Cannot access inputs of an empty chain.")

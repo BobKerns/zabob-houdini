@@ -13,7 +13,7 @@ class TestInputConnections:
     @pytest.mark.integration
     def test_input_connections_basic(self, hython_test):
         """Test that input connections are set up correctly on nodes."""
-        result_data = hython_test("_test_input_connections_basic")
+        result_data = hython_test("h_test_input_connections_basic")
 
         # Verify chain structure
         assert result_data["chain_A_length"] == 2
@@ -32,8 +32,8 @@ class TestInputConnections:
 
     @pytest.mark.integration
     def test_chain_input_delegation(self, hython_test):
-        """Test that Chain.inputs properly delegates to first node."""
-        result_data = hython_test("_test_chain_input_delegation")
+        """Test that ZChain.inputs properly delegates to first node."""
+        result_data = hython_test("h_test_chain_input_delegation")
 
         assert result_data["no_input_chain_empty"] is True
         assert result_data["single_input_chain_has_one"] is True
@@ -42,7 +42,7 @@ class TestInputConnections:
     @pytest.mark.integration
     def test_multiple_inputs_basic(self, hython_test):
         """Test that nodes can accept multiple inputs correctly."""
-        result_data = hython_test("_test_multiple_inputs_basic")
+        result_data = hython_test("h_test_multiple_inputs_basic")
 
         # Test that merge node can accept multiple chain inputs
         assert result_data["merge_has_multiple_inputs"] is True

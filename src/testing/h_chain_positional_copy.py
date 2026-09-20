@@ -1,18 +1,19 @@
-"""Chain positional copy test functions."""
+"""ZChain positional copy test functions."""
 
-from zabob_houdini.core import node, chain
+
+from zabob_houdini.solo_fns import znode, zchain
 from zabob_houdini.utils import JsonArray, JsonObject
 
 
-def _test_positional_reordering() -> JsonObject:
-    """Test Chain.copy() positional reordering functionality."""
-    geo = node("/obj", "geo")
+def h_test_positional_reordering() -> JsonObject:
+    """Test ZChain.copy() positional reordering functionality."""
+    geo = znode("/obj", "geo")
     # Create chain with named nodes
-    n1 = node(geo, "box", name="first")
-    n2 = node(geo, "sphere", name="second")
-    n3 = node(geo, "merge", name="third")
+    n1 = znode(geo, "box", name="first")
+    n2 = znode(geo, "sphere", name="second")
+    n3 = znode(geo, "merge", name="third")
 
-    original_chain = chain(n1, n2, n3)
+    original_chain = zchain(n1, n2, n3)
 
     # Test various reordering patterns
     reversed_chain = original_chain.copy(2, 1, 0)
@@ -25,7 +26,7 @@ def _test_positional_reordering() -> JsonObject:
     mixed_chain = original_chain.copy(0, "third")
 
     # Test node insertion
-    new_node = node(geo, "xform", name="inserted")
+    new_node = znode(geo, "xform", name="inserted")
     inserted_chain = original_chain.copy(0, new_node, 2)
 
     return {
@@ -40,13 +41,13 @@ def _test_positional_reordering() -> JsonObject:
     }
 
 
-def _test_copy_signature_includes_args() -> JsonObject:
+def h_test_copy_signature_includes_args() -> JsonObject:
     """Collect copy method signature information for validation."""
     import inspect
 
     # Create a simple node to test the signature
-    geo = node("/obj", "geo")
-    box = node(geo, "box")
+    geo = znode("/obj", "geo")
+    box = znode(geo, "box")
 
     # Check the copy method signature
     sig = inspect.signature(box.copy)
@@ -56,8 +57,8 @@ def _test_copy_signature_includes_args() -> JsonObject:
     param_names: JsonArray = list(params.keys())
     keyword_only: JsonArray = [p.name for p in params.values() if p.kind == p.KEYWORD_ONLY]
 
-    # Also test Chain signature
-    chain_obj = chain(box)
+    # Also test ZChain signature
+    chain_obj = zchain(box)
     chain_sig = inspect.signature(chain_obj.copy)
     chain_params = list(chain_sig.parameters.values())
     chain_uses_args: bool = any(p.kind == p.VAR_POSITIONAL for p in chain_params)

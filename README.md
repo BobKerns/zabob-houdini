@@ -13,7 +13,7 @@ Zabob-Houdini provides a clean, Pythonic interface for building Houdini node net
 **Key Features:**
 - **Declarative API**: Describe what you want, not how to build it
 - **Automatic Context Management**: Context exit handles layout and node creation automatically
-- **ChainBuilder Pattern**: Build chains with conditional logic using context managers
+- **ZChainBuilder Pattern**: Build chains with conditional logic using context managers
 - **Immutable Objects**: Node and chain definitions are immutable for safety and caching
 - **Automatic Connections**: Wire nodes together with simple syntax
 - **Bidirectional Layout**: Smart positioning algorithm centers nodes properly
@@ -26,8 +26,8 @@ Zabob-Houdini provides a clean, Pythonic interface for building Houdini node net
 
 Zabob-Houdini provides two main functions:
 
-- **`node()`** - Create individual nodes with automatic connections
-- **`chain()`** - Create linear sequences of connected nodes
+- **`znode()`** - Create individual nodes with automatic connections
+- **`zchain()`** - Create linear sequences of connected nodes
 
 Both return **immutable objects** that use `.create()` to instantiate the actual Houdini nodes.
 
@@ -41,20 +41,20 @@ Both return **immutable objects** that use `.create()` to instantiate the actual
 
 **Templates**: Node definitions serve as reusable templates for creating networks, allowing the same pattern to be instantiated multiple times.
 
-**Circular References**: Immutable definitions enable circular node graphs by allowing nodes to reference each other before instantiation *(feature planned for future release)*.
+**Circular References**: Immutable definitions enable circular node graphs by allowing nodes to reference each other before instantiation.
 
 ## Example Usage
 
 ```python
-from zabob_houdini import node, context
+from zabob_houdini import znode, zcontext
 
 do_subdivide: bool = True
-# Create a geometry container with automatic layout and node creation
-with context(node("/obj", "geo", "mygeometry")) as ctx:
+# Create a geometry container with automatic layout and znode creation
+with zcontext(znode("/obj", "geo", "mygeometry")) as ctx:
     # Create source node
     source = ctx.node("box", "source")
 
-    # Build chains with conditional logic using ChainBuilder
+    # Build chains with conditional logic using ZChainBuilder
     with ctx.chain(_input=source) as path_a:
         path_a.node("xform", "transform_a")
         if do_subdivide:
@@ -77,7 +77,9 @@ For complete examples including multi-output connections, chain indexing, type n
 
 ### Prerequisites
 
-**UV Package Manager** - Install UV first:
+**UV Package Manager**
+
+- Install UV first:
 
 **macOS and Linux:**
 
@@ -157,12 +159,13 @@ houdini output.hip
 
 ```python
 # In Houdini's Python shell, shelf tools, or HDAs
-from zabob_houdini import node, chain, context
+from zabob_houdini import znode, zchain, zcontext
 ```
 
 ## Documentation
 
 - **[API Documentation](API.md)**: Complete reference for all functions, classes, and methods
+- **[Node Type Hierarchies](docs/NODE_TYPE_HIERARCHIES.md)**: Understanding Houdini's node type system and generic type patterns
 - **[Command Line Interface](COMMAND.md)**: CLI reference and usage guide
 - **[Development Guide](DEVELOPMENT.md)**: Setup, testing, and contribution guidelines
 - **[PyPI Setup](docs/PYPI_SETUP.md)**: Publishing and release information

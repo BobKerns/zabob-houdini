@@ -44,7 +44,7 @@ uv run zabob-houdini validate     # Test CLI
 # - HDA Python scripts
 # - Houdini's Python shell
 
-from zabob_houdini import node, chain
+from zabob_houdini import znode, zchain
 # This works within Houdini's Python environment
 ```
 
@@ -156,75 +156,92 @@ The project includes dynamic launch configurations and tasks for working with hy
 
 **Tasks (Terminal → Run Task):**
 
-1. **Run Houdini Example (Save HIP)**: Run an example file and save the resulting scene to `hip/<basename>.hip`
+1. **Setup VS Code Workspace**: Run the setup script to initialize development environment
+2. **Run Houdini Example (Save HIP)**: Run an example file and save the resulting scene to `hip/<basename>.hip`
    - Prompts for example selection from dropdown
    - Uses `zabob-houdini run` command with `--hipfile` option
    - Useful for generating HIP files to inspect results
 
-These configurations automatically refresh their dropdown options from the actual project files. To use them:
+**Smart Launcher Behavior:**
+
+The debug launchers automatically track your last-used test/example:
+- First run shows `__initialize__` placeholder (run setup task to populate)
+- After selecting a test/example, it becomes the default (first in list)
+- Next debug session: just hit Enter to re-run the same test/example
+- Press Escape to cancel without running anything
+- Option lists are stored in `.vscode/tmp/` and auto-generated
+
+To use the launchers:
 
 1. Install the recommended Command Variable extension when prompted
-2. For debugging: Press F5 or use Run → Start Debugging
-3. For running examples: Use Terminal → Run Task → "Run Houdini Example (Save HIP)"
-4. Select the test function or example file from the dropdown
-5. Set breakpoints in test functions in `houdini_test_functions.py`
+2. Run the "Setup VS Code Workspace" task (first time only)
+3. For debugging: Press F5 or use Run → Start Debugging
+4. Select the test function or example file from the dropdown (or hit Enter for last-used)
+5. Set breakpoints in test functions in the `src/testing/` directory
 
 This allows direct stepping through the Houdini-side test code, which is much more effective than debugging the pytest wrapper.
 
 #### Pytest Stack Trace Integration
 
-When tests fail, pytest now includes the complete hython stack trace in the failure message, making it much easier to identify the exact cause of failures in Houdini subprocess calls.
+When tests fail, pytest includes the complete hython stack trace with **clickable file links** in VS Code's Test Results view, making it easy to navigate directly to the error location.
 
 Example failure output:
 
 ```text
 =================================== FAILURES ===================================
 ______________ TestContextFunction.test_node_context_merge_method ______________
-tests/test_node_context.py:118: in test_node_context_merge_method
-    result = hython_test("test_node_context_merge_method")
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/conftest.py:57: in run_houdini_test
+tests/test_node_context.py:120: in test_node_context_merge_method
+    result = hython_test("_test_node_context_merge_method")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:102: in run_houdini_test
     pytest.fail(msg)
-E   Failed: hython test test_node_context_merge_method failed:
-E   Error executing houdini_test_functions.test_node_context_merge_method: Node at path 'my_box' does not exist.
+E   Failed: hython test _test_node_context_merge_method failed:
+E   Error executing testing._node_context._test_node_context_merge_method: Node at path 'my_box' does not exist.
 E
 E   ------Hython Error Traceback------
-E   Traceback (most recent call last):
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/houdini_test_functions.py", line 1749, in test_node_context_merge_method
+E     File "/Users/rwk/p/zabob-houdini/src/testing/_node_context.py", line 290, in _test_node_context_merge_method
 E       merge_node = ctx.merge("my_box", "my_sphere", name="test_merge")
 E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1014, in merge
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core_context.py", line 329, in merge
 E       return self.node("merge", name, _input=list(inputs), **attributes)
 E              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 872, in node
-E       node_instance = node(
-E                       ^^^^^
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1642, in node
-E       inputs = _wrap_inputs(_input)
-E                ^^^^^^^^^^^^^^^^^^^^
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1888, in _wrap_inputs
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core_context.py", line 168, in node
+E       inputs = cnode._wrap_inputs(_input, self)
+E                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core_node.py", line 885, in _wrap_inputs
 E       return tuple(_wrap_input(inp, 0) for inp in inputs)
 E              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1940, in _wrap_input
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core_node.py", line 885, in <genexpr>
+E       return tuple(_wrap_input(inp, 0) for inp in inputs)
+E                    ^^^^^^^^^^^^^^^^^^^
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core_node.py", line 955, in _wrap_input
 E       wrapped = _wrap_single_input(input)
 E                 ^^^^^^^^^^^^^^^^^^^^^^^^^
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1919, in _wrap_single_input
-E       return wrap_node(hou_node(input))
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core_node.py", line 937, in _wrap_single_input
+E       return wrap_node(hou_node(input), )
 E                        ^^^^^^^^^^^^^^^
-E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core.py", line 1823, in hou_node
+E     File "/Users/rwk/p/zabob-houdini/src/zabob_houdini/core_utils.py", line 18, in hou_node
 E       raise ValueError(f"Node at path '{path}' does not exist.")
-E   ValueError: Node at path 'my_box' does not exist.
------------------------------ Captured stderr call -----------------------------
-...
+E
+E   ------ Location (Test, Error) ------
+E   Tst> "src/testing/_node_context.py:278", in _test_node_context_merge_method
+E   Err> "src/zabob_houdini/core_utils.py:18", in hou_node
 --------------------------- Captured stderr teardown ---------------------------
-Saved HIP file: hip/test_node_context_merge_method.hip
+Saved HIP file: hip/_test_node_context_merge_method.hip
 =========================== short test summary info ============================
 FAILED tests/test_node_context.py::TestContextFunction::test_node_context_merge_method
 ============================== 1 failed in 1.67s ===============================
 Finished running tests!
 ```
 
-The key improvement is the **"------Hython Error Traceback------"** section that shows the complete call stack from inside the hython subprocess, making it easy to identify exactly where and why the test failed.
+**Key features:**
+
+- **Full traceback**: Complete call stack from inside the hython subprocess, filtered to show relevant frames
+- **Clickable links**: File paths in VS Code's terminal are clickable - jump directly to the error location
+- **Location markers**:
+  - `Tst>` points to where the test function is defined (where to add breakpoints)
+  - `Err>` points to where the actual error occurred in the implementation
+- **Context preservation**: Shows the exact line of code and surrounding call chain that led to the failure
 
 #### HIP File Inspection
 
@@ -449,11 +466,19 @@ The project includes VS Code configuration for optimal development experience:
 **Quick Setup (Recommended):**
 
 ```bash
-# Automated setup script
-./.vscode/setup-vscode.sh
+# Python script (cross-platform, recommended)
+python .vscode/setup.py
+
+# Or use the VS Code task: Terminal → Run Task → "Setup VS Code Workspace
 ```
 
-This script automatically configures VS Code by adding personal configuration files to `.git/info/exclude`, allowing you to customize VS Code settings without affecting other contributors.
+This setup automatically:
+- Configures git to exclude personal VS Code files (`.git/info/exclude`)
+- Creates `.env` from platform-specific example
+- Generates initial debug launcher option lists with `__initialize__` placeholders
+- Attempts to populate option lists if `zabob-houdini` is already installed
+
+The Python script is cross-platform and can be run from any directory within the workspace - it will automatically find the workspace root.
 
 ### Git Exclude Configuration
 

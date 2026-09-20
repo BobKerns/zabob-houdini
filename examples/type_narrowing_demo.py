@@ -6,8 +6,9 @@ This script shows how to use the as_type parameter in .create() to get
 properly typed Houdini node objects for better type safety and IntelliSense.
 """
 
-from zabob_houdini import node
 import hou
+
+from zabob_houdini import znode
 
 
 def main():
@@ -18,16 +19,19 @@ def main():
 
     # Example 1: Basic type narrowing
     print("1. Basic type narrowing:")
-    geo_node = node("/obj", "geo", name="mygeometry")
-    box_node = node(geo_node, "box", name="mybox",
-                   sizex=2.0, sizey=2.0, sizez=2.0)
+    geo_node = znode("/obj", "geo", name="mygeometry")
+    print(f"   Preparing geometry node: {geo_node.path}")
+    box_node = znode(geo_node, "box", name="mybox",
+                     sizex=2.0, sizey=2.0, sizez=2.0)
+    print(f"   Preparing box node: {box_node.path}")
 
     print("   Without type narrowing:")
     print("   geo_instance = geo_node.create()           # Returns hou.Node")
     print("   box_instance = box_node.create()           # Returns hou.Node")
     print()
 
-    print("   With type narrowing:")
+    sop_box_node = box_node.create(as_type=hou.SopNode)  # Returns hou.SopNode
+    print(f"   Created box node with type narrowing: {sop_box_node.path()} (Type: {type(sop_box_node)})")
     print("   # Get specifically-typed nodes for better IntelliSense")
     print("   geo_instance = geo_node.create(as_type=hou.ObjNode)  # Returns hou.ObjNode")
     print("   box_instance = box_node.create(as_type=hou.SopNode)  # Returns hou.SopNode")
@@ -39,21 +43,22 @@ def main():
     print("   - Better IntelliSense in your IDE")
     print("   - Type checking catches errors at development time")
     print("   - Access to type-specific methods without casting")
+    print("   - Actually verifies the node type at runtime")
     print()
 
     print("   Examples of type-specific methods:")
     print("   # SopNode-specific methods")
     print("   sop_node = box_node.create(as_type=hou.SopNode)")
-    print("   # sop_node.geometry()        # Get output geometry")
-    print("   # sop_node.inputGeometry(0)  # Get input geometry")
-    print("   # sop_node.isDisplayFlagSet() # Check display flag")
+    print("   # sop_node.geometry()          # Get output geometry")
+    print("   # sop_node.inputGeometry(0)    # Get input geometry")
+    print("   # sop_node.isDisplayFlagSet()  # Check display flag")
     print()
 
     print("   # ObjNode-specific methods")
     print("   obj_node = geo_node.create(as_type=hou.ObjNode)")
-    print("   # obj_node.worldTransform()   # Get world transform")
-    print("   # obj_node.localTransform()   # Get local transform")
-    print("   # obj_node.isSelectableFlagSet() # Check selectable flag")
+    print("   # obj_node.worldTransform()       # Get world transform")
+    print("   # obj_node.localTransform()       # Get local transform")
+    print("   # obj_node.isSelectableFlagSet()  # Check selectable flag")
     print()
 
     # Example 3: Error handling
@@ -85,12 +90,12 @@ def main():
 
     # Example 5: Using with chains
     print("5. Type narrowing with chains:")
-    print("   # Chains return tuples of NodeInstance objects")
+    print("   # Chains return tuples of ZNode objects")
     print("   from zabob_houdini import chain")
-    print("   processing_chain = chain(geo_node,")
+    print("   processing_chain = zchain(geo_node,")
     print("                           box_node,")
-    print("                           node(geo_node, 'xform', name='transform'),")
-    print("                           node(geo_node, 'subdivide', name='refine'))")
+    print("                           znode(geo_node, 'xform', name='transform'),")
+    print("                           znode(geo_node, 'subdivide', name='refine'))")
     print()
     print("   # Create the chain and get typed nodes")
     print("   chain_instances = processing_chain.create()")

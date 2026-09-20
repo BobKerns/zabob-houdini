@@ -6,8 +6,9 @@ import json
 
 import pytest
 import subprocess
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import patch, Mock
 from zabob_houdini.houdini_bridge import call_houdini_function, _is_in_houdini
+
 
 def message(msg: str) -> str:
     """Helper function to create a message dict."""
@@ -43,7 +44,7 @@ def test_call_houdini_function_subprocess_logic():
         assert result['result']['message'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'houdini_functions', 'test_function', 'arg1', 'arg2'
-        ], check=True, capture_output=True, text=True, env=ANY)
+        ], check=True, capture_output=True, text=True)
 
 
 @pytest.mark.unit
@@ -55,7 +56,9 @@ def test_call_houdini_function_subprocess_error_handling():
 
         mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd', stderr="error message")
 
-        with pytest.raises(RuntimeError, match="ERROR: hython -m zabob_houdini _exec houdini_functions test_function failed: error message"):
+        with pytest.raises(RuntimeError,
+                           match=("ERROR: hython -m zabob_houdini _exec houdini_functions test_function failed: "
+                                  "error message")):
             call_houdini_function('test_function')
 
 
@@ -87,7 +90,7 @@ def test_call_houdini_function_module_parameter():
         assert result['result']['message'] == "test result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'custom_module', 'test_func', 'arg1'
-        ], check=True, capture_output=True, text=True, env=ANY)
+        ], check=True, capture_output=True, text=True)
 
 
 @pytest.mark.unit
@@ -120,6 +123,8 @@ def test_call_houdini_function_direct_execution():
         assert result['success'] is True
         assert 'result' in result
         assert result['result']['message'] == "test result"
+
+
 @pytest.mark.unit
 def test_call_houdini_function_without_hython():
     """Test function call behavior when hython is not available."""
@@ -149,7 +154,7 @@ def test_call_houdini_function_subprocess():
         assert result['result']['message'] == "function result"
         mock_run.assert_called_once_with([
             '/mock/hython', '-m', 'zabob_houdini', '_exec', 'houdini_functions', 'test_function', 'arg1', 'arg2'
-        ], check=True, capture_output=True, text=True, env=ANY)
+        ], check=True, capture_output=True, text=True)
 
 
 @pytest.mark.unit
@@ -161,5 +166,6 @@ def test_call_houdini_function_subprocess_error():
 
         mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd', stderr="error message")
 
-        with pytest.raises(RuntimeError, match="ERROR: hython -m zabob_houdini _exec houdini_functions test_function failed"):
+        with pytest.raises(RuntimeError,
+                           match="ERROR: hython -m zabob_houdini _exec houdini_functions test_function failed"):
             call_houdini_function('test_function')

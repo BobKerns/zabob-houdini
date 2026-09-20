@@ -5,9 +5,24 @@ set -e  # Exit on any error
 
 echo "🚀 Setting up VS Code configuration for Zabob-Houdini..."
 
-# Check if .vscode directory exists
-if [ ! -d ".vscode" ]; then
-    echo "❌ Error: .vscode directory not found. Are you in the project root?"
+# Find the workspace root by searching upward for pyproject.toml
+find_root() {
+    local dir="$PWD"
+    while [ "$dir" != "/" ]; do
+        if [ -f "$dir/pyproject.toml" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
+
+if workspace_root=$(find_root); then
+    cd "$workspace_root" || exit 1
+    echo "📁 Working in: $workspace_root"
+else
+    echo "❌ Error: Could not find workspace root (pyproject.toml not found)"
     exit 1
 fi
 

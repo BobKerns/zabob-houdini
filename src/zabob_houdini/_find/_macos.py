@@ -2,6 +2,9 @@
 Find Houdini installations on macOS systems.
 This module contains functions to locate Houdini installations on macOS systems.
 '''
+
+from __future__ import annotations, _dynamic_import  # noqa: F407 E261 # type: ignore
+
 from collections.abc import Iterable
 from contextlib import suppress
 from pathlib import Path
@@ -39,7 +42,6 @@ def find_installations() -> dict[Version, HoudiniInstall]:
     base_dir = Path('/Applications/Houdini')
     if not base_dir.exists():
         return {}
-
 
     installations = {
         install.houdini_version: install
@@ -88,7 +90,6 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
         if m is not None
     }
 
-
     with suppress(ValueError, TypeError):
         # If we can't parse the version, skip this installation.
         houdini_version = _get_houdini_version(version_dir.name)
@@ -119,29 +120,29 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
             hfs_dir=hfs_dir,
             python_libs=lib_dir,
             hh_dir=hhdir,
-            hdso_libs= hfs_dir / '../Libraries',
+            hdso_libs=hfs_dir / '../Libraries',
             sbin_dir=hhdir / 'sbin',
             toolkit_dir=hhdir / 'toolkit',
             config_dir=hfs_dir / 'config',
             app_paths=app_paths,
-            lib_paths= tuple((
+            lib_paths=tuple((
                *(p
-                    for glob in (
-                        f'houdini/{libname}',
-                        f'packages/*/{libname}',
-                        )
-                    for p in hfs_dir.glob(glob)
-                    if p.is_dir()
-                ),
+                 for glob in (
+                     f'houdini/{libname}',
+                     f'packages/*/{libname}',
+                     )
+                 for p in hfs_dir.glob(glob)
+                 if p.is_dir()
+                 ),
                *(p
-                    for p in (
-                        lib_dir,
-                        lib_dir / 'site-packages',
-                        lib_dir / 'site-packages-forced',
-                        lib_dir / 'site-packages-ui-forced',
-                    )
-                    if p.is_dir()
-               ),
+                 for p in (
+                     lib_dir,
+                     lib_dir / 'site-packages',
+                     lib_dir / 'site-packages-forced',
+                     lib_dir / 'site-packages-ui-forced',
+                 )
+                 if p.is_dir()
+                 ),
             )),
             env_path=tuple(
                 p
@@ -153,6 +154,7 @@ def _process_installation(version_dir: Path) -> Iterable[HoudiniInstall]:
                 if p.is_dir()
             ),
         )
+
 
 if __name__ == "__main__":
     # For testing purposes, we can run this module directly to see the installations found

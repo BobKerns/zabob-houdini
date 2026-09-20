@@ -1,0 +1,6 @@
+
+
+patterns = {
+    'include': ['testing.*'],
+    'exclude': []
+}
